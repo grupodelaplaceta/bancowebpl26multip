@@ -767,6 +767,7 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
   const [iban, setIban] = useState(accounts.find((item) => item.id !== account.id && item.kind === "CITIZEN")?.iban || "");
   const [amount, setAmount] = useState(25);
   const [note, setNote] = useState("Pago GDLP");
+  const [activePopup, setActivePopup] = useState<"transfer" | "cards" | null>(null);
   const history = transactionsFor(account.id, transactions).slice(0, 8);
 
   return (
@@ -783,23 +784,36 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
       </article>
 
       <div className="quick-grid">
+        <button onClick={() => setActivePopup("transfer")}><CircleDollarSign size={20} /> Enviar</button>
         <button onClick={onRbu}><Sparkles size={20} /> RBU</button>
-        <button onClick={onIssueCard}><CreditCard size={20} /> Tarjeta</button>
+        <button onClick={() => setActivePopup("cards")}><CreditCard size={20} /> Tarjetas</button>
         <button onClick={() => window.print()}><Download size={20} /> PDF</button>
       </div>
 
-      <article className="panel transfer-panel">
-        <SectionTitle icon={CircleDollarSign} title="Transferencia GDLP" />
+      <article className="panel action-summary">
+        <SectionTitle icon={WalletCards} title="Accesos de cuenta" />
+        <div className="service-grid">
+          <button onClick={() => setActivePopup("transfer")}><CircleDollarSign size={22} /><strong>Transferir</strong><span>Enviar Pz por IBAN</span></button>
+          <button onClick={() => setActivePopup("cards")}><CreditCard size={22} /><strong>Tarjetas</strong><span>{cards.length ? `${cards.length} vinculadas` : "Emitir una nueva"}</span></button>
+          <button onClick={onRbu}><Sparkles size={22} /><strong>RBU</strong><span>Abono disponible</span></button>
+        </div>
+      </article>
+
+      <History transactions={history} accounts={accounts} />
+
+      <Modal title="Transferencia GDLP" open={activePopup === "transfer"} onClose={() => setActivePopup(null)}>
         <Field label="IBAN destino" value={iban} onChange={setIban} />
         <div className="two-cols">
           <Field label="Importe Pz" value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
           <Field label="Concepto" value={note} onChange={setNote} />
         </div>
-        <button className="primary-button" onClick={() => onTransfer(iban, amount, note)}>Enviar</button>
-      </article>
+        <button className="primary-button" onClick={() => {
+          onTransfer(iban, amount, note);
+          setActivePopup(null);
+        }}>Enviar</button>
+      </Modal>
 
-      <article className="panel">
-        <SectionTitle icon={WalletCards} title="Tarjetas" />
+      <Modal title="Tarjetas" open={activePopup === "cards"} onClose={() => setActivePopup(null)}>
         <div className="cards-stack">
           {cards.map((card) => (
             <button key={card.id} className={`bank-card ${card.frozen ? "frozen" : ""}`} onClick={() => onToggleCard(card.id)}>
@@ -811,9 +825,8 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
           ))}
           {!cards.length && <Empty title="Sin tarjetas" text="Emite una tarjeta digital para esta cuenta." />}
         </div>
-      </article>
-
-      <History transactions={history} accounts={accounts} />
+        <button className="primary-button" onClick={onIssueCard}>Emitir tarjeta digital</button>
+      </Modal>
     </section>
   );
 }
@@ -821,6 +834,7 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
 function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay, onAddContact, onRemoveContact }: { user: UserProfile; account: Account; accounts: Account[]; contacts: { accountId: string }[]; limit: number; spent: number; onPay: (targetId: string, amount: number) => void; onAddContact: (accountId: string) => void; onRemoveContact: (accountId: string) => void }) {
   const [amount, setAmount] = useState(12);
   const [contactQuery, setContactQuery] = useState("");
+  const [contactsOpen, setContactsOpen] = useState(false);
   const [tick, setTick] = useState(0);
   const codeWindow = Math.floor(tick / 120);
   const code = useMemo(() => generatePlacezumCode(account), [account, codeWindow]);
@@ -853,8 +867,19 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
         </div>
         <QrCode size={98} strokeWidth={1.4} />
       </article>
-      <article className="panel">
-        <SectionTitle icon={ScanLine} title="Contactos Placezum" />
+      <article className="panel action-summary">
+        <SectionTitle icon={ScanLine} title="Placezum" />
+        <div className="service-grid">
+          <button onClick={() => setContactsOpen(true)}><QrCode size={22} /><strong>Pagar contacto</strong><span>{favoriteAccounts.length ? `${favoriteAccounts.length} guardados` : "Añadir primero"}</span></button>
+          <button onClick={() => setContactsOpen(true)}><ShieldCheck size={22} /><strong>Contactos</strong><span>Guardar IBAN o Placeta ID</span></button>
+        </div>
+      </article>
+      <article className="panel split-panel">
+        <div><ShieldCheck size={23} /><strong>Límite semanal</strong><span>{formatPz(spent)} de {formatPz(limit)} Pz por Placezum</span></div>
+        <div><Lock size={23} /><strong>Biometría web</strong><span>Confirmación local del navegador</span></div>
+      </article>
+
+      <Modal title="Contactos Placezum" open={contactsOpen} onClose={() => setContactsOpen(false)}>
         <Field label="Importe Pz" value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
         <div className="contact-add">
           <Field label="Añadir por IBAN, Placeta ID o nombre" value={contactQuery} onChange={setContactQuery} placeholder="GDLP-APXX-XXX" />
@@ -884,11 +909,7 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
             ))}
           </div>
         ) : <Empty title="Sin contactos" text="Añade un IBAN real de la app para guardarlo aquí." />}
-      </article>
-      <article className="panel split-panel">
-        <div><ShieldCheck size={23} /><strong>Límite semanal</strong><span>{formatPz(spent)} de {formatPz(limit)} Pz por Placezum</span></div>
-        <div><Lock size={23} /><strong>Biometría web</strong><span>Confirmación local del navegador</span></div>
-      </article>
+      </Modal>
     </section>
   );
 }
@@ -1435,6 +1456,23 @@ function Field({ label, value, onChange, type = "text", placeholder }: { label: 
 
 function SectionTitle({ icon: Icon, title }: { icon: LucideIcon; title: string }) {
   return <h2 className="section-title"><Icon size={20} /> {title}</h2>;
+}
+
+function Modal({ title, open, onClose, children }: { title: string; open: boolean; onClose: () => void; children: React.ReactNode }) {
+  if (!open) return null;
+  return (
+    <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
+      <section className="modal-panel" role="dialog" aria-modal="true" aria-label={title} onMouseDown={(event) => event.stopPropagation()}>
+        <header className="modal-header">
+          <strong>{title}</strong>
+          <button type="button" className="modal-close" aria-label="Cerrar" onClick={onClose}>×</button>
+        </header>
+        <div className="modal-body">
+          {children}
+        </div>
+      </section>
+    </div>
+  );
 }
 
 function MetricCard({ label, value, tone }: { label: string; value: string; tone: "purple" | "green" | "gold" | "red" }) {

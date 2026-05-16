@@ -361,7 +361,7 @@ button:focus-visible, input:focus-visible {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
-.quick-grid button, .contact-grid button {
+.quick-grid button, .contact-grid button, .service-grid button {
   min-height: 82px;
   padding: 12px;
   border-radius: 16px;
@@ -374,12 +374,12 @@ button:focus-visible, input:focus-visible {
   font-weight: 850;
   text-align: center;
 }
-.quick-grid button:hover, .contact-grid button:hover, .fund-list button:hover {
+.quick-grid button:hover, .contact-grid button:hover, .service-grid button:hover, .fund-list button:hover {
   transform: translateY(-1px);
   border-color: rgba(63, 0, 216, .26);
   box-shadow: var(--shadow);
 }
-.quick-grid svg { color: var(--brand); }
+.quick-grid svg, .service-grid svg { color: var(--brand); }
 
 .panel {
   min-width: 0;
@@ -859,6 +859,20 @@ button:focus-visible, input:focus-visible {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+.service-grid button {
+  align-content: center;
+  justify-items: start;
+  text-align: left;
+}
+.service-grid button strong,
+.service-grid button span {
+  display: block;
+}
+.service-grid button span {
+  color: var(--muted);
+  font-size: .86rem;
+  font-weight: 720;
 }
 .contact-grid button {
   min-height: 112px;
@@ -1373,6 +1387,57 @@ button:focus-visible, input:focus-visible {
   justify-content: center;
   gap: 9px;
   text-align: center;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  padding: 18px;
+  background: rgba(23, 19, 34, .34);
+  backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+}
+.modal-panel {
+  width: min(560px, 100%);
+  max-height: min(760px, calc(100vh - 36px));
+  border-radius: 20px;
+  border: 1px solid rgba(63, 0, 216, .14);
+  background: white;
+  box-shadow: 0 24px 70px rgba(23, 19, 34, .22);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.modal-header {
+  min-height: 62px;
+  padding: 14px 16px 12px 18px;
+  border-bottom: 1px solid rgba(23, 19, 34, .08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.modal-header strong {
+  color: var(--ink);
+  font-size: 1.08rem;
+}
+.modal-close {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: rgba(63, 0, 216, .08);
+  color: var(--brand);
+  font-size: 1.4rem;
+  line-height: 1;
+}
+.modal-body {
+  min-height: 0;
+  padding: 18px;
+  overflow: auto;
+  display: grid;
+  gap: 14px;
 }
 
 .login-shell {

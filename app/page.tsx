@@ -29,6 +29,7 @@ import Image from "next/image";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Account,
+  accountTypeLabel,
   AGLDP_ID,
   BankState,
   chargeWeeklyTax,
@@ -921,6 +922,7 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
     .filter((item) => item.listedInvestmentFund || item.id.startsWith("biz-market-"))
     .sort((left, right) => (left.investmentRiskLevel || 3) - (right.investmentRiskLevel || 3));
   const isInvestmentAccount = account.type === "Investment";
+  const isBusinessAccount = account.type === "Business";
   const pending = pendingInvestmentOperations(state, account.id);
   const allResults = investmentResultRows(state, account.id);
   const results = allResults.slice(0, 6);
@@ -937,6 +939,7 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
   const companyReceived = companyBuys.reduce((sum, transaction) => sum + transaction.amountPz, 0);
   const companyPaid = companySettlements.reduce((sum, transaction) => sum + transaction.amountPz, 0);
   const companyNet = companyReceived - companyPaid;
+  const companyRoi = companyReceived > 0 ? Math.round((companyNet / companyReceived) * 100) : 0;
   const companyInvestors = new Set(companyBuys.map((transaction) => transaction.fromAccountId)).size;
   const today = new Date().toISOString().slice(0, 10);
   const dailyInvestmentCount = state.transactions.filter((transaction) =>
@@ -955,6 +958,86 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
     return () => window.clearInterval(timer);
   }, []);
 
+  if (!isInvestmentAccount && !isBusinessAccount) {
+    return (
+      <section className="screen-grid market-grid">
+        <article className="hero-card market-hero">
+          <span>Mercado GDLP</span>
+          <strong>Cuenta no compatible</strong>
+          <p>{account.displayName} es una cuenta {accountTypeLabel(account.type).toLowerCase()}. Selecciona una cuenta de inversión o empresa.</p>
+        </article>
+        <article className="panel market-alert incompatible-panel">
+          <SectionTitle icon={ShieldCheck} title="Inversiones no disponibles" />
+          <p className="muted">Esta sección solo se activa con “Cartera Plazet” para operar o con una cuenta Empresa para ver alta, capital recibido y rentabilidad.</p>
+          <div className="analysis-grid">
+            <div><span>Cuenta actual</span><strong>{account.displayName}</strong></div>
+            <div><span>Tipo</span><strong>{accountTypeLabel(account.type)}</strong></div>
+            <div><span>IBAN</span><strong>{account.iban}</strong></div>
+            <div><span>Estado</span><strong>{account.complianceStatus || "Clear"}</strong></div>
+          </div>
+        </article>
+      </section>
+    );
+  }
+
+  if (isBusinessAccount) {
+    return (
+      <section className="screen-grid market-grid">
+        <article className="hero-card market-hero">
+          <span>Empresa GDLP · detalle de alta</span>
+          <strong>{account.displayName}</strong>
+          <p>{account.listedInvestmentFund ? "Empresa publicada para recibir capital" : "Empresa activa sin publicación de fondo"} · riesgo {account.investmentRiskLevel || 3}/7</p>
+        </article>
+        <div className="metric-grid market-metrics">
+          <MetricCard label="Capital recibido" value={`${formatPz(companyReceived)} Pz`} tone="purple" />
+          <MetricCard label="Liquidado" value={`${formatPz(companyPaid)} Pz`} tone="gold" />
+          <MetricCard label="Rentabilidad" value={`${companyRoi >= 0 ? "+" : ""}${companyRoi}%`} tone={companyRoi >= 0 ? "green" : "red"} />
+          <MetricCard label="Inversores" value={String(companyInvestors)} tone="green" />
+        </div>
+        <article className="panel investment-analysis company-analysis">
+          <SectionTitle icon={Building2} title="Alta de empresa" />
+          <div className="analysis-grid">
+            <div><span>Placeta ID</span><strong>{account.placetaId || "Sin ID"}</strong></div>
+            <div><span>IBAN empresa</span><strong>{account.iban}</strong></div>
+            <div><span>Publicación</span><strong>{account.listedInvestmentFund ? "Activa" : "No publicada"}</strong></div>
+            <div><span>Estado</span><strong>{account.complianceStatus || "Clear"}</strong></div>
+          </div>
+          <p className="muted">Las cuentas empresa no compran desde esta pantalla. Aquí se revisa el alta, el capital recibido y la rentabilidad de las operaciones asociadas.</p>
+        </article>
+        <article className="panel investment-analysis company-analysis">
+          <SectionTitle icon={Sparkles} title="Rentabilidad empresa" />
+          <div className="analysis-grid">
+            <div><span>Saldo neto inversión</span><strong className={companyNet >= 0 ? "good" : "bad"}>{companyNet >= 0 ? "+" : ""}{formatPz(companyNet)} Pz</strong></div>
+            <div><span>Operaciones recibidas</span><strong>{companyBuys.length}</strong></div>
+            <div><span>Operaciones liquidadas</span><strong>{companySettlements.length}</strong></div>
+            <div><span>Capital abierto</span><strong>{formatPz(companyOpen.reduce((sum, operation) => sum + operation.amountPz, 0))} Pz</strong></div>
+          </div>
+          <div className="company-open-list">
+            {companyOpen.length ? companyOpen.slice(0, 6).map((operation) => (
+              <div key={operation.id}>
+                <strong>{formatPz(operation.amountPz)} Pz abiertos</strong>
+                <span>{operation.accountId} · vence {operation.readyAt.slice(11, 16)}</span>
+              </div>
+            )) : <span>Sin capital pendiente de liquidación.</span>}
+          </div>
+        </article>
+        <article className="panel history-panel market-results">
+          <SectionTitle icon={Landmark} title="Actividad de inversión" />
+          {[...companyBuys, ...companySettlements].slice(0, 8).map((transaction) => (
+            <div className="investment-row" key={transaction.id}>
+              <div>
+                <strong>{transaction.kind === "InvestmentBuy" ? "Capital recibido" : "Liquidación enviada"}</strong>
+                <span>{transaction.createdAt.slice(0, 10)} · {transaction.note}</span>
+              </div>
+              <b>{formatPz(transaction.amountPz)} Pz</b>
+            </div>
+          ))}
+          {!companyBuys.length && !companySettlements.length && <Empty title="Sin actividad" text="Las operaciones aparecerán cuando una cartera invierta en esta empresa." />}
+        </article>
+      </section>
+    );
+  }
+
   return (
     <section className="screen-grid market-grid">
       <article className="hero-card market-hero">
@@ -968,12 +1051,6 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
         <MetricCard label="Cupos hoy" value={`${remainingToday}/${state.treasuryConfig.dailyInvestmentLimit}`} tone="green" />
         <MetricCard label="Resultado" value={`${totalNetResult >= 0 ? "+" : ""}${formatPz(totalNetResult)} Pz`} tone={totalNetResult >= 0 ? "green" : "red"} />
       </div>
-      {!isInvestmentAccount && (
-        <article className="panel market-alert">
-          <SectionTitle icon={ShieldCheck} title="Cuenta de inversión" />
-          <p className="muted">{account.type === "Business" ? "Vista empresa: aquí ves cómo van las inversiones que recibe tu empresa/fondo. Para invertir como usuario selecciona “Cartera Plazet”." : "Selecciona la cuenta “Cartera Plazet” para operar. Este mercado usa el sistema Android de inversión 60s."}</p>
-        </article>
-      )}
       <article className="panel investment-analysis">
         <SectionTitle icon={Sparkles} title="Cómo vas" />
         <div className="analysis-grid">
@@ -987,25 +1064,6 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
         </div>
         <p className="muted">{allResults.length ? `Mejor: ${bestResult?.assetName} (${bestResult && bestResult.netResultPz >= 0 ? "+" : ""}${formatPz(bestResult?.netResultPz || 0)} Pz). Peor: ${worstResult?.assetName} (${worstResult && worstResult.netResultPz >= 0 ? "+" : ""}${formatPz(worstResult?.netResultPz || 0)} Pz).` : "Aún no hay suficientes liquidaciones para calcular rendimiento."}</p>
       </article>
-      {account.type === "Business" && (
-        <article className="panel investment-analysis company-analysis">
-          <SectionTitle icon={Building2} title="Análisis empresa" />
-          <div className="analysis-grid">
-            <div><span>Capital recibido</span><strong>{formatPz(companyReceived)} Pz</strong></div>
-            <div><span>Liquidado</span><strong>{formatPz(companyPaid)} Pz</strong></div>
-            <div><span>Saldo neto inversión</span><strong className={companyNet >= 0 ? "good" : "bad"}>{companyNet >= 0 ? "+" : ""}{formatPz(companyNet)} Pz</strong></div>
-            <div><span>Inversores</span><strong>{companyInvestors}</strong></div>
-          </div>
-          <div className="company-open-list">
-            {companyOpen.length ? companyOpen.slice(0, 4).map((operation) => (
-              <div key={operation.id}>
-                <strong>{formatPz(operation.amountPz)} Pz abiertos</strong>
-                <span>{operation.accountId} · vence {operation.readyAt.slice(11, 16)}</span>
-              </div>
-            )) : <span>Sin capital pendiente de liquidación.</span>}
-          </div>
-        </article>
-      )}
       <article className="panel market-ticket">
         <SectionTitle icon={CircleDollarSign} title="Ticket de inversión" />
         <Field label={`Importe Pz · máximo ${formatPz(maxAmount)}`} value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />

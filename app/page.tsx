@@ -5,7 +5,6 @@ import {
   Building2,
   CheckCircle2,
   CircleDollarSign,
-  Contactless,
   CreditCard,
   Download,
   Eye,
@@ -17,6 +16,7 @@ import {
   LogOut,
   MoreHorizontal,
   QrCode,
+  ScanLine,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -414,7 +414,7 @@ function PlacezumScreen({ user, account, accounts, contacts, onPay }: { user: Us
         <QrCode size={98} strokeWidth={1.4} />
       </article>
       <article className="panel">
-        <SectionTitle icon={Contactless} title="Contactos" />
+        <SectionTitle icon={ScanLine} title="Contactos" />
         <Field label="Importe Pz" value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
         <div className="contact-grid">
           {favoriteAccounts.map((target) => (

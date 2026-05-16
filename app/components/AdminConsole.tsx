@@ -12,6 +12,7 @@ const configFields: Array<[keyof TreasuryConfig, string]> = [
   ["operationalTransferTaxPercent", "Tasa operativa %"],
   ["webBridgeCommissionPercent", "Comisión Web/App %"],
   ["weeklyTaxPercent", "Impuesto semanal %"],
+  ["minimumWeeklySalaryPz", "SMI semanal Pz"],
   ["payrollWorkerTaxPercent", "Nómina trabajador %"],
   ["payrollEmployerTaxPercent", "Nómina empresa %"],
   ["personalDeclarationThresholdPz", "Umbral personal"],

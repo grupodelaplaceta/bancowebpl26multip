@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { channelLabel, formatDate, formatPz } from "../../lib/format";
 import type { Account, DigitalCard, LedgerTransaction, TreasuryConfig, UserProfile } from "../../lib/types";
 
@@ -15,34 +15,85 @@ type Session = {
 
 export default function WebBankPage() {
   const [dip, setDip] = useState("");
+  const [password, setPassword] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState("");
   const [destination, setDestination] = useState("");
   const [amount, setAmount] = useState("100");
+  const [investmentAmount, setInvestmentAmount] = useState("100");
+  const [investmentResult, setInvestmentResult] = useState<{ win: boolean; movementPercent: number; returned: number; tax: number; resolvesAt: number } | null>(null);
+  const [countdown, setCountdown] = useState(0);
   const [concept, setConcept] = useState("Transferencia web");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
   const [cardModal, setCardModal] = useState<DigitalCard | null>(null);
-  const [transferOpen, setTransferOpen] = useState(false);
+  const [clientView, setClientView] = useState<"resumen" | "cuentas" | "enviar" | "tarjetas" | "inversiones" | "empresa" | "actividad">("resumen");
 
   const selectedAccount = useMemo(() => {
     if (!session) return null;
     return session.accounts.find((account) => account.id === selectedAccountId) || session.accounts[0] || null;
   }, [session, selectedAccountId]);
+  const totalBalance = useMemo(() => {
+    return session?.accounts.reduce((sum, account) => sum + account.balancePz, 0) || 0;
+  }, [session]);
+  const lastMovement = session?.transactions[0];
+  const transferAmount = Number(amount || 0);
+  const webFeePercent = session?.treasuryConfig.webBridgeCommissionPercent ?? 3;
+  const estimatedFee = Math.ceil((transferAmount * webFeePercent) / 100);
+  const personalLimit = session?.treasuryConfig.personalDeclarationThresholdPz || 500_000;
+  const selectedLimit = selectedAccount?.type === "Business" ? (session?.treasuryConfig.institutionalDeclarationThresholdPz || 10_000_000) : personalLimit;
+  const limitUsed = Math.min(100, Math.round(((selectedAccount?.balancePz || 0) / selectedLimit) * 100));
+  const canInvest = selectedAccount && selectedAccount.type !== "Child" && !selectedAccount.citizenshipTier?.startsWith("Junior");
+  const businessAccounts = session?.accounts.filter((account) => account.type === "Business") || [];
 
-  async function loadSession(event?: FormEvent) {
+  useEffect(() => {
+    if (!investmentResult) return;
+    const timer = window.setInterval(() => {
+      const left = Math.max(0, Math.ceil((investmentResult.resolvesAt - Date.now()) / 1000));
+      setCountdown(left);
+      if (left === 0) {
+        window.clearInterval(timer);
+        window.alert(`Inversión completada: ${investmentResult.win ? "+" : ""}${formatPz(investmentResult.returned)} Pz devueltos`);
+        loadSession();
+      }
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [investmentResult]);
+
+  useEffect(() => {
+    const savedDip = window.localStorage.getItem("placeta.web.activeDip");
+    const savedHash = window.localStorage.getItem("placeta.web.sessionHash");
+    if (savedDip) {
+      setDip(savedDip);
+      loadSession(undefined, savedDip, savedHash || undefined, true);
+    }
+  }, []);
+
+  async function hashPassword(value: string) {
+    const data = new TextEncoder().encode(value);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  async function loadSession(event?: FormEvent, forcedDip?: string, forcedHash?: string, restore = false) {
     event?.preventDefault();
+    const loginDip = (forcedDip || dip).trim().toUpperCase();
+    if (!loginDip) return;
     setLoading(true);
     setStatus("Conectando con Banco de La Placeta...");
     try {
+      const passwordHash = forcedHash || (password ? await hashPassword(password) : undefined);
       const response = await fetch("/api/web-session", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ dip })
+        body: JSON.stringify({ dip: loginDip, passwordHash, restore })
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No se pudo iniciar sesión");
       setSession(data);
+      setDip(loginDip);
+      window.localStorage.setItem("placeta.web.activeDip", loginDip);
+      if (passwordHash) window.localStorage.setItem("placeta.web.sessionHash", passwordHash);
       setSelectedAccountId(data.accounts?.[0]?.id || "");
       setStatus("Sesión web lista");
     } catch (error) {
@@ -50,6 +101,15 @@ export default function WebBankPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function logout() {
+    window.localStorage.removeItem("placeta.web.activeDip");
+    window.localStorage.removeItem("placeta.web.sessionHash");
+    setSession(null);
+    setSelectedAccountId("");
+    setPassword("");
+    setStatus("Sesión cerrada en este navegador");
   }
 
   async function transfer(event: FormEvent) {
@@ -80,6 +140,48 @@ export default function WebBankPage() {
     }
   }
 
+  async function claimRbu() {
+    if (!selectedAccount) return;
+    setLoading(true);
+    try {
+      const response = await fetch("/api/web-rbu", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dip, accountId: selectedAccount.id })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "RBU no disponible");
+      setStatus("RBU reclamada: +5 Pz");
+      await loadSession();
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Error reclamando RBU");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function startInvestment(event: FormEvent) {
+    event.preventDefault();
+    if (!selectedAccount) return;
+    setLoading(true);
+    try {
+      const response = await fetch("/api/web-investment", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dip, accountId: selectedAccount.id, amountPz: Number(investmentAmount) })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Inversión denegada");
+      setInvestmentResult(data.result);
+      setCountdown(60);
+      setStatus("Inversión abierta: resolución en 60 segundos");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Error en inversión");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <main className="webApp">
       {loading && (
@@ -91,15 +193,22 @@ export default function WebBankPage() {
       <section className="webHeader appLikeHeader">
         <div>
           <p className="eyebrow">Banca Web</p>
-          <h1>Tu panel GDLP-W</h1>
-          <p>Todo lo importante del banco en navegador, sin las funciones físicas que pertenecen al móvil.</p>
+          <h1>Panel matriz GDLP-W</h1>
+          <p>La experiencia principal del Banco de La Placeta. La app móvil conserva esta misma imagen y añade las funciones físicas.</p>
         </div>
-        <form className="loginBox" onSubmit={loadSession}>
+        <form className="loginBox" onSubmit={(event) => loadSession(event)}>
           <label>
             DIP
             <input value={dip} onChange={(event) => setDip(event.target.value.toUpperCase())} placeholder="DIP-4829" />
           </label>
-          <button disabled={loading || !dip.trim()}>{loading ? "Cargando" : "Entrar"}</button>
+          {!session && (
+            <label>
+              Clave / PIN
+              <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••" />
+            </label>
+          )}
+          <button disabled={loading || !dip.trim() || (!session && !password.trim())}>{loading ? "Cargando" : "Entrar"}</button>
+          {session && <button type="button" className="softButton" onClick={logout}>Cerrar sesión</button>}
         </form>
       </section>
 
@@ -116,19 +225,108 @@ export default function WebBankPage() {
       )}
 
       {session && (
-        <section className="dashboardGrid">
-          <div className="panel large">
+        <section className="clientShell">
+          <div className="mobileAppSummary">
+            <div className="mobileWelcome">
+              <span>{session.user.displayName || session.user.name || session.user.dip}</span>
+              <button onClick={logout}>Salir</button>
+            </div>
+            <div className="mobileBalanceCard">
+              <small>Saldo total</small>
+              <strong>{formatPz(totalBalance)} Pz</strong>
+              <span>{session.accounts.length} cuentas · {session.cards.length} tarjetas</span>
+              <em>Web matriz del banco</em>
+            </div>
+            <div className="mobileActionGrid">
+              <button onClick={() => setClientView("enviar")}>Enviar</button>
+              <button onClick={() => setClientView("tarjetas")}>Tarjetas</button>
+              <button onClick={() => setClientView("actividad")}>Actividad</button>
+            </div>
+            {lastMovement && (
+              <article className="mobileLastMovement">
+                <span>Último movimiento</span>
+                <strong>{lastMovement.note}</strong>
+                <b>{formatPz(lastMovement.netAmount || lastMovement.amountPz)} Pz</b>
+              </article>
+            )}
+          </div>
+          <nav className="clientTabs" aria-label="Panel cliente">
+            {[
+              ["resumen", "Resumen"],
+              ["cuentas", "Cuentas"],
+              ["enviar", "Enviar"],
+              ["tarjetas", "Tarjetas"],
+              ["inversiones", "Inversiones"],
+              ["empresa", "Empresa"],
+              ["actividad", "Actividad"]
+            ].map(([id, label]) => (
+              <button
+                key={id}
+                className={clientView === id ? "active" : ""}
+                onClick={() => setClientView(id as typeof clientView)}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+
+          {clientView === "resumen" && (
+            <section className="clientDashboard">
+              <div className="panel heroPanel">
+                <span className="kicker">Posición global</span>
+                <h2>{formatPz(totalBalance)} Pz</h2>
+                <p>{session.accounts.length} cuentas activas · {session.cards.length} tarjetas visibles · sesión guardada</p>
+                <div className="quickStrip">
+                  <button onClick={() => setClientView("enviar")}>Enviar dinero</button>
+                  <button onClick={() => setClientView("tarjetas")}>Ver tarjetas</button>
+                  <button onClick={() => setClientView("inversiones")}>Invertir 60s</button>
+                  <button onClick={() => setClientView("actividad")}>Movimientos</button>
+                </div>
+              </div>
+              <div className="panel">
+                <span className="kicker">Cuenta principal</span>
+                <h2>{selectedAccount?.displayName || "Cuenta web"}</h2>
+                <p className="muted">{selectedAccount?.iban}</p>
+                <strong className="bigNumber">{formatPz(selectedAccount?.balancePz || 0)} Pz</strong>
+                <div className="limitBar"><span style={{ width: `${limitUsed}%` }} /></div>
+                <p className="muted">Límite normativo: {formatPz(selectedLimit)} Pz</p>
+              </div>
+              <div className="panel">
+                <span className="kicker">Último movimiento</span>
+                {lastMovement ? (
+                  <article className="movement compactMovement">
+                    <div>
+                      <strong>{lastMovement.note}</strong>
+                      <span>{formatDate(lastMovement.createdAt)} · {lastMovement.concept || lastMovement.kind}</span>
+                    </div>
+                    <b>{formatPz(lastMovement.netAmount || lastMovement.amountPz)} Pz</b>
+                  </article>
+                ) : (
+                  <p className="muted">Sin movimientos todavía.</p>
+                )}
+              </div>
+              <div className="panel">
+                <span className="kicker">Canal</span>
+                <h2>Web matriz</h2>
+                <p className="muted">Para pagos NFC, Promo Cards físicas y funciones especiales, usa la app móvil.</p>
+                <button onClick={claimRbu}>Reclamar RBU semanal</button>
+              </div>
+            </section>
+          )}
+
+          {clientView === "cuentas" && (
+            <section className="panel large">
             <div className="panelHead">
               <div>
-                <span className="kicker">Resumen</span>
+                <span className="kicker">Cuentas</span>
                 <h2>{session.user.displayName || session.user.name || session.user.dip}</h2>
               </div>
               <span className="pill">Comisión puente {session.treasuryConfig.webBridgeCommissionPercent ?? 3}%</span>
             </div>
             <div className="quickStrip">
-              <button onClick={() => setTransferOpen(true)}>Enviar</button>
-              <button onClick={() => document.getElementById("webCards")?.scrollIntoView({ behavior: "smooth" })}>Tarjetas</button>
-              <button onClick={() => document.getElementById("webMovements")?.scrollIntoView({ behavior: "smooth" })}>Movimientos</button>
+              <button onClick={() => setClientView("enviar")}>Enviar</button>
+              <button onClick={() => setClientView("tarjetas")}>Tarjetas</button>
+              <button onClick={() => setClientView("actividad")}>Movimientos</button>
               <button onClick={() => location.assign("/admin")}>Demo admin</button>
             </div>
             <div className="accountGrid">
@@ -145,11 +343,14 @@ export default function WebBankPage() {
                 </button>
               ))}
             </div>
-          </div>
+          </section>
+          )}
 
-          <form className={`panel transferPanel ${transferOpen ? "focusPanel" : ""}`} onSubmit={transfer}>
+          {clientView === "enviar" && (
+          <form className="panel transferPanel focusedScreen" onSubmit={transfer}>
             <span className="kicker">Operar</span>
             <h2>Transferencia por código</h2>
+            <p className="muted">Elige origen, escribe el código o IBAN destino y confirma. La web no inicia pagos por tarjeta.</p>
             <label>
               Cuenta origen
               <select value={selectedAccountId} onChange={(event) => setSelectedAccountId(event.target.value)}>
@@ -173,12 +374,20 @@ export default function WebBankPage() {
               </label>
             </div>
             <button disabled={loading || !destination || !selectedAccount}>Enviar desde web</button>
+            <div className="feePreview">
+              <span>Tasa estimada</span>
+              <strong>{formatPz(estimatedFee)} Pz</strong>
+              <small>{webFeePercent}% si cruza Web/App. La operación registra IP, navegador y timestamp.</small>
+            </div>
             <p className="hint">Si cruza web y app se aplica comisión puente. Las tarjetas no pagan desde navegador.</p>
           </form>
+          )}
 
-          <div className="panel" id="webCards">
+          {clientView === "tarjetas" && (
+          <section className="panel" id="webCards">
             <span className="kicker">Tarjetas</span>
             <h2>Consulta segura</h2>
+            <p className="muted">Aquí se ven tarjetas y Promo Cards ya registradas. Pagar y registrar tarjetas físicas se hace en la app.</p>
             <div className="cardList">
               {session.cards.length === 0 && <p className="muted">No hay tarjetas registradas.</p>}
               {session.cards.map((card) => {
@@ -193,9 +402,59 @@ export default function WebBankPage() {
                 );
               })}
             </div>
-          </div>
+          </section>
+          )}
 
-          <div className="panel movements" id="webMovements">
+          {clientView === "inversiones" && (
+          <section className="panel investmentScreen">
+            <span className="kicker">Mercado 60s</span>
+            <h2>Inversión aleatoria</h2>
+            {!canInvest ? (
+              <p className="muted">Módulo bloqueado para cuentas Junior o infantiles.</p>
+            ) : (
+              <form onSubmit={startInvestment} className="transferPanel">
+                <p className="muted">Introduce una cantidad. El backend resuelve la ganancia o pérdida y la web avisa al terminar el minuto.</p>
+                <label>Capital a arriesgar<input value={investmentAmount} onChange={(event) => setInvestmentAmount(event.target.value.replace(/\D/g, ""))} /></label>
+                <button>Iniciar inversión 60s</button>
+              </form>
+            )}
+            {investmentResult && (
+              <div className="countdownCard">
+                <span>{countdown}s</span>
+                <strong>{investmentResult.win ? "Ganancia preparada" : "Pérdida preparada"}</strong>
+                <p>Resultado: {investmentResult.win ? "+" : "-"}{investmentResult.movementPercent}% · Retención {formatPz(investmentResult.tax)} Pz</p>
+              </div>
+            )}
+          </section>
+          )}
+
+          {clientView === "empresa" && (
+          <section className="clientDashboard">
+            <div className="panel heroPanel">
+              <span className="kicker">Empresa / Asociación</span>
+              <h2>{businessAccounts.length}</h2>
+              <p>Cuentas corporativas asociadas a tu sesión. Límite institucional sincronizado: {formatPz(session.treasuryConfig.institutionalDeclarationThresholdPz || 10_000_000)} Pz.</p>
+            </div>
+            <div className="panel">
+              <span className="kicker">Nóminas</span>
+              <h2>SMI {formatPz(session.treasuryConfig.minimumWeeklySalaryPz || 150)} Pz</h2>
+              <p className="muted">Cotización trabajador {session.treasuryConfig.payrollWorkerTaxPercent || 10}% · empresa {session.treasuryConfig.payrollEmployerTaxPercent || 10}%.</p>
+            </div>
+            <div className="panel">
+              <span className="kicker">Integración</span>
+              <h2>API y Webhooks</h2>
+              <p className="muted">Módulo preparado para Public_Key, Secret_Key, payment.success y logs de conexión IP.</p>
+            </div>
+            <div className="panel">
+              <span className="kicker">RGPD laboral</span>
+              <h2>Responsable de datos</h2>
+              <input placeholder="DIP del responsable" />
+            </div>
+          </section>
+          )}
+
+          {clientView === "actividad" && (
+          <section className="panel movements" id="webMovements">
             <span className="kicker">Movimientos</span>
             <h2>Última actividad</h2>
             {session.transactions.map((transaction) => {
@@ -210,7 +469,8 @@ export default function WebBankPage() {
                 </article>
               );
             })}
-          </div>
+          </section>
+          )}
         </section>
       )}
       {cardModal && (
@@ -230,10 +490,10 @@ export default function WebBankPage() {
       )}
       {session && (
         <nav className="mobileDock">
-          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Inicio</button>
-          <button onClick={() => setTransferOpen(true)}>Enviar</button>
-          <button onClick={() => document.getElementById("webCards")?.scrollIntoView({ behavior: "smooth" })}>Tarjetas</button>
-          <button onClick={() => document.getElementById("webMovements")?.scrollIntoView({ behavior: "smooth" })}>Actividad</button>
+          <button className={clientView === "resumen" ? "active" : ""} onClick={() => setClientView("resumen")}>Inicio</button>
+          <button className={clientView === "enviar" ? "active" : ""} onClick={() => setClientView("enviar")}>Enviar</button>
+          <button className={clientView === "tarjetas" ? "active" : ""} onClick={() => setClientView("tarjetas")}>Tarjetas</button>
+          <button className={clientView === "inversiones" ? "active" : ""} onClick={() => setClientView("inversiones")}>Invertir</button>
         </nav>
       )}
     </main>

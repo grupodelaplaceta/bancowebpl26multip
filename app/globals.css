@@ -7,10 +7,12 @@
   --muted: #6c5878;
   --surface: #ffffff;
   --soft: #f5f1ff;
+  --soft-strong: #ede5ff;
   --mint: #00b894;
   --gold: #d99a00;
   --danger: #d93863;
   --line: rgba(63, 0, 216, 0.15);
+  --shadow: 0 22px 70px rgba(25, 6, 72, 0.12);
 }
 
 * {
@@ -24,7 +26,10 @@ html {
 body {
   margin: 0;
   color: var(--ink);
-  background: #fbfaff;
+  background:
+    radial-gradient(circle at 18% -10%, rgba(63, 0, 216, 0.10), transparent 34rem),
+    radial-gradient(circle at 88% 8%, rgba(0, 184, 148, 0.09), transparent 28rem),
+    #fbfaff;
   font-family: Outfit, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -48,7 +53,7 @@ select {
   justify-content: space-between;
   gap: 24px;
   padding: 14px clamp(18px, 4vw, 54px);
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.82);
   border-bottom: 1px solid var(--line);
   backdrop-filter: blur(18px);
 }
@@ -67,6 +72,18 @@ select {
   font-weight: 900;
 }
 
+.brand > span:last-child {
+  display: grid;
+  line-height: 1.05;
+}
+
+.brand small {
+  color: var(--brand);
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
 .brandMark {
   display: grid;
   width: 36px;
@@ -75,11 +92,24 @@ select {
   color: white;
   background: var(--brand);
   border-radius: 8px;
+  overflow: hidden;
+}
+
+.brandMark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .topbar nav a {
   color: var(--muted);
   font-weight: 750;
+  transition: color 160ms ease, transform 160ms ease;
+}
+
+.topbar nav a:hover {
+  color: var(--brand);
+  transform: translateY(-1px);
 }
 
 .cleanButton {
@@ -106,7 +136,19 @@ select {
 .heroShade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, rgba(23, 12, 42, 0.82), rgba(63, 0, 216, 0.42) 55%, rgba(23, 12, 42, 0.16));
+  background:
+    linear-gradient(90deg, rgba(23, 12, 42, 0.90), rgba(63, 0, 216, 0.58) 55%, rgba(23, 12, 42, 0.18)),
+    radial-gradient(circle at 72% 52%, rgba(255, 255, 255, 0.18), transparent 20rem);
+}
+
+.heroGrain {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 38px 38px;
+  mask-image: linear-gradient(90deg, black, transparent);
 }
 
 .heroContent {
@@ -114,6 +156,7 @@ select {
   width: min(720px, 100%);
   color: white;
   padding-bottom: 8vh;
+  animation: riseIn 700ms ease both;
 }
 
 .wideHero {
@@ -130,9 +173,22 @@ select {
   color: white;
   background: rgba(255, 255, 255, 0.12);
   border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 28px;
+  border-radius: 30px;
   box-shadow: 0 28px 80px rgba(0, 0, 0, 0.26);
   backdrop-filter: blur(22px);
+  animation: floatCard 5s ease-in-out infinite;
+}
+
+.parentBadge {
+  width: fit-content;
+  margin-bottom: 16px;
+  padding: 8px 10px;
+  color: var(--brand);
+  background: white;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .deviceTop {
@@ -170,6 +226,46 @@ select {
   height: 12px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.22);
+}
+
+.heroBadges,
+.brandRail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heroBadges {
+  margin-top: 20px;
+}
+
+.heroBadges span,
+.brandRail span {
+  padding: 8px 11px;
+  font-weight: 900;
+  border-radius: 999px;
+}
+
+.heroBadges span {
+  color: white;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.brandRail {
+  justify-content: center;
+  width: min(1180px, calc(100% - 32px));
+  margin: 18px auto 0;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.brandRail span {
+  color: var(--brand);
+  background: var(--soft);
 }
 
 .eyebrow,
@@ -218,6 +314,14 @@ button {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 900;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.primaryButton:hover,
+.ghostButton:hover,
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(63, 0, 216, 0.18);
 }
 
 .primaryButton,
@@ -225,6 +329,11 @@ button {
   color: white;
   background: var(--brand);
   padding: 13px 18px;
+}
+
+.softButton {
+  color: var(--brand);
+  background: var(--soft);
 }
 
 .ghostButton {
@@ -266,7 +375,9 @@ button {
 .featureGrid,
 .articleGrid,
 .dashboardGrid,
-.accountGrid {
+.accountGrid,
+.clientShell,
+.clientDashboard {
   display: grid;
   gap: 14px;
 }
@@ -287,7 +398,7 @@ button {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  box-shadow: 0 18px 45px rgba(25, 6, 72, 0.07);
+  box-shadow: var(--shadow);
 }
 
 .lift {
@@ -315,29 +426,192 @@ button {
   line-height: 1.7;
 }
 
-.stackedPreview {
+.phoneShowcase {
   display: grid;
-  gap: 14px;
+  place-items: center;
 }
 
-.stackedPreview article {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 18px;
-  background: white;
-  border: 1px solid var(--line);
+.ecosystemBand {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 16px 0 72px;
+}
+
+.ecosystemNode {
+  min-height: 260px;
+  padding: 24px;
   border-radius: 8px;
-  box-shadow: 0 18px 45px rgba(25, 6, 72, 0.08);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
 }
 
-.stackedPreview span {
+.ecosystemNode.parent {
+  color: white;
+  background:
+    linear-gradient(135deg, rgba(63, 0, 216, 0.98), rgba(23, 12, 42, 0.93)),
+    url("/logobanco.jpg");
+  background-size: cover;
+}
+
+.ecosystemNode.child {
+  background: white;
+}
+
+.ecosystemNode span {
+  color: var(--gold);
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.ecosystemNode.parent p,
+.ecosystemNode.parent h2 {
+  color: white;
+}
+
+.ecosystemNode.child h2 {
+  color: var(--brand);
+}
+
+.ecosystemNode p {
   color: var(--muted);
+  line-height: 1.65;
+}
+
+.ecosystemLine {
+  height: 5px;
+  background: linear-gradient(90deg, var(--brand), var(--mint));
+  border-radius: 999px;
+  position: relative;
+}
+
+.ecosystemLine::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-top: 5px solid var(--mint);
+  border-right: 5px solid var(--mint);
+  transform: translateY(-50%) rotate(45deg);
+  border-radius: 2px;
+}
+
+.phoneChrome {
+  width: min(390px, 100%);
+  min-height: 650px;
+  padding: 22px;
+  color: white;
+  background:
+    linear-gradient(180deg, rgba(63, 0, 216, 0.96), rgba(23, 12, 42, 0.96)),
+    url("/logobanco.jpg");
+  background-size: cover;
+  border: 9px solid #12051f;
+  border-radius: 42px;
+  box-shadow: 0 36px 100px rgba(25, 6, 72, 0.28);
+}
+
+.phoneStatus,
+.phoneActions,
+.phoneRows {
+  display: flex;
+  gap: 8px;
+}
+
+.phoneStatus {
+  justify-content: space-between;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.9rem;
   font-weight: 800;
 }
 
-.stackedPreview strong {
+.phoneStatus span {
+  width: 56px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.32);
+  border-radius: 999px;
+}
+
+.phoneBalance {
+  margin: 48px 0 22px;
+}
+
+.phoneBalance small,
+.phoneCard small {
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.phoneBalance strong {
+  display: block;
+  font-size: 3rem;
+}
+
+.phoneActions span {
+  flex: 1;
+  padding: 12px 8px;
+  text-align: center;
+  font-weight: 900;
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+}
+
+.phoneCard {
+  margin-top: 20px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+}
+
+.phoneCard b {
+  display: block;
+  margin-top: 34px;
+  font-size: 1.8rem;
+  letter-spacing: 0.08em;
+}
+
+.phoneRows {
+  display: grid;
+  margin-top: 22px;
+}
+
+.phoneRows i {
+  height: 48px;
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 16px;
+}
+
+.experienceGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding-bottom: 72px;
+}
+
+.experienceGrid article {
+  min-height: 260px;
+  padding: 22px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.experienceGrid span {
   color: var(--brand);
+  font-weight: 900;
+}
+
+.experienceGrid p {
+  color: var(--muted);
+  line-height: 1.65;
 }
 
 .journeyGrid {
@@ -691,7 +965,179 @@ select {
   align-items: start;
 }
 
+.clientShell {
+  align-items: start;
+}
+
+.clientTabs {
+  position: sticky;
+  top: 66px;
+  z-index: 12;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 10px;
+  margin: -4px 0 2px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.clientTabs button {
+  flex: 0 0 auto;
+  color: var(--brand);
+  background: var(--soft);
+  border-radius: 14px;
+  white-space: nowrap;
+}
+
+.clientTabs button.active {
+  color: white;
+  background: var(--brand);
+}
+
+.clientDashboard {
+  grid-template-columns: 1.15fr 0.85fr;
+}
+
+.heroPanel {
+  grid-row: span 2;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  color: white;
+  background:
+    linear-gradient(135deg, rgba(63, 0, 216, 0.98), rgba(23, 12, 42, 0.90)),
+    url("/logobanco.jpg");
+  background-size: cover;
+}
+
+.heroPanel .kicker,
+.heroPanel p {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.heroPanel h2 {
+  color: white;
+  font-size: clamp(3rem, 9vw, 6rem);
+}
+
+.bigNumber {
+  display: block;
+  color: var(--brand);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  line-height: 1;
+}
+
+.limitBar {
+  height: 10px;
+  margin: 14px 0 8px;
+  overflow: hidden;
+  background: var(--soft-strong);
+  border-radius: 999px;
+}
+
+.limitBar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand), var(--mint));
+  border-radius: inherit;
+}
+
+.feePreview,
+.countdownCard {
+  padding: 14px;
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.feePreview {
+  display: grid;
+  gap: 4px;
+}
+
+.feePreview span,
+.feePreview small {
+  color: var(--muted);
+}
+
+.feePreview strong {
+  color: var(--brand);
+  font-size: 1.6rem;
+}
+
+.investmentScreen {
+  width: min(840px, 100%);
+}
+
+.countdownCard {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.countdownCard span {
+  display: grid;
+  width: 92px;
+  height: 92px;
+  place-items: center;
+  margin: 0 auto 10px;
+  color: white;
+  background: var(--brand);
+  border-radius: 999px;
+  font-size: 2rem;
+  font-weight: 900;
+}
+
+.legalFooter {
+  display: grid;
+  gap: 10px;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 28px;
+  padding: 20px;
+  color: var(--muted);
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.legalFooter strong {
+  color: var(--brand);
+}
+
+.legalFooter p {
+  margin-bottom: 0;
+  font-size: 0.92rem;
+}
+
+.legalFooter nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.legalFooter a {
+  color: var(--brand);
+  font-weight: 900;
+}
+
+.compactMovement {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.focusedScreen {
+  width: min(780px, 100%);
+}
+
 .mobileDock {
+  display: none;
+}
+
+.mobileAppSummary {
   display: none;
 }
 
@@ -743,6 +1189,13 @@ select {
   background: #fff;
   border: 1px solid var(--line);
   padding: 14px;
+  border-radius: 12px;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.accountTile:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(25, 6, 72, 0.10);
 }
 
 .accountTile.active {
@@ -775,6 +1228,7 @@ select {
     url("/logobanco.jpg");
   background-size: cover;
   border-radius: 8px;
+  box-shadow: 0 20px 50px rgba(25, 6, 72, 0.18);
 }
 
 .cardButton {
@@ -939,6 +1393,13 @@ select {
   gap: 12px;
   padding: 12px 0;
   border-bottom: 1px solid var(--line);
+  transition: background 160ms ease, padding 160ms ease;
+}
+
+.movement:hover {
+  padding-inline: 10px;
+  background: var(--soft);
+  border-radius: 10px;
 }
 
 .movement strong {
@@ -951,6 +1412,45 @@ select {
 
 .negative {
   color: var(--danger);
+}
+
+@keyframes riseIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes floatCard {
+  0%, 100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(1deg);
+  }
+}
+
+@keyframes softPulse {
+  0%, 100% {
+    box-shadow: 0 22px 70px rgba(63, 0, 216, 0.16);
+  }
+  50% {
+    box-shadow: 0 30px 90px rgba(63, 0, 216, 0.26);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
 }
 
 @media (max-width: 860px) {
@@ -973,9 +1473,12 @@ select {
   .richArticles,
   .dashboardGrid,
   .accountGrid,
+  .clientDashboard,
   .journeyGrid,
   .splitBand,
   .subGrid,
+  .experienceGrid,
+  .ecosystemBand,
   .metricGrid,
   .consoleGrid,
   .accountAdminGrid,
@@ -1022,7 +1525,7 @@ select {
   }
 
   .appLikeHeader {
-    min-height: calc(100vh - 150px);
+    min-height: 560px;
     align-content: end;
     margin-inline: -12px;
     border-radius: 0 0 24px 24px;
@@ -1041,6 +1544,132 @@ select {
 
   .dashboardGrid {
     gap: 12px;
+  }
+
+  .dashboardGrid > .large {
+    display: none;
+  }
+
+  .clientTabs {
+    top: 94px;
+    border-radius: 18px;
+  }
+
+  .clientTabs button {
+    padding: 10px 12px;
+    font-size: 0.86rem;
+  }
+
+  .clientDashboard {
+    gap: 12px;
+  }
+
+  .heroPanel {
+    min-height: 300px;
+    border-radius: 24px;
+  }
+
+  .mobileAppSummary {
+    display: grid;
+    gap: 12px;
+    margin-top: -54px;
+    position: relative;
+    z-index: 3;
+    animation: riseIn 450ms ease both;
+  }
+
+  .mobileWelcome,
+  .mobileActionGrid,
+  .mobileLastMovement,
+  .mobileBalanceCard {
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+  }
+
+  .mobileWelcome {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    background: white;
+    border-radius: 18px;
+  }
+
+  .mobileWelcome span {
+    font-weight: 900;
+  }
+
+  .mobileWelcome button {
+    padding: 9px 12px;
+    color: var(--brand);
+    background: var(--soft);
+    border-radius: 14px;
+  }
+
+  .mobileBalanceCard {
+    padding: 22px;
+    color: white;
+    background:
+      linear-gradient(135deg, rgba(63, 0, 216, 0.98), rgba(23, 12, 42, 0.92)),
+      url("/logobanco.jpg");
+    background-size: cover;
+    border-radius: 24px;
+    animation: softPulse 4s ease-in-out infinite;
+  }
+
+.mobileBalanceCard small,
+.mobileBalanceCard span,
+.mobileBalanceCard em {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.mobileBalanceCard strong {
+    display: block;
+    margin: 4px 0 8px;
+    font-size: clamp(2.6rem, 14vw, 4.8rem);
+    line-height: 0.95;
+  }
+
+  .mobileActionGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 8px;
+    background: white;
+    border-radius: 20px;
+  }
+
+  .mobileActionGrid button {
+    min-width: 0;
+    padding: 13px 8px;
+    color: var(--brand);
+    background: var(--soft);
+    border-radius: 15px;
+  }
+
+  .mobileLastMovement {
+    display: grid;
+    gap: 4px;
+    padding: 14px;
+    background: white;
+    border-radius: 18px;
+  }
+
+  .mobileLastMovement span {
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 850;
+  }
+
+  .mobileLastMovement strong {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .mobileLastMovement b {
+    color: var(--brand);
   }
 
   .accountTile {
@@ -1080,6 +1709,11 @@ select {
     font-size: 0.78rem;
   }
 
+  .mobileDock button.active {
+    color: white;
+    background: var(--brand);
+  }
+
   .consoleApp {
     width: 100%;
     padding: 0 12px 90px;
@@ -1103,4 +1737,43 @@ select {
     background: rgba(251, 250, 255, 0.94);
     backdrop-filter: blur(14px);
   }
+
+  .phoneChrome {
+    min-height: 570px;
+  }
+
+  .brandRail {
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+
+  .experienceGrid {
+    padding-bottom: 46px;
+  }
+
+  .ecosystemBand {
+    padding-bottom: 46px;
+  }
+
+  .ecosystemLine {
+    width: 5px;
+    height: 58px;
+    justify-self: center;
+    background: linear-gradient(180deg, var(--brand), var(--mint));
+  }
+
+  .ecosystemLine::after {
+    right: auto;
+    left: 50%;
+    top: auto;
+    bottom: -2px;
+    transform: translateX(-50%) rotate(135deg);
+  }
+}
+
+.mobileBalanceCard em {
+  display: block;
+  margin-top: 8px;
+  font-style: normal;
+  font-weight: 900;
 }

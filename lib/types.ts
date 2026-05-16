@@ -34,6 +34,9 @@ export type UserProfile = {
   placetaId?: string;
   primaryAccountId?: string;
   role?: string;
+  pinHash?: string;
+  birthDate?: string;
+  realAge?: number;
 };
 
 export type Account = {
@@ -48,6 +51,9 @@ export type Account = {
   complianceStatus?: string;
   listedInvestmentFund?: boolean;
   investmentRiskLevel?: number;
+  sendLimitPz?: number;
+  citizenshipTier?: string;
+  lastRbuClaim?: string;
 };
 
 export type LedgerTransaction = {
@@ -91,6 +97,7 @@ export type TreasuryConfig = {
   operationalTransferTaxPercent?: number;
   webBridgeCommissionPercent?: number;
   weeklyTaxPercent?: number;
+  minimumWeeklySalaryPz?: number;
   payrollWorkerTaxPercent?: number;
   payrollEmployerTaxPercent?: number;
   contactlessLimitPz?: number;
@@ -108,12 +115,24 @@ export type TreasuryConfig = {
   minSupportedVersionCode?: number;
 };
 
+export type AuditLog = {
+  id: string;
+  actorDip?: string;
+  action: string;
+  ip?: string;
+  userAgent?: string;
+  targetId?: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+};
+
 export type BankState = {
   users?: UserProfile[];
   accounts?: Account[];
   transactions?: LedgerTransaction[];
   digitalCards?: DigitalCard[];
   complianceFlags?: ComplianceFlag[];
+  auditLogs?: AuditLog[];
   treasuryConfig?: TreasuryConfig;
   updatedAt?: string | null;
 };

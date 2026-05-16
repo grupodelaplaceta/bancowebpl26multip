@@ -6,6 +6,7 @@ import {
   findDestinationAccount,
   TGLP_ID
 } from "../../../lib/bank";
+import { writeAuditLog } from "../../../lib/audit";
 import { getState, upsertEntity } from "../../../lib/placeta-api";
 import type { Account, BankState } from "../../../lib/types";
 
@@ -52,6 +53,12 @@ export async function POST(request: Request) {
       await upsertEntity("accounts", tglp.id, { ...tglp, balancePz: tglp.balancePz + fee.amount });
     }
     await upsertEntity("transactions", transaction.id, transaction);
+    await writeAuditLog(request, {
+      actorDip: dip,
+      action: "WEB_TRANSFER",
+      targetId: transaction.id,
+      metadata: { from: from.id, to: to.id, amountPz, feePz: fee.amount }
+    });
 
     return NextResponse.json({
       ok: true,

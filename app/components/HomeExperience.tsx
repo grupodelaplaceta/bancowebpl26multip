@@ -6,10 +6,10 @@ import { useState } from "react";
 import { articles } from "../../lib/articles";
 
 const highlights = [
-  ["Cuentas web", "Opera con IBAN GDLP-W desde escritorio, móvil o tablet."],
-  ["Transferencias", "Envía por código o IBAN con una confirmación limpia y directa."],
-  ["Tarjetas", "Consulta tus tarjetas y Promo Cards sin habilitar pagos web."],
-  ["Empresas", "Resumen claro para cuentas de empresa, nóminas y actividad."]
+  ["Web matriz", "El sitio principal del banco: marca, cuentas, artículos y paneles oficiales."],
+  ["App móvil", "La app hereda la misma identidad visual y añade las funciones físicas."],
+  ["Canales conectados", "GDLP-W y GDLP-AP comparten backend, normativa y estado."],
+  ["Administración central", "Admin y Tributos viven mejor en la web, con más espacio y control."]
 ];
 
 const journeys = [
@@ -38,18 +38,25 @@ export default function HomeExperience() {
       <section className="hero editorialHero">
         <Image src="/logobanco.jpg" alt="Banco de La Placeta" fill priority className="heroImage" />
         <div className="heroShade" />
+        <div className="heroGrain" />
         <div className="heroContent wideHero">
-          <p className="eyebrow">Banco de La Placeta</p>
-          <h1>Tu banco también vive en la web.</h1>
+          <p className="eyebrow">Web matriz del Banco de La Placeta</p>
+          <h1>La casa principal de la app.</h1>
           <p>
-            Una experiencia rápida, elegante y conectada con la app para mirar, mover y entender tu dinero sin ruido.
+            La web es el centro oficial de marca, banca y administración. La app móvil nace de esta misma identidad para llevar el banco al bolsillo.
           </p>
           <div className="heroActions">
             <Link className="primaryButton" href="/web">Entrar a banca web</Link>
             <button className="ghostButton cleanButton" onClick={() => setModal("web")}>Ver cómo funciona</button>
           </div>
+          <div className="heroBadges" aria-label="Funciones principales">
+            <span>GDLP-W</span>
+            <span>App GDLP-AP</span>
+            <span>Una sola marca</span>
+          </div>
         </div>
         <div className="heroDevice" aria-hidden="true">
+          <div className="parentBadge">Web matriz</div>
           <div className="deviceTop">
             <span />
             <strong>GDLP-W482-9104</strong>
@@ -64,10 +71,18 @@ export default function HomeExperience() {
         </div>
       </section>
 
+      <section className="brandRail" aria-label="Resumen de canales">
+        <span>Web matriz oficial</span>
+        <span>App móvil derivada</span>
+        <span>Backend único</span>
+        <span>Tributos GDLP</span>
+        <span>Panel empresa</span>
+      </section>
+
       <section className="band introBand">
         <div className="sectionHead">
           <p className="eyebrow">Lo esencial</p>
-          <h2>Más limpio que una oficina. Más amplio que el móvil.</h2>
+          <h2>Una identidad, dos formas de entrar.</h2>
         </div>
         <div className="featureGrid">
           {highlights.map(([title, text]) => (
@@ -82,26 +97,63 @@ export default function HomeExperience() {
       <section className="splitBand">
         <div>
           <p className="eyebrow">Experiencia</p>
-          <h2>La misma Placeta, adaptada al navegador.</h2>
+          <h2>La web manda la imagen. La app la lleva contigo.</h2>
           <p>
-            La web está hecha para sesiones más tranquilas: revisar cuentas, leer el contexto del banco, enviar dinero y ver tarjetas registradas.
+            Todo parte de la web: colores, tono, normativa, paneles y estructura. En móvil se conserva el mismo lenguaje, quitando solo lo que pertenece al escritorio.
           </p>
           <button className="primaryButton cleanButton" onClick={() => setModal("channels")}>Diferencias web/app</button>
         </div>
-        <div className="stackedPreview">
-          <article>
-            <span>Resumen</span>
-            <strong>Saldo total visible</strong>
-          </article>
-          <article>
-            <span>Enviar</span>
-            <strong>Por código o IBAN</strong>
-          </article>
-          <article>
-            <span>Tarjetas</span>
-            <strong>Consulta segura</strong>
-          </article>
+        <div className="phoneShowcase" aria-hidden="true">
+          <div className="phoneChrome">
+            <div className="phoneStatus"><span />Banco Placeta</div>
+            <div className="phoneBalance">
+              <small>Saldo total</small>
+              <strong>24.820 Pz</strong>
+            </div>
+            <div className="phoneActions">
+              <span>Enviar</span>
+              <span>Tarjetas</span>
+              <span>Actividad</span>
+            </div>
+            <div className="phoneCard">
+              <small>Tarjeta virtual</small>
+              <b>482910</b>
+            </div>
+            <div className="phoneRows"><i /><i /><i /></div>
+          </div>
         </div>
+      </section>
+
+      <section className="ecosystemBand">
+        <div className="ecosystemNode parent">
+          <span>Centro</span>
+          <h2>Banco de La Placeta Web</h2>
+          <p>Marca principal, panel cliente, Admin, Tributos, artículos y cuentas GDLP-W.</p>
+        </div>
+        <div className="ecosystemLine" aria-hidden="true" />
+        <div className="ecosystemNode child">
+          <span>Canal móvil</span>
+          <h2>App Banco Placeta</h2>
+          <p>La misma estética y cuenta, con NFC, Promo Cards físicas y funciones Android.</p>
+        </div>
+      </section>
+
+      <section className="experienceGrid">
+        <article>
+          <span>01</span>
+          <h2>Marca madre</h2>
+          <p>La web se presenta como el origen visual y operativo del banco.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h2>App coherente</h2>
+          <p>El panel web móvil usa navegación y jerarquía similares a la app.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h2>Control central</h2>
+          <p>Admin, Tributos y empresas tienen su casa natural en la web.</p>
+        </article>
       </section>
 
       <section className="band">

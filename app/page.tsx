@@ -30,20 +30,34 @@ import {
   Account,
   AGLDP_ID,
   BankState,
-  buyInvestment,
+  chargeWeeklyTax,
   claimRbu,
   demoSeed,
   DigitalCard,
+  emitMoney,
+  finalizeState,
   formatMoneyPz,
   formatPz,
+  forceVatRegularization,
+  addSavedContact,
+  generatePlacezumCode,
   ibanGenerate,
   issueCard,
+  issueOfficialFine,
   LedgerTransaction,
+  investmentResultRows,
   normalizeState,
+  payPlacezum,
+  pendingInvestmentOperations,
+  placezumWeekSpent,
+  removeSavedContact,
+  settleTimedInvestment,
   sha256,
+  startTimedInvestment,
   TGLP_ID,
   toggleCard,
   transferByIban,
+  updateTreasuryConfig,
   UserProfile
 } from "../lib/bank";
 
@@ -185,7 +199,7 @@ export default function BancoPlacetaWeb() {
           accounts={state.accounts}
           transactions={state.transactions}
           cards={state.digitalCards.filter((card) => card.accountId === selectedAccount.id)}
-          onTransfer={(iban, amount, note) => runOperation(() => transferByIban(state, selectedAccount.id, iban, amount, note), "Transferencia GDLP ejecutada")}
+          onTransfer={(iban, amount, note) => runOperation(() => transferByIban(state, selectedAccount.id, iban, amount, note, "Consumption"), "Transferencia GDLP ejecutada")}
           onRbu={() => runOperation(() => claimRbu(state, selectedAccount.id), "RBU abonada")}
           onIssueCard={() => runOperation(() => issueCard(state, selectedAccount.id), "Tarjeta digital emitida")}
           onToggleCard={(cardId) => runOperation(() => toggleCard(state, cardId), "Estado de tarjeta actualizado")}
@@ -197,10 +211,14 @@ export default function BancoPlacetaWeb() {
           user={activeUser}
           account={selectedAccount}
           accounts={state.accounts}
+          limit={state.treasuryConfig.placezumWeeklyLimitPz}
+          spent={placezumWeekSpent(state, selectedAccount.id)}
           contacts={state.savedContacts.filter((contact) => contact.ownerPlacetaId === activeUser.placetaId)}
+          onAddContact={(accountId) => runOperation(() => addSavedContact(state, activeUser.placetaId, accountId), "Contacto guardado")}
+          onRemoveContact={(accountId) => runOperation(() => removeSavedContact(state, activeUser.placetaId, accountId), "Contacto eliminado")}
           onPay={(targetId, amount) => {
             const target = accountsById.get(targetId);
-            if (target) runOperation(() => transferByIban(state, selectedAccount.id, target.iban, amount, `Placezum a ${target.displayName}`, "Placezum"), "Pago Placezum confirmado");
+            if (target) runOperation(() => payPlacezum(state, selectedAccount.id, target.iban, amount, `Placezum a ${target.displayName}`), "Pago Placezum confirmado");
           }}
         />
       )}
@@ -209,12 +227,20 @@ export default function BancoPlacetaWeb() {
         <MarketScreen
           state={state}
           account={selectedAccount}
-          onBuy={(marketId, amount) => runOperation(() => buyInvestment(state, selectedAccount.id, marketId, amount), "Orden de inversión registrada")}
+          onStart={(marketId, amount) => runOperation(() => startTimedInvestment(state, selectedAccount.id, marketId, amount), "Inversión 60s iniciada")}
+          onSettle={(operationId) => {
+            try {
+              const result = settleTimedInvestment(state, operationId);
+              void persist(result.state, `${result.reveal.userWins ? "Resultado a favor" : "Resultado en contra"} · ${formatPz(result.reveal.amountPz)} Pz`);
+            } catch (error) {
+              setToast(error instanceof Error ? error.message : "Resultado no disponible");
+            }
+          }}
         />
       )}
 
       {tab === "hub" && <HubScreen state={state} user={activeUser} />}
-      {tab === "tributos" && <TributosScreen state={state} />}
+      {tab === "tributos" && <TributosScreen state={state} onPersist={(next, message) => void persist(next, message)} />}
       {tab === "admin" && <AdminScreen state={state} onPersist={(next, message) => void persist(next, message)} />}
 
       <nav className="bottom-nav">
@@ -297,12 +323,28 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
       concept: "WELCOME_BONUS",
       IBAN_Origin: admin.iban
     };
-    onRegister({ ...state, users: [...state.users, user], accounts: [...state.accounts, account], transactions: [welcome, ...state.transactions] }, user);
+    const card: DigitalCard = {
+      id: `card-${crypto.randomUUID()}`,
+      accountId,
+      alias: "Placeta Black",
+      tier: "Standard",
+      frozen: false,
+      cardNumber: String(Math.floor(Math.random() * 1000000)).padStart(6, "0"),
+      pin: "0000"
+    };
+    const accounts = state.accounts.map((item) => item.id === AGLDP_ID ? { ...item, balancePz: Math.max(0, item.balancePz - 500) } : item);
+    onRegister(finalizeState({
+      ...state,
+      users: [...state.users, user].sort((left, right) => left.displayName.localeCompare(right.displayName)),
+      accounts: [...accounts, account],
+      transactions: [welcome, ...state.transactions],
+      digitalCards: [...state.digitalCards, card]
+    }), user);
   }
 
   return (
     <main className="login-shell">
-      <Image className="login-bg" src={slide?.assetPath || "/assets/logobanco.jpg"} alt="" fill priority />
+      <Image className="login-bg" src={assetUrl(slide?.assetPath, slide?.imageKey)} alt="" fill priority />
       <div className="login-content">
         <div className="brand-lockup">
           <Image src="/assets/icon2.png" alt="Banco Placeta" width={58} height={58} />
@@ -379,6 +421,7 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
         <div className="cards-stack">
           {cards.map((card) => (
             <button key={card.id} className={`bank-card ${card.frozen ? "frozen" : ""}`} onClick={() => onToggleCard(card.id)}>
+              <Image className="card-art" src={card.promoPhysical ? "/assets/promocard.jpg" : "/assets/VIRTUALCARD.jpg"} alt="" fill sizes="(max-width: 760px) 100vw, 360px" />
               <span>{card.alias}</span>
               <strong>•••• {card.cardNumber}</strong>
               <small>{card.frozen ? "Congelada" : "Activa"} · PIN {card.pin}</small>
@@ -393,15 +436,28 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
   );
 }
 
-function PlacezumScreen({ user, account, accounts, contacts, onPay }: { user: UserProfile; account: Account; accounts: Account[]; contacts: { accountId: string }[]; onPay: (targetId: string, amount: number) => void }) {
+function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay, onAddContact, onRemoveContact }: { user: UserProfile; account: Account; accounts: Account[]; contacts: { accountId: string }[]; limit: number; spent: number; onPay: (targetId: string, amount: number) => void; onAddContact: (accountId: string) => void; onRemoveContact: (accountId: string) => void }) {
   const [amount, setAmount] = useState(12);
-  const code = useMemo(() => {
-    const windowId = Math.floor(Date.now() / 120000);
-    let raw = 0;
-    for (const char of `${account.iban}${windowId}`) raw = Math.abs(raw * 31 + char.charCodeAt(0));
-    return String(raw % 100000).padStart(5, "0");
-  }, [account.iban]);
-  const favoriteAccounts = contacts.map((contact) => accounts.find((account) => account.id === contact.accountId)).filter(Boolean) as Account[];
+  const [contactQuery, setContactQuery] = useState("");
+  const [tick, setTick] = useState(0);
+  const code = useMemo(() => generatePlacezumCode(account), [account.iban, tick]);
+  const normalizedQuery = contactQuery.trim().toUpperCase();
+  const resolvedContact = normalizedQuery
+    ? accounts.find((candidate) =>
+    candidate.id !== account.id &&
+    (candidate.iban.toUpperCase() === normalizedQuery || candidate.placetaId?.toUpperCase() === normalizedQuery || candidate.displayName.toUpperCase().includes(normalizedQuery))
+  )
+    : undefined;
+  const favoriteAccounts = contacts
+    .map((contact) => accounts.find((item) => item.id === contact.accountId))
+    .filter((item): item is Account => Boolean(item) && item.id !== account.id)
+    .filter((item, index, all) => all.findIndex((candidate) => candidate.id === item.id) === index)
+    .sort((left, right) => left.displayName.localeCompare(right.displayName));
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setTick((value) => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <section className="screen-grid">
@@ -414,43 +470,84 @@ function PlacezumScreen({ user, account, accounts, contacts, onPay }: { user: Us
         <QrCode size={98} strokeWidth={1.4} />
       </article>
       <article className="panel">
-        <SectionTitle icon={ScanLine} title="Contactos" />
+        <SectionTitle icon={ScanLine} title="Contactos Placezum" />
         <Field label="Importe Pz" value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
-        <div className="contact-grid">
-          {favoriteAccounts.map((target) => (
-            <button key={target.id} onClick={() => onPay(target.id, amount)}>
-              <span>{target.displayName.slice(0, 1)}</span>
-              <strong>{target.displayName}</strong>
-              <small>{target.placetaId}</small>
-            </button>
-          ))}
+        <div className="contact-add">
+          <Field label="Añadir por IBAN, Placeta ID o nombre" value={contactQuery} onChange={setContactQuery} placeholder="GDLP-APXX-XXX" />
+          <div className={`contact-resolver ${resolvedContact ? "resolved" : ""}`}>
+            <div>
+              <strong>{resolvedContact?.displayName || "Introduce un contacto de la app"}</strong>
+              <span>{resolvedContact ? `${resolvedContact.iban} · código ${generatePlacezumCode(resolvedContact)}` : "Se resolverá nombre, IBAN y Placezum automáticamente"}</span>
+            </div>
+            <button className="mini-action" disabled={!resolvedContact} onClick={() => {
+              if (!resolvedContact) return;
+              onAddContact(resolvedContact.id);
+              setContactQuery("");
+            }}>Guardar</button>
+          </div>
         </div>
+        {favoriteAccounts.length ? (
+          <div className="contact-list">
+            {favoriteAccounts.map((target) => (
+              <div key={target.id} className="contact-item">
+                <button className="contact-pay" onClick={() => onPay(target.id, amount)}>
+                  <span>{target.displayName.slice(0, 1).toUpperCase()}</span>
+                  <strong>{target.displayName}</strong>
+                  <small>{target.iban} · {generatePlacezumCode(target)}</small>
+                </button>
+                <button className="contact-remove" aria-label={`Eliminar ${target.displayName}`} onClick={() => onRemoveContact(target.id)}>Quitar</button>
+              </div>
+            ))}
+          </div>
+        ) : <Empty title="Sin contactos" text="Añade un IBAN real de la app para guardarlo aquí." />}
       </article>
       <article className="panel split-panel">
-        <div><ShieldCheck size={23} /><strong>Límite semanal</strong><span>1.000 Pz por Placezum</span></div>
+        <div><ShieldCheck size={23} /><strong>Límite semanal</strong><span>{formatPz(spent)} de {formatPz(limit)} Pz por Placezum</span></div>
         <div><Lock size={23} /><strong>Biometría web</strong><span>Confirmación local del navegador</span></div>
       </article>
     </section>
   );
 }
 
-function MarketScreen({ state, account, onBuy }: { state: BankState; account: Account; onBuy: (marketId: string, amount: number) => void }) {
+function MarketScreen({ state, account, onStart, onSettle }: { state: BankState; account: Account; onStart: (marketId: string, amount: number) => void; onSettle: (operationId: string) => void }) {
   const [amount, setAmount] = useState(120);
+  const [now, setNow] = useState(Date.now());
   const market = state.accounts.filter((item) => item.listedInvestmentFund || item.id.startsWith("biz-market-"));
-  const holdings = state.investmentHoldings.filter((item) => item.accountId === account.id);
+  const isInvestmentAccount = account.type === "Investment";
+  const pending = pendingInvestmentOperations(state, account.id);
+  const results = investmentResultRows(state, account.id).slice(0, 6);
+  const today = new Date().toISOString().slice(0, 10);
+  const dailyInvestmentCount = state.transactions.filter((transaction) =>
+    transaction.fromAccountId === account.id &&
+    transaction.kind === "InvestmentBuy" &&
+    transaction.createdAt.slice(0, 10) === today
+  ).length;
+  const totalNetResult = results.reduce((sum, row) => sum + row.netResultPz, 0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   return (
     <section className="screen-grid">
       <article className="hero-card market-hero">
         <span>Cartera Plazet</span>
-        <strong>{formatMoneyPz(holdings.reduce((sum, item) => sum + item.currentValuePz, 0))} Pz</strong>
-        <p>{holdings.length} posiciones · riesgo medio {marketRiskLabel(market)}</p>
+        <strong>{formatMoneyPz(account.balancePz)} Pz</strong>
+        <p>{pending.length} abiertas · {dailyInvestmentCount}/{state.treasuryConfig.dailyInvestmentLimit} hoy · {totalNetResult >= 0 ? "+" : ""}{formatPz(totalNetResult)} Pz</p>
       </article>
+      {!isInvestmentAccount && (
+        <article className="panel">
+          <SectionTitle icon={ShieldCheck} title="Cuenta de inversión" />
+          <p className="muted">Selecciona la cuenta “Cartera Plazet” para operar. Este mercado usa el sistema Android de inversión 60s.</p>
+        </article>
+      )}
       <article className="panel">
         <SectionTitle icon={TrendingUp} title="Fondos GDLP" />
-        <Field label="Importe Pz" value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
+        <Field label={`Importe Pz · máximo ${formatPz(state.treasuryConfig.maxInvestmentAmountPz)}`} value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
         <div className="fund-list">
           {market.map((fund) => (
-            <button key={fund.id} onClick={() => onBuy(fund.id, amount)}>
+            <button key={fund.id} disabled={!isInvestmentAccount} onClick={() => onStart(fund.id, amount)}>
               <div>
                 <strong>{fund.displayName}</strong>
                 <span>Riesgo {fund.investmentRiskLevel || 3}/7 · {formatPz(fund.balancePz)} Pz liquidez</span>
@@ -461,57 +558,186 @@ function MarketScreen({ state, account, onBuy }: { state: BankState; account: Ac
         </div>
       </article>
       <article className="panel">
-        <SectionTitle icon={Landmark} title="Mis posiciones" />
-        {holdings.length ? holdings.map((holding) => (
-          <div className="holding-row" key={holding.id}>
-            <div><strong>{holding.assetName}</strong><span>{holding.units} participaciones</span></div>
-            <b>{formatPz(holding.currentValuePz)} Pz</b>
+        <SectionTitle icon={Landmark} title="Operaciones 60s" />
+        {pending.length ? pending.map((operation) => {
+          const secondsLeft = Math.max(0, Math.ceil((Date.parse(operation.readyAt) - now) / 1000));
+          return (
+            <div className="holding-row" key={operation.id}>
+              <div>
+                <strong>{operation.assetName}</strong>
+                <span>{formatPz(operation.amountPz)} Pz · {secondsLeft > 0 ? `faltan ${secondsLeft}s` : "resultado listo"}</span>
+              </div>
+              <button className="mini-action" disabled={secondsLeft > 0} onClick={() => onSettle(operation.id)}>
+                {secondsLeft > 0 ? `${secondsLeft}s` : "Resultado"}
+              </button>
+            </div>
+          );
+        }) : <Empty title="Sin inversiones abiertas" text="Inicia una inversión y vuelve cuando pasen 60 segundos." />}
+      </article>
+      <article className="panel history-panel">
+        <SectionTitle icon={Sparkles} title="Análisis reciente" />
+        {results.length ? results.map((row) => (
+          <div className="holding-row" key={row.id}>
+            <div>
+              <strong>{row.assetName}</strong>
+              <span>{formatPz(row.principalPz)} → {formatPz(row.returnedPz)} Pz · {row.won ? "+" : "-"}{row.movementPercent}%</span>
+            </div>
+            <b>{row.netResultPz >= 0 ? "+" : ""}{formatPz(row.netResultPz)} Pz</b>
           </div>
-        )) : <Empty title="Sin cartera" text="Selecciona un fondo para iniciar una inversión." />}
+        )) : <Empty title="Sin resultados cerrados" text="Los resultados aparecerán al liquidar operaciones 60s." />}
       </article>
     </section>
   );
 }
 
 function HubScreen({ state, user }: { state: BankState; user: UserProfile }) {
+  const userAccounts = state.accounts.filter((account) => account.placetaId === user.placetaId || account.id === user.primaryAccountId);
+  const totalBalance = userAccounts.reduce((sum, account) => sum + account.balancePz, 0);
+  const cards = state.digitalCards.filter((card) => userAccounts.some((account) => account.id === card.accountId));
+  const recent = state.transactions
+    .filter((transaction) => userAccounts.some((account) => account.id === transaction.fromAccountId || account.id === transaction.toAccountId))
+    .slice(0, 5);
+  const pendingInvestments = pendingInvestmentOperations(state).filter((operation) => userAccounts.some((account) => account.id === operation.accountId));
+  const documents = [
+    { title: "Extracto mensual", detail: `${recent.length} movimientos recientes`, icon: Download },
+    { title: "Certificado DIP", detail: `${user.dip} · identidad activa`, icon: ShieldCheck },
+    { title: "Recibos fiscales", detail: `${state.transactions.filter((item) => item.toAccountId === TGLP_ID).length} apuntes tributarios`, icon: Gavel }
+  ];
   return (
-    <section className="screen-grid">
-      <article className="panel support-panel">
-        <SectionTitle icon={Building2} title="Servicios" />
-        <div className="service-grid">
-          <div><Banknote size={24} /><strong>Nómina</strong><span>Alta laboral con retención trabajador/empresa.</span></div>
-          <div><ShieldCheck size={24} /><strong>DIP</strong><span>{user.dip} · {user.placetaId}</span></div>
-          <div><CreditCard size={24} /><strong>Tarjeta física</strong><span>Promocard y NFC se gestionan desde la app Android.</span></div>
-          <div><Download size={24} /><strong>Documentos</strong><span>Extractos, recibos fiscales y certificados.</span></div>
+    <section className="screen-grid hub-grid">
+      <article className="hero-card hub-hero">
+        <span>Hub ciudadano · {user.dip}</span>
+        <strong>{formatMoneyPz(totalBalance)} Pz</strong>
+        <p>{userAccounts.length} cuentas · {cards.length} tarjetas · {pendingInvestments.length} inversiones 60s abiertas</p>
+      </article>
+
+      <div className="metric-grid">
+        <MetricCard label="Saldo total" value={`${formatPz(totalBalance)} Pz`} tone="purple" />
+        <MetricCard label="Cuentas" value={String(userAccounts.length)} tone="green" />
+        <MetricCard label="Tarjetas" value={String(cards.length)} tone="gold" />
+        <MetricCard label="60s abiertas" value={String(pendingInvestments.length)} tone="red" />
+      </div>
+
+      <article className="panel hub-panel">
+        <SectionTitle icon={Building2} title="Centro de servicios" />
+        <div className="hub-service-grid">
+          <div><Banknote size={24} /><strong>Nómina GDLP</strong><span>Alta laboral con retención trabajador/empresa y trazabilidad fiscal.</span></div>
+          <div><ShieldCheck size={24} /><strong>DIP verificado</strong><span>{user.dip} · {user.placetaId}</span></div>
+          <div><CreditCard size={24} /><strong>Tarjetas</strong><span>{cards.filter((card) => !card.frozen).length} activas · Promo Card y virtual.</span></div>
+          <div><TrendingUp size={24} /><strong>Mercado 60s</strong><span>{pendingInvestments.length ? "Resultados pendientes disponibles pronto." : "Sin operaciones abiertas."}</span></div>
         </div>
       </article>
-      <article className="panel">
+
+      <article className="panel hub-panel">
+        <SectionTitle icon={Landmark} title="Cuentas vinculadas" />
+        {userAccounts.map((account) => (
+          <div className="account-row" key={account.id}>
+            <div>
+              <strong>{account.displayName}</strong>
+              <span>{account.type} · {account.iban}</span>
+            </div>
+            <b>{formatPz(account.balancePz)} Pz</b>
+          </div>
+        ))}
+      </article>
+
+      <article className="panel hub-panel">
+        <SectionTitle icon={Download} title="Documentos" />
+        <div className="document-grid">
+          {documents.map((doc) => {
+            const Icon = doc.icon;
+            return (
+              <button key={doc.title}>
+                <Icon size={22} />
+                <span><strong>{doc.title}</strong><small>{doc.detail}</small></span>
+              </button>
+            );
+          })}
+        </div>
+      </article>
+
+      <article className="panel hub-panel">
         <SectionTitle icon={Sparkles} title="Promos activas" />
         <div className="promo-list">
           {state.promoSlides.map((slide) => (
             <div key={slide.id}>
-              <strong>{slide.title}</strong>
-              <span>{slide.subtitle}</span>
+              <Image src={assetUrl(slide.assetPath, slide.imageKey)} alt="" width={58} height={58} />
+              <span>
+                <strong>{slide.title}</strong>
+                <small>{slide.subtitle}</small>
+              </span>
             </div>
           ))}
+        </div>
+      </article>
+
+      <article className="panel hub-panel">
+        <SectionTitle icon={MoreHorizontal} title="Soporte y actividad" />
+        <div className="support-thread">
+          <div><strong>Canal soporte</strong><span>Prioridad normal · respuesta operativa GDLP.</span></div>
+          <div><strong>Estado cuenta</strong><span>{state.complianceFlags.some((flag) => userAccounts.some((account) => account.id === flag.accountId)) ? "Revisión fiscal pendiente" : "Sin incidencias activas"}</span></div>
+        </div>
+        <div className="mini-feed">
+          {recent.length ? recent.map((transaction) => (
+            <div key={transaction.id}>
+              <span>{transaction.kind}</span>
+              <strong>{formatPz(transaction.amountPz)} Pz</strong>
+            </div>
+          )) : <Empty title="Sin actividad" text="Tus movimientos aparecerán aquí." />}
         </div>
       </article>
     </section>
   );
 }
 
-function TributosScreen({ state }: { state: BankState }) {
+function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (state: BankState, message: string) => void }) {
   const tglp = state.accounts.find((item) => item.id === TGLP_ID);
+  const citizenAccounts = state.accounts.filter((account) => account.kind === "CITIZEN").sort((a, b) => b.balancePz - a.balancePz);
+  const [targetId, setTargetId] = useState(citizenAccounts[0]?.id || "");
+  const [fineAmount, setFineAmount] = useState(50);
+  const [vatBase, setVatBase] = useState(100);
+  const target = state.accounts.find((account) => account.id === targetId) || citizenAccounts[0];
   const iva = state.transactions.reduce((sum, item) => sum + (item.ivaPz || 0), 0);
+  const todayTax = state.transactions.filter((item) => item.toAccountId === TGLP_ID && item.createdAt.slice(0, 10) === new Date().toISOString().slice(0, 10)).reduce((sum, item) => sum + item.amountPz + item.ivaPz, 0);
+  const pendingExternal = state.transactions.filter((item) => item.kind === "ExternalBlocked" && item.status === "Pending").length;
+  const fiscalTx = state.transactions.filter((item) => item.toAccountId === TGLP_ID || item.fromAccountId === TGLP_ID).slice(0, 10);
   return (
-    <section className="screen-grid">
-      <article className="hero-card tributos-hero">
-        <span>TGLP Tributos</span>
+    <section className="screen-grid admin-grid purple-suite">
+      <article className="hero-card tributos-hero admin-command">
+        <span>TGLP · Centro fiscal</span>
         <strong>{formatMoneyPz(tglp?.balancePz || 0)} Pz</strong>
-        <p>IVA recaudado en historial: {formatPz(iva)} Pz</p>
+        <p>IVA acumulado {formatPz(iva)} Pz · {state.complianceFlags.length} alertas · {pendingExternal} externas pendientes</p>
       </article>
-      <History transactions={state.transactions.filter((item) => item.toAccountId === TGLP_ID || item.fromAccountId === TGLP_ID).slice(0, 10)} accounts={state.accounts} />
-      <article className="panel">
+
+      <div className="metric-grid">
+        <MetricCard label="Recaudado hoy" value={`${formatPz(todayTax)} Pz`} tone="purple" />
+        <MetricCard label="IVA histórico" value={`${formatPz(iva)} Pz`} tone="gold" />
+        <MetricCard label="Expedientes" value={String(state.complianceFlags.length)} tone="red" />
+        <MetricCard label="Cuentas auditables" value={String(citizenAccounts.length)} tone="green" />
+      </div>
+
+      <article className="panel admin-panel">
+        <SectionTitle icon={Gavel} title="Acciones fiscales" />
+        <label className="field">
+          <span>Cuenta objetivo</span>
+          <select value={target?.id || ""} onChange={(event) => setTargetId(event.target.value)}>
+            {citizenAccounts.map((account) => (
+              <option key={account.id} value={account.id}>{account.displayName} · {formatPz(account.balancePz)} Pz</option>
+            ))}
+          </select>
+        </label>
+        <div className="two-cols">
+          <Field label="Multa Pz" value={String(fineAmount)} onChange={(value) => setFineAmount(Number(value) || 0)} type="number" />
+          <Field label="Base IVA Pz" value={String(vatBase)} onChange={(value) => setVatBase(Number(value) || 0)} type="number" />
+        </div>
+        <div className="action-grid">
+          <button className="primary-button" disabled={!target} onClick={() => target && onPersist(chargeWeeklyTax(state, target.id), "Impuesto semanal cargado")}>Cobrar semanal</button>
+          <button className="secondary-button" disabled={!target} onClick={() => target && onPersist(issueOfficialFine(state, target.id, fineAmount), "Multa oficial emitida")}>Emitir multa</button>
+          <button className="secondary-button" disabled={!target} onClick={() => target && onPersist(forceVatRegularization(state, target.id, vatBase), "IVA regularizado")}>Regularizar IVA</button>
+        </div>
+      </article>
+
+      <article className="panel admin-panel">
         <SectionTitle icon={Gavel} title="Alertas fiscales" />
         {state.complianceFlags.length ? state.complianceFlags.map((flag) => (
           <div className="holding-row" key={flag.id}>
@@ -520,31 +746,92 @@ function TributosScreen({ state }: { state: BankState }) {
           </div>
         )) : <Empty title="Sin alertas" text="No hay expedientes fiscales pendientes." />}
       </article>
+
+      <article className="panel admin-panel">
+        <SectionTitle icon={TrendingUp} title="Ranking de balances" />
+        {citizenAccounts.slice(0, 8).map((account, index) => (
+          <div className="holding-row" key={account.id}>
+            <div><strong>#{index + 1} · {account.displayName}</strong><span>{account.iban} · {account.type}</span></div>
+            <b>{formatPz(account.balancePz)} Pz</b>
+          </div>
+        ))}
+      </article>
+
+      <History transactions={fiscalTx} accounts={state.accounts} />
     </section>
   );
 }
 
 function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state: BankState, message: string) => void }) {
   const [amount, setAmount] = useState(1000);
+  const [weeklyTax, setWeeklyTax] = useState(state.treasuryConfig.weeklyTaxPercent);
+  const [opTax, setOpTax] = useState(state.treasuryConfig.operationalTransferTaxPercent);
+  const [placezumLimit, setPlacezumLimit] = useState(state.treasuryConfig.placezumWeeklyLimitPz);
+  const [investmentMax, setInvestmentMax] = useState(state.treasuryConfig.maxInvestmentAmountPz);
+  const [dailyInvestmentLimit, setDailyInvestmentLimit] = useState(state.treasuryConfig.dailyInvestmentLimit);
   const agldp = state.accounts.find((item) => item.id === AGLDP_ID);
+  const totalMoney = state.accounts.reduce((sum, account) => sum + Math.max(0, account.balancePz), 0);
+  const businessCount = state.accounts.filter((account) => account.type === "Business").length;
+  const pendingRequests = state.subsidyRequests.filter((request) => request.status === "Pending").length;
   return (
-    <section className="screen-grid">
-      <article className="hero-card admin-hero">
-        <span>AGLDP Administración</span>
+    <section className="screen-grid admin-grid purple-suite">
+      <article className="hero-card admin-hero admin-command">
+        <span>AGLDP · Panel soberano</span>
         <strong>{formatMoneyPz(agldp?.balancePz || 0)} Pz</strong>
-        <p>{state.users.length} usuarios · {state.accounts.length} cuentas</p>
+        <p>{state.users.length} usuarios · {state.accounts.length} cuentas · masa {formatPz(totalMoney)} Pz</p>
       </article>
-      <article className="panel">
+
+      <div className="metric-grid">
+        <MetricCard label="Masa monetaria" value={`${formatPz(totalMoney)} Pz`} tone="purple" />
+        <MetricCard label="Empresas" value={String(businessCount)} tone="green" />
+        <MetricCard label="Promos" value={String(state.promoSlides.length)} tone="gold" />
+        <MetricCard label="Solicitudes" value={String(pendingRequests)} tone="red" />
+      </div>
+
+      <article className="panel admin-panel">
         <SectionTitle icon={Landmark} title="Emisión monetaria" />
         <Field label="Importe Pz" value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
-        <button className="primary-button" onClick={() => {
-          const accounts = state.accounts.map((account) => account.id === AGLDP_ID ? { ...account, balancePz: account.balancePz + amount } : account);
-          onPersist({ ...state, accounts, updatedAt: new Date().toISOString() }, "Emisión monetaria aplicada");
-        }}>Emitir hacia AGLDP</button>
+        <button className="primary-button" onClick={() => onPersist(emitMoney(state, amount), "Emisión monetaria aplicada")}>Emitir hacia AGLDP</button>
       </article>
-      <article className="panel">
-        <SectionTitle icon={WifiOff} title="Estado remoto" />
-        <p className="muted">La app sincroniza con la API firmada de Banco Placeta. Si Vercel o Mongo no responden, los cambios quedan guardados localmente en este navegador.</p>
+
+      <article className="panel admin-panel">
+        <SectionTitle icon={ShieldCheck} title="Configuración normativa" />
+        <div className="config-grid">
+          <Field label="Impuesto semanal %" value={String(weeklyTax)} onChange={(value) => setWeeklyTax(Number(value) || 0)} type="number" />
+          <Field label="Tasa operativa %" value={String(opTax)} onChange={(value) => setOpTax(Number(value) || 0)} type="number" />
+          <Field label="Placezum semanal" value={String(placezumLimit)} onChange={(value) => setPlacezumLimit(Number(value) || 0)} type="number" />
+          <Field label="Máx inversión" value={String(investmentMax)} onChange={(value) => setInvestmentMax(Number(value) || 0)} type="number" />
+          <Field label="Inversiones/día" value={String(dailyInvestmentLimit)} onChange={(value) => setDailyInvestmentLimit(Number(value) || 0)} type="number" />
+        </div>
+        <button className="primary-button" onClick={() => onPersist(updateTreasuryConfig(state, {
+          weeklyTaxPercent: weeklyTax,
+          operationalTransferTaxPercent: opTax,
+          placezumWeeklyLimitPz: placezumLimit,
+          maxInvestmentAmountPz: investmentMax,
+          dailyInvestmentLimit
+        }), "Configuración normativa guardada")}>Guardar configuración</button>
+      </article>
+
+      <article className="panel admin-panel">
+        <SectionTitle icon={WifiOff} title="Operación remota" />
+        <div className="ops-list">
+          <div><strong>API firmada</strong><span>Proxy server-side `/api/bank-state` con HMAC compatible con Android.</span></div>
+          <div><strong>Estado local</strong><span>Fallback en navegador si Mongo/Vercel no responde.</span></div>
+          <div><strong>Auditoría</strong><span>{state.complianceFlags.length} flags activos · {state.transactions.length} movimientos.</span></div>
+        </div>
+      </article>
+
+      <article className="panel admin-panel history-panel">
+        <SectionTitle icon={Building2} title="Usuarios y cuentas" />
+        {state.users.map((user) => {
+          const account = state.accounts.find((item) => item.id === user.primaryAccountId);
+          return (
+            <div className="holding-row" key={user.dip}>
+              <div><strong>{user.displayName}</strong><span>{user.dip} · {user.placetaId}</span></div>
+              <b>{formatPz(account?.balancePz || 0)} Pz</b>
+            </div>
+          );
+        })}
       </article>
     </section>
   );
@@ -585,6 +872,15 @@ function SectionTitle({ icon: Icon, title }: { icon: LucideIcon; title: string }
   return <h2 className="section-title"><Icon size={20} /> {title}</h2>;
 }
 
+function MetricCard({ label, value, tone }: { label: string; value: string; tone: "purple" | "green" | "gold" | "red" }) {
+  return (
+    <div className={`metric-card ${tone}`}>
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
 function StatusPill({ sync }: { sync: "loading" | "online" | "offline" }) {
   return <span className={`status-pill ${sync}`}>{sync === "online" ? "Mongo conectado" : sync === "loading" ? "Sincronizando" : "Modo local"}</span>;
 }
@@ -597,9 +893,11 @@ function transactionsFor(accountId: string, transactions: LedgerTransaction[]) {
   return transactions.filter((item) => item.fromAccountId === accountId || item.toAccountId === accountId).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
-function marketRiskLabel(accounts: Account[]) {
-  const avg = accounts.reduce((sum, item) => sum + (item.investmentRiskLevel || 3), 0) / Math.max(1, accounts.length);
-  if (avg < 3) return "bajo";
-  if (avg < 5) return "medio";
-  return "alto";
+function assetUrl(path?: string | null, imageKey = "bank") {
+  if (path?.startsWith("http") || path?.startsWith("/")) return path;
+  if (path?.startsWith("promos/")) return `/assets/${path}`;
+  if (path) return `/assets/${path}`;
+  if (imageKey === "placezum") return "/assets/promos/placezum-default.png";
+  if (imageKey === "market") return "/assets/promos/mercado-default.png";
+  return "/assets/promos/banco-default.png";
 }

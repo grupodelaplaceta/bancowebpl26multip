@@ -234,6 +234,33 @@ export const treasuryDefaults: TreasuryConfig = {
   lastSavingsInterestDate: null
 };
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
+}
+
+export function normalizeTreasuryConfig(config: Partial<TreasuryConfig> = {}): TreasuryConfig {
+  const next = { ...treasuryDefaults, ...config };
+  return {
+    ...next,
+    operationalTransferTaxPercent: clamp(next.operationalTransferTaxPercent, 0, VAT_PERCENT),
+    webBridgeCommissionPercent: clamp(next.webBridgeCommissionPercent, 0, VAT_PERCENT),
+    placezumWeeklyLimitPz: clamp(next.placezumWeeklyLimitPz, 0, 1000000),
+    weeklyTaxPercent: clamp(next.weeklyTaxPercent, 0, 25),
+    minimumWeeklySalaryPz: clamp(next.minimumWeeklySalaryPz, 1, 10000),
+    payrollWorkerTaxPercent: clamp(next.payrollWorkerTaxPercent, 0, 35),
+    payrollEmployerTaxPercent: clamp(next.payrollEmployerTaxPercent, 0, 35),
+    savingsInterestAnnualPercent: clamp(next.savingsInterestAnnualPercent, 0, 12),
+    juniorSavingsInterestAnnualPercent: clamp(next.juniorSavingsInterestAnnualPercent, 0, 12),
+    lateTaxInterestAnnualPercent: clamp(next.lateTaxInterestAnnualPercent, 0, 100),
+    lotteryTaxPercent: clamp(next.lotteryTaxPercent, 0, 100),
+    investmentProfitTaxPercent: clamp(next.investmentProfitTaxPercent, 0, 100),
+    investmentGainCommissionPercent: clamp(next.investmentGainCommissionPercent, 0, 100),
+    maxInvestmentAmountPz: clamp(next.maxInvestmentAmountPz, 1, 1200),
+    dailyInvestmentLimit: clamp(next.dailyInvestmentLimit, 1, 250),
+    minSupportedVersionCode: Math.max(1, Math.floor(next.minSupportedVersionCode || 1))
+  };
+}
+
 export function formatPz(amount: number) {
   return Math.round(amount).toLocaleString("es-ES");
 }
@@ -333,10 +360,7 @@ export function demoSeed(): BankState {
       txn("txn-demo-4", "InvestmentBuy", "u-alba-invest", "biz-market-cristal", 300, 21, "Inversión 60s iniciada: Cristal Escaso", "InvestmentBuy")
     ],
     subsidyRequests: [],
-    investmentHoldings: [
-      { id: "hold-1", accountId: "u-alba-invest", assetName: "Taller Dario SA", units: 7, currentValuePz: 840, performance: [760, 780, 820, 790, 840] },
-      { id: "hold-2", accountId: "u-alba-invest", assetName: "Cristal Escaso", units: 3, currentValuePz: 510, performance: [400, 430, 470, 460, 510] }
-    ],
+    investmentHoldings: [],
     investmentOperations: [],
     digitalCards: [
       { id: "card-alba", accountId: "u-alba", alias: "Placeta Black", tier: "Standard", frozen: false, cardNumber: "183042", pin: "0000", released: true },
@@ -347,9 +371,9 @@ export function demoSeed(): BankState {
       { id: "contact-lia", ownerPlacetaId: "ALBA-001", accountId: "u-lia", createdAt: now }
     ],
     promoSlides: [
-      { id: "01", title: "BANCO PLACETA", subtitle: "Servicios GDLP, cuentas oficiales y Placezum en tiempo real", action: "Login", imageKey: "bank", assetPath: "/assets/logobanco.jpg" },
-      { id: "02", title: "PLACEZUM", subtitle: "Paga con código temporal, contacto o tarjeta promocional", action: "Demo", imageKey: "placezum", assetPath: "/assets/promocard.jpg" },
-      { id: "03", title: "MERCADO PLACETA", subtitle: "Fondos, empresas y cartera Plazet con liquidación fiscal", action: "Register", imageKey: "market", assetPath: "/assets/actu.jpg" }
+      { id: "promo-1", title: "BANCO PLACETA", subtitle: "Tu centro financiero seguro, claro y siempre a mano.", action: "Login", imageKey: "bank", assetPath: "promos/banco-default.png" },
+      { id: "promo-2", title: "PLACEZUM", subtitle: "Pagos rápidos con IBAN GDLP-APXX-XXX y control total.", action: "Register", imageKey: "placezum", assetPath: "promos/placezum-default.png" },
+      { id: "promo-3", title: "MERCADO GDLP", subtitle: "Invierte, revisa movimientos y descarga documentos fiscales.", action: "Demo", imageKey: "market", assetPath: "promos/mercado-default.png" }
     ],
     treasuryConfig: treasuryDefaults,
     complianceFlags: [],
@@ -385,7 +409,7 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
     users: input.users?.length ? input.users : seed.users,
     accounts: input.accounts?.length ? input.accounts : seed.accounts,
     transactions: input.transactions?.length ? input.transactions : seed.transactions,
-    treasuryConfig: { ...treasuryDefaults, ...(input.treasuryConfig || {}) },
+    treasuryConfig: normalizeTreasuryConfig(input.treasuryConfig || {}),
     promoSlides: input.promoSlides?.length ? input.promoSlides : seed.promoSlides,
     updatedAt: input.updatedAt || seed.updatedAt
   };
@@ -397,32 +421,110 @@ export function applyTransactions(current: LedgerTransaction[], incoming: Ledger
   return [...byId.values()].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
 }
 
+export function finalizeState(state: BankState): BankState {
+  const config = normalizeTreasuryConfig(state.treasuryConfig);
+  return {
+    ...state,
+    treasuryConfig: config,
+    transactions: [...state.transactions].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    complianceFlags: buildAuditFlags(state.accounts, state.transactions, state.complianceFlags, config),
+    updatedAt: new Date().toISOString()
+  };
+}
+
 export function transferByIban(state: BankState, fromId: string, targetIban: string, amountPz: number, note: string, kind: TransactionKind = "Placezum") {
   const accounts = state.accounts.map((item) => ({ ...item }));
   const from = accounts.find((item) => item.id === fromId);
   if (!from) throw new Error("Cuenta emisora no encontrada");
   if (amountPz <= 0) throw new Error("El monto debe ser superior a 0 Pz");
-  if (from.type === "Savings" && from.huchaLocked) throw new Error("Hucha bloqueada: desbloquea la cuenta de ahorro para enviar dinero");
-  if (from.type === "Child" && amountPz > (from.sendLimitPz || Number.MAX_SAFE_INTEGER)) throw new Error("Control parental: límite infantil superado");
-  if (!isOfficialIban(targetIban)) throw new Error("Entidad No Reconocida");
+  if (from.balancePz < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Mínimo Vital");
+  if (!isOfficialIban(targetIban)) {
+    if (requiresDeclaration(from, state.treasuryConfig)) {
+      throw new Error("Declaración obligatoria: adjunta justificación de fondos antes de transferencias externas");
+    }
+    const transaction = makeTransaction("ExternalBlocked", from, targetIban, amountPz, 0, `Entidad No Reconocida: ${note}`);
+    transaction.status = "Pending";
+    transaction.concept = kind;
+    return finalizeState({
+      ...state,
+      transactions: applyTransactions(state.transactions, [transaction])
+    });
+  }
   const to = accounts.find((item) => item.iban.toUpperCase() === targetIban.toUpperCase());
   if (!to) throw new Error("IBAN oficial no localizado");
-  const fee = Math.ceil((amountPz * state.treasuryConfig.operationalTransferTaxPercent) / 100);
-  const total = amountPz + fee;
-  if (from.balancePz < total) throw new Error("Saldo insuficiente");
-  if (from.balancePz - total < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada para garantizar tu Renta Básica");
+  if (kind === "Consumption" || kind === "Placezum") {
+    return transferConsumption(state, fromId, to.id, amountPz, note, kind);
+  }
+  if (kind === "PayrollLoan") {
+    return transferPayrollOrLoan(state, fromId, to.id, amountPz, note);
+  }
+  if (from.type === "Savings" && from.huchaLocked) throw new Error("Hucha bloqueada: desbloquea la cuenta de ahorro para enviar dinero");
+  if (from.type === "Child" && amountPz > (from.sendLimitPz || Number.MAX_SAFE_INTEGER)) throw new Error("Control parental: límite de envío infantil superado");
+  const fee = percentCeil(amountPz, state.treasuryConfig.operationalTransferTaxPercent);
+  const totalDebit = amountPz + fee;
+  if (from.balancePz < totalDebit) throw new Error("Saldo insuficiente");
+  if (from.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada para garantizar tu Renta Básica");
   const tglp = accounts.find((item) => item.id === TGLP_ID);
-  from.balancePz -= total;
+  from.balancePz -= totalDebit;
   to.balancePz += amountPz;
   if (tglp) tglp.balancePz += fee;
   const transaction = makeTransaction(kind, from, to.id, amountPz, fee, note || kind);
   const feeTransaction = fee > 0 ? makeTransaction("OperationalFee", from, TGLP_ID, fee, fee, `Tasa operativa ${state.treasuryConfig.operationalTransferTaxPercent}%`) : null;
-  return {
+  if (feeTransaction) {
+    feeTransaction.netAmount = 0;
+    feeTransaction.concept = "OPERATIONAL_FEE";
+  }
+  return finalizeState({
     ...state,
     accounts,
-    transactions: applyTransactions(state.transactions, [transaction, feeTransaction].filter(Boolean) as LedgerTransaction[]),
-    updatedAt: new Date().toISOString()
-  };
+    transactions: applyTransactions(state.transactions, [transaction, feeTransaction].filter(Boolean) as LedgerTransaction[])
+  });
+}
+
+export function transferConsumption(state: BankState, fromId: string, toId: string, amountPz: number, note: string, kind: "Consumption" | "Placezum" = "Consumption") {
+  const accounts = state.accounts.map((item) => ({ ...item }));
+  const from = accounts.find((item) => item.id === fromId);
+  const to = accounts.find((item) => item.id === toId);
+  const tglp = accounts.find((item) => item.id === TGLP_ID);
+  if (!from) throw new Error("Cuenta emisora no encontrada");
+  if (!to) throw new Error("Cuenta receptora no encontrada");
+  if (!tglp) throw new Error("Cuenta TGLP no encontrada");
+  if (amountPz <= 0) throw new Error("El monto debe ser superior a 0 Pz");
+  const iva = percentCeil(amountPz, VAT_PERCENT);
+  const totalDebit = amountPz + iva;
+  if (from.balancePz < totalDebit) throw new Error("Saldo insuficiente para cubrir el IVA del 12%");
+  if (from.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada para garantizar tu Renta Básica");
+  from.balancePz -= totalDebit;
+  to.balancePz += amountPz;
+  tglp.balancePz += iva;
+  const transaction = makeTransaction(kind, from, to.id, amountPz, iva, note);
+  transaction.concept = kind;
+  return finalizeState({ ...state, accounts, transactions: applyTransactions(state.transactions, [transaction]) });
+}
+
+export function transferPayrollOrLoan(state: BankState, fromId: string, toId: string, amountPz: number, note: string) {
+  const accounts = state.accounts.map((item) => ({ ...item }));
+  const from = accounts.find((item) => item.id === fromId);
+  const to = accounts.find((item) => item.id === toId);
+  const tglp = accounts.find((item) => item.id === TGLP_ID);
+  if (!from) throw new Error("Cuenta emisora no encontrada");
+  if (!to) throw new Error("Cuenta receptora no encontrada");
+  if (!tglp) throw new Error("Tributos del Grupo no disponible");
+  if (from.type !== "Business" || to.type !== "Current") throw new Error("La nómina solo puede salir de Empresa hacia Cuenta Personal");
+  if (amountPz < state.treasuryConfig.minimumWeeklySalaryPz) throw new Error(`La nómina debe cumplir el SMI mínimo de ${state.treasuryConfig.minimumWeeklySalaryPz} Pz`);
+  const workerTax = percentCeil(amountPz, state.treasuryConfig.payrollWorkerTaxPercent);
+  const employerTax = percentCeil(amountPz, state.treasuryConfig.payrollEmployerTaxPercent);
+  const netSalary = amountPz - workerTax;
+  const totalDebit = amountPz + employerTax;
+  if (from.balancePz < totalDebit) throw new Error("Saldo insuficiente para nómina bruta y tributo empresarial");
+  if (from.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada para garantizar tu Renta Básica");
+  from.balancePz -= totalDebit;
+  to.balancePz += netSalary;
+  tglp.balancePz += workerTax + employerTax;
+  const transaction = makeTransaction("PayrollLoan", from, to.id, amountPz, workerTax + employerTax, `${note} · Bruto ${amountPz}Pz · Trabajador ${state.treasuryConfig.payrollWorkerTaxPercent}% · Empresa ${state.treasuryConfig.payrollEmployerTaxPercent}%`);
+  transaction.netAmount = netSalary;
+  transaction.concept = "PAYROLL_REGISTERED";
+  return finalizeState({ ...state, accounts, transactions: applyTransactions(state.transactions, [transaction]) });
 }
 
 export function claimRbu(state: BankState, accountId: string, amountPz = 150) {
@@ -440,7 +542,7 @@ export function claimRbu(state: BankState, accountId: string, amountPz = 150) {
   account.balancePz += amountPz;
   account.lastRbuClaim = new Date().toISOString().slice(0, 10);
   const transaction = makeTransaction("Rbu", fund, account.id, amountPz, 0, "Renta Básica Universal · Fundación Banco de La Placeta");
-  return { ...state, accounts, transactions: applyTransactions(state.transactions, [transaction]), updatedAt: new Date().toISOString() };
+  return finalizeState({ ...state, accounts, transactions: applyTransactions(state.transactions, [transaction]) });
 }
 
 export function issueCard(state: BankState, accountId: string) {
@@ -454,28 +556,284 @@ export function issueCard(state: BankState, accountId: string) {
     pin: "0000",
     released: true
   };
-  return { ...state, digitalCards: [...state.digitalCards, card], updatedAt: new Date().toISOString() };
+  return finalizeState({ ...state, digitalCards: [...state.digitalCards, card] });
+}
+
+export function addSavedContact(state: BankState, ownerPlacetaId: string, accountId: string) {
+  const account = state.accounts.find((item) => item.id === accountId);
+  if (!account) throw new Error("Cuenta de contacto no encontrada");
+  const contact: SavedContact = {
+    id: `contact-${ownerPlacetaId}-${accountId}`,
+    ownerPlacetaId,
+    accountId,
+    createdAt: new Date().toISOString()
+  };
+  return finalizeState({
+    ...state,
+    savedContacts: upsertById(state.savedContacts.filter((item) => !(item.ownerPlacetaId === ownerPlacetaId && item.accountId === accountId)), contact)
+  });
+}
+
+export function removeSavedContact(state: BankState, ownerPlacetaId: string, accountId: string) {
+  return finalizeState({
+    ...state,
+    savedContacts: state.savedContacts.filter((item) => !(item.ownerPlacetaId === ownerPlacetaId && item.accountId === accountId))
+  });
+}
+
+export function generatePlacezumCode(account: Account, now = new Date()) {
+  const windowId = Math.floor(now.getTime() / 1000 / 120);
+  let raw = 0;
+  for (const char of `${account.iban}${windowId}`) raw = Math.abs(raw * 31 + char.charCodeAt(0));
+  return String(raw % 100000).padStart(5, "0");
+}
+
+export function emitMoney(state: BankState, amountPz: number, note = "Emisión monetaria AGLDP") {
+  if (amountPz <= 0) throw new Error("La emisión debe ser superior a 0 Pz");
+  const accounts = ensureVaultEmission(state.accounts.map((item) => ({ ...item })));
+  const emission = accounts.find((item) => item.id === VAULT_EMISION)!;
+  const admin = accounts.find((item) => item.id === AGLDP_ID);
+  if (!admin) throw new Error("Cuenta AGLDP no encontrada");
+  admin.balancePz += amountPz;
+  const transaction = makeTransaction("MonetaryEmission", emission, AGLDP_ID, amountPz, 0, note);
+  return finalizeState({ ...state, accounts, transactions: applyTransactions(state.transactions, [transaction]) });
+}
+
+export function chargeWeeklyTax(state: BankState, accountId: string) {
+  const account = state.accounts.find((item) => item.id === accountId);
+  if (!account) throw new Error("Cuenta no encontrada");
+  const amount = percentCeil(Math.max(0, account.balancePz), state.treasuryConfig.weeklyTaxPercent);
+  if (amount <= 0) throw new Error("Impuesto semanal sin base liquidable");
+  return simpleTransfer(state, accountId, TGLP_ID, amount, "Tax", `Impuesto semanal ${state.treasuryConfig.weeklyTaxPercent}%`, true);
+}
+
+export function issueOfficialFine(state: BankState, accountId: string, amountPz: number, note = "Sanción oficial AGLDP") {
+  if (amountPz <= 0) throw new Error("La multa debe ser superior a 0 Pz");
+  return simpleTransfer(state, accountId, AGLDP_ID, amountPz, "Fine", note, true);
+}
+
+export function forceVatRegularization(state: BankState, accountId: string, netAmountPz: number, note = "Regularización IVA forzosa") {
+  if (netAmountPz <= 0) throw new Error("Base IVA inválida");
+  return simpleTransfer(state, accountId, TGLP_ID, percentCeil(netAmountPz, VAT_PERCENT), "ForcedVatRegularization", note, true);
+}
+
+export function updateTreasuryConfig(state: BankState, patch: Partial<TreasuryConfig>) {
+  return finalizeState({ ...state, treasuryConfig: normalizeTreasuryConfig({ ...state.treasuryConfig, ...patch }) });
 }
 
 export function toggleCard(state: BankState, cardId: string) {
-  return {
+  return finalizeState({
     ...state,
-    digitalCards: state.digitalCards.map((card) => card.id === cardId ? { ...card, frozen: !card.frozen } : card),
-    updatedAt: new Date().toISOString()
+    digitalCards: state.digitalCards.map((card) => card.id === cardId ? { ...card, frozen: !card.frozen } : card)
+  });
+}
+
+function simpleTransfer(state: BankState, fromId: string, toId: string, amountPz: number, kind: TransactionKind, note: string, bypassShield: boolean) {
+  if (amountPz <= 0) throw new Error("El monto debe ser superior a 0 Pz");
+  const accounts = state.accounts.map((item) => ({ ...item }));
+  const from = accounts.find((item) => item.id === fromId);
+  const to = accounts.find((item) => item.id === toId);
+  if (!from) throw new Error("Cuenta emisora no encontrada");
+  if (!to) throw new Error("Cuenta receptora no encontrada");
+  if (!isOfficialIban(to.iban)) throw new Error("Transferencia externa bloqueada hasta validación manual");
+  if (from.type === "Child" && amountPz > (from.sendLimitPz || Number.MAX_SAFE_INTEGER)) throw new Error("Control parental: límite de envío infantil superado");
+  if (from.type === "Savings" && from.huchaLocked) throw new Error("Hucha bloqueada: desbloquea la cuenta de ahorro para enviar dinero");
+  const fee = kind === "OperationalFee" || bypassShield ? 0 : percentCeil(amountPz, state.treasuryConfig.operationalTransferTaxPercent);
+  const totalDebit = amountPz + fee;
+  if (from.balancePz < totalDebit) throw new Error("Saldo insuficiente");
+  if (!bypassShield && from.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada para garantizar tu Renta Básica");
+  from.balancePz -= totalDebit;
+  to.balancePz += amountPz;
+  const tglp = accounts.find((item) => item.id === TGLP_ID);
+  if (fee > 0 && tglp) tglp.balancePz += fee;
+  const transaction = makeTransaction(kind, from, to.id, amountPz, fee, note);
+  const feeTransaction = fee > 0 ? makeTransaction("OperationalFee", from, TGLP_ID, fee, fee, `Tasa operativa ${state.treasuryConfig.operationalTransferTaxPercent}%`) : null;
+  if (feeTransaction) {
+    feeTransaction.netAmount = 0;
+    feeTransaction.concept = "OPERATIONAL_FEE";
+  }
+  return finalizeState({ ...state, accounts, transactions: applyTransactions(state.transactions, [transaction, feeTransaction].filter(Boolean) as LedgerTransaction[]) });
+}
+
+export function startTimedInvestment(state: BankState, investmentAccountId: string, marketAccountId: string, amountPz: number) {
+  const market = state.accounts.find((item) => item.id === marketAccountId);
+  const investor = state.accounts.find((item) => item.id === investmentAccountId);
+  if (!market) throw new Error("Empresa GDLP no encontrada");
+  if (!investor) throw new Error("Cuenta inversora no encontrada");
+  if (investor.citizenshipTier !== "CiudadaniaPlena") throw new Error("Inversiones limitadas a +18 / Ciudadanía Plena");
+  if (amountPz > state.treasuryConfig.maxInvestmentAmountPz) throw new Error(`La inversión máxima es ${state.treasuryConfig.maxInvestmentAmountPz} Pz`);
+  const today = new Date().toISOString().slice(0, 10);
+  const dailyInvestmentCount = state.transactions.filter((transaction) =>
+    transaction.fromAccountId === investmentAccountId &&
+    transaction.kind === "InvestmentBuy" &&
+    transaction.createdAt.slice(0, 10) === today
+  ).length;
+  if (dailyInvestmentCount >= state.treasuryConfig.dailyInvestmentLimit) throw new Error("Límite diario de inversiones alcanzado");
+  const next = transferByIban(state, investmentAccountId, market.iban, amountPz, `Inversión 60s iniciada: ${market.displayName}`, "InvestmentBuy");
+  const buy = next.transactions.find((transaction) =>
+    transaction.kind === "InvestmentBuy" &&
+    transaction.fromAccountId === investmentAccountId &&
+    transaction.toAccountId === marketAccountId
+  );
+  if (!buy) return next;
+  const readyAt = new Date(Date.parse(buy.createdAt) + 60_000).toISOString();
+  const operation: InvestmentOperation = {
+    id: `op-${buy.id}`,
+    accountId: investmentAccountId,
+    companyId: marketAccountId,
+    assetName: market.displayName,
+    amountPz,
+    createdAt: buy.createdAt,
+    readyAt,
+    settledAt: null
+  };
+  return finalizeState({ ...next, investmentOperations: upsertById(next.investmentOperations, operation) });
+}
+
+export function settleTimedInvestment(state: BankState, operationId: string, userWins?: boolean, movementPercent?: number) {
+  const operation = pendingInvestmentOperations(state).find((item) => item.id === operationId);
+  if (!operation) throw new Error("Operación de inversión no encontrada");
+  if (operation.settledAt) throw new Error("La inversión ya fue liquidada");
+  if (Date.now() < Date.parse(operation.readyAt)) throw new Error("La inversión se revelará en 60 segundos");
+  const accounts = state.accounts.map((item) => ({ ...item }));
+  const investor = accounts.find((item) => item.id === operation.accountId);
+  const company = accounts.find((item) => item.id === operation.companyId);
+  const agldp = accounts.find((item) => item.id === AGLDP_ID);
+  const tglp = accounts.find((item) => item.id === TGLP_ID);
+  if (!investor) throw new Error("Cuenta inversora no encontrada");
+  if (!company) throw new Error("Empresa GDLP no encontrada");
+  if (!agldp) throw new Error("Cuenta AGLDP no encontrada");
+  if (!tglp) throw new Error("Cuenta TGLP no encontrada");
+  if (investor.citizenshipTier !== "CiudadaniaPlena") throw new Error("Inversiones limitadas a +18 / Ciudadanía Plena");
+  const economyWeight = clamp(Math.floor(company.balancePz / 20000), 1, 10);
+  const movement = clamp(movementPercent ?? randomInt(6, 14 + economyWeight), 1, 100);
+  const wins = userWins ?? Math.random() < 0.5;
+  const resultAmount = percentCeil(operation.amountPz, movement);
+  const grossReturn = wins ? operation.amountPz + resultAmount : Math.max(0, operation.amountPz - resultAmount);
+  const profitTax = wins ? percentCeil(resultAmount, state.treasuryConfig.investmentProfitTaxPercent) : 0;
+  const commission = wins ? percentCeil(resultAmount, state.treasuryConfig.investmentGainCommissionPercent) : 0;
+  const netReturn = Math.max(0, grossReturn - profitTax - commission);
+  if (company.balancePz < grossReturn) throw new Error("La empresa no tiene liquidez para liquidar la inversión");
+  company.balancePz -= grossReturn;
+  investor.balancePz += netReturn;
+  tglp.balancePz += profitTax;
+  agldp.balancePz += commission;
+  const settlement = makeTransaction(
+    "InvestmentSell",
+    company,
+    investor.id,
+    netReturn,
+    profitTax + commission,
+    `Resultado 60s ${wins ? "gana usuario" : "gana empresa"} en ${operation.assetName} (${wins ? "+" : "-"}${movement}%)`
+  );
+  settlement.concept = "INVESTMENT_60S_RESULT";
+  const taxTxn = profitTax > 0 ? makeTransaction("InvestmentTax", company, TGLP_ID, profitTax, profitTax, `Impuesto sobre ganancia de inversión ${operation.assetName} ${state.treasuryConfig.investmentProfitTaxPercent}%`) : null;
+  const commissionTxn = commission > 0 ? makeTransaction("InvestmentCommission", company, AGLDP_ID, commission, commission, `Comisión sobre ganancia de inversión ${operation.assetName} ${state.treasuryConfig.investmentGainCommissionPercent}%`) : null;
+  if (taxTxn) {
+    taxTxn.netAmount = 0;
+    taxTxn.concept = "INVESTMENT_GAIN_TAX";
+  }
+  if (commissionTxn) {
+    commissionTxn.netAmount = 0;
+    commissionTxn.concept = "INVESTMENT_GAIN_COMMISSION";
+  }
+  const settledOperation = { ...operation, settledAt: new Date().toISOString() };
+  return {
+    state: finalizeState({
+      ...state,
+      accounts,
+      transactions: applyTransactions(state.transactions, [settlement, taxTxn, commissionTxn].filter(Boolean) as LedgerTransaction[]),
+      investmentOperations: upsertById(state.investmentOperations, settledOperation)
+    }),
+    reveal: {
+      userWins: wins,
+      assetName: operation.assetName,
+      amountPz: netReturn,
+      movementPercent: movement
+    }
   };
 }
 
-export function buyInvestment(state: BankState, investmentAccountId: string, marketAccountId: string, amountPz: number) {
-  const market = state.accounts.find((item) => item.id === marketAccountId);
-  if (!market) throw new Error("Empresa GDLP no encontrada");
-  const next = transferByIban(state, investmentAccountId, market.iban, amountPz, `Inversión 60s iniciada: ${market.displayName}`, "InvestmentBuy");
-  const holding = state.investmentHoldings.find((item) => item.accountId === investmentAccountId && item.assetName === market.displayName);
-  const unitValue = 120;
-  const units = Math.max(1, Math.floor(amountPz / unitValue));
-  const holdings = holding
-    ? next.investmentHoldings.map((item) => item.id === holding.id ? { ...item, units: item.units + units, currentValuePz: item.currentValuePz + amountPz, performance: [...item.performance.slice(-5), item.currentValuePz + amountPz] } : item)
-    : [...next.investmentHoldings, { id: makeId("hold"), accountId: investmentAccountId, assetName: market.displayName, units, currentValuePz: amountPz, performance: [amountPz] }];
-  return { ...next, investmentHoldings: holdings };
+export function pendingInvestmentOperations(state: BankState, accountId?: string) {
+  const transactionBacked = state.transactions
+    .filter((transaction) => transaction.kind === "InvestmentBuy")
+    .map((buy) => {
+      const company = state.accounts.find((account) => account.id === buy.toAccountId);
+      const assetName = company?.displayName || buy.note.replace("Inversión 60s iniciada: ", "") || "Inversión GDLP";
+      const settled = state.transactions.some((transaction) =>
+        transaction.kind === "InvestmentSell" &&
+        transaction.toAccountId === buy.fromAccountId &&
+        transaction.fromAccountId === buy.toAccountId &&
+        Date.parse(transaction.createdAt) > Date.parse(buy.createdAt) &&
+        transaction.note.toLowerCase().includes(assetName.toLowerCase())
+      );
+      if (settled) return null;
+      return {
+        id: `op-${buy.id}`,
+        accountId: buy.fromAccountId,
+        companyId: buy.toAccountId,
+        assetName,
+        amountPz: buy.amountPz,
+        createdAt: buy.createdAt,
+        readyAt: new Date(Date.parse(buy.createdAt) + 60_000).toISOString(),
+        settledAt: null
+      } satisfies InvestmentOperation;
+    })
+    .filter(Boolean) as InvestmentOperation[];
+  return [...state.investmentOperations.filter((operation) => !operation.settledAt), ...transactionBacked]
+    .filter((operation) => !accountId || operation.accountId === accountId)
+    .filter((operation, index, all) => all.findIndex((candidate) => candidate.id === operation.id) === index)
+    .sort((a, b) => Date.parse(a.readyAt) - Date.parse(b.readyAt));
+}
+
+export function investmentResultRows(state: BankState, accountId: string) {
+  return state.transactions
+    .filter((transaction) => transaction.kind === "InvestmentSell" && transaction.toAccountId === accountId && transaction.concept === "INVESTMENT_60S_RESULT")
+    .map((sell) => {
+      const match = sell.note.match(/en (.+) \(([+-])(\d+)%\)/);
+      const assetName = match?.[1] || "Inversión GDLP";
+      const movementPercent = Number(match?.[3] || 0);
+      const won = match?.[2] !== "-";
+      const buy = [...state.transactions]
+        .filter((transaction) =>
+          transaction.kind === "InvestmentBuy" &&
+          transaction.fromAccountId === accountId &&
+          transaction.toAccountId === sell.fromAccountId &&
+          transaction.createdAt < sell.createdAt
+        )
+        .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0];
+      const principalPz = buy?.amountPz || sell.amountPz;
+      return {
+        id: sell.id,
+        assetName,
+        principalPz,
+        returnedPz: sell.amountPz,
+        netResultPz: sell.amountPz - principalPz,
+        movementPercent,
+        won
+      };
+    })
+    .sort((a, b) => b.id.localeCompare(a.id));
+}
+
+export function placezumWeekSpent(state: BankState, accountId: string) {
+  const now = new Date();
+  const day = now.getDay() || 7;
+  const weekStart = new Date(now);
+  weekStart.setHours(0, 0, 0, 0);
+  weekStart.setDate(now.getDate() - day + 1);
+  return state.transactions
+    .filter((transaction) => transaction.fromAccountId === accountId && transaction.kind === "Placezum" && Date.parse(transaction.createdAt) >= weekStart.getTime())
+    .reduce((sum, transaction) => sum + transaction.amountPz, 0);
+}
+
+export function payPlacezum(state: BankState, fromId: string, targetIban: string, amountPz: number, note: string) {
+  if (amountPz <= 0) throw new Error("Introduce un importe válido");
+  const spent = placezumWeekSpent(state, fromId);
+  if (spent + amountPz > state.treasuryConfig.placezumWeeklyLimitPz) {
+    throw new Error(`Límite semanal PlaceZum superado: ${formatPz(spent)} de ${formatPz(state.treasuryConfig.placezumWeeklyLimitPz)} Pz`);
+  }
+  return transferByIban(state, fromId, targetIban, amountPz, note, "Placezum");
 }
 
 export function makeTransaction(kind: TransactionKind, from: Account, toAccountId: string, amountPz: number, ivaPz: number, note: string): LedgerTransaction {
@@ -494,4 +852,66 @@ export function makeTransaction(kind: TransactionKind, from: Account, toAccountI
     concept: kind,
     IBAN_Origin: from.iban
   };
+}
+
+function percentCeil(amount: number, percent: number) {
+  return Math.ceil((amount * percent) / 100);
+}
+
+function requiresDeclaration(account: Account, config: TreasuryConfig) {
+  const threshold = account.kind === "CITIZEN" && account.type !== "Business"
+    ? config.personalDeclarationThresholdPz
+    : config.institutionalDeclarationThresholdPz;
+  return account.balancePz >= threshold && !account.fundsJustificationApproved;
+}
+
+function buildAuditFlags(accounts: Account[], transactions: LedgerTransaction[], existing: ComplianceFlag[], config: TreasuryConfig) {
+  const since = Date.now() - 24 * 60 * 60 * 1000;
+  const existingKeys = new Set(existing.map((flag) => `${flag.accountId}:${flag.reason}`));
+  const volumeByAccount = new Map<string, number>();
+  transactions.forEach((transaction) => {
+    if (transaction.status !== "Settled" || Date.parse(transaction.createdAt) < since) return;
+    volumeByAccount.set(transaction.fromAccountId, (volumeByAccount.get(transaction.fromAccountId) || 0) + transaction.amountPz);
+  });
+  const volumeFlags: ComplianceFlag[] = [...volumeByAccount.entries()].flatMap(([accountId, amountPz]) => {
+    const reason = `Movimiento 24h superior a ${config.auditDailyTransferLimitPz} Pz`;
+    if (amountPz <= config.auditDailyTransferLimitPz || existingKeys.has(`${accountId}:${reason}`)) return [];
+    return [{ id: makeId("flag"), accountId, reason, amountPz, status: "PendingReview", createdAt: new Date().toISOString() }];
+  });
+  const declarationFlags: ComplianceFlag[] = accounts.flatMap((account) => {
+    const reason = "Declaración de fondos obligatoria";
+    const threshold = account.kind === "CITIZEN" && account.type !== "Business"
+      ? config.personalDeclarationThresholdPz
+      : config.institutionalDeclarationThresholdPz;
+    if (account.balancePz < threshold || account.fundsJustificationApproved || existingKeys.has(`${account.id}:${reason}`)) return [];
+    return [{ id: makeId("flag"), accountId: account.id, reason, amountPz: account.balancePz, status: "DeclarationRequired", createdAt: new Date().toISOString() }];
+  });
+  return [...volumeFlags, ...declarationFlags, ...existing].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+}
+
+function upsertById<T extends { id: string }>(items: T[], item: T) {
+  return [...items.filter((candidate) => candidate.id !== item.id), item];
+}
+
+function randomInt(min: number, maxExclusive: number) {
+  return Math.floor(Math.random() * Math.max(1, maxExclusive - min)) + min;
+}
+
+function ensureVaultEmission(accounts: Account[]) {
+  if (accounts.some((account) => account.id === VAULT_EMISION)) return accounts;
+  return [
+    ...accounts,
+    {
+      id: VAULT_EMISION,
+      displayName: "Vault Emisión",
+      kind: "AGLDP",
+      balancePz: Number.MAX_SAFE_INTEGER / 4,
+      placetaId: null,
+      role: "Administracion",
+      type: "Current",
+      iban: ibanGenerate(VAULT_EMISION),
+      citizenshipTier: "Institucion",
+      complianceStatus: "Clear"
+    }
+  ];
 }

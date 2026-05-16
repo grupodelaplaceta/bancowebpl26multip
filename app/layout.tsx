@@ -2,25 +2,25 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Banco Placeta | Banca digital para pagos, tarjetas y gestión financiera",
-  description: "Banco Placeta reúne pagos digitales, Placezum, tarjetas, cuentas y gestión administrativa en una plataforma web clara y segura.",
-  applicationName: "Banco Placeta",
-  keywords: ["Banco Placeta", "banca digital", "Placezum", "pagos digitales", "fintech"],
+  title: "Banco de La Placeta | Banca digital para pagos, tarjetas y gestión financiera",
+  description: "Banco de La Placeta reúne pagos digitales, Placezum, tarjetas, cuentas y gestión administrativa en una plataforma web clara y segura.",
+  applicationName: "Banco de La Placeta",
+  keywords: ["Banco de La Placeta", "banca digital", "Placezum", "pagos digitales", "fintech"],
   icons: {
     icon: "/logo.png",
     apple: "/logo.png"
   },
   openGraph: {
-    title: "Banco Placeta",
+    title: "Banco de La Placeta",
     description: "Banca digital para pagos, tarjetas, cuentas y gestión financiera.",
-    siteName: "Banco Placeta",
-    images: [{ url: "/logo.png", width: 512, height: 512, alt: "Banco Placeta" }],
+    siteName: "Banco de La Placeta",
+    images: [{ url: "/logo.png", width: 512, height: 512, alt: "Banco de La Placeta" }],
     locale: "es_ES",
     type: "website"
   },
   twitter: {
     card: "summary",
-    title: "Banco Placeta",
+    title: "Banco de La Placeta",
     description: "Banca digital clara para pagos, tarjetas y gestión financiera.",
     images: ["/logo.png"]
   }

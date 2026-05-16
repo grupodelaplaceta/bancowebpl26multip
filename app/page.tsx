@@ -5,6 +5,8 @@ import {
   Bell,
   Building2,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   CircleDollarSign,
   CreditCard,
   Download,
@@ -64,6 +66,8 @@ import {
   updateTreasuryConfig,
   UserProfile
 } from "../lib/bank";
+import { generateBankPdf } from "../lib/pdf";
+import type { WebDocumentKind } from "../lib/pdf";
 
 type Tab = "home" | "placezum" | "market" | "hub" | "tributos" | "admin";
 
@@ -78,25 +82,28 @@ const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
 
 const landingSlides = [
   {
-    title: "Banco Placeta",
+    title: "Banco de La Placeta",
     kicker: "Banca digital",
     subtitle: "Gestiona pagos, tarjetas, cuentas y documentos desde una plataforma clara para móvil y escritorio.",
     image: "/assets/promos/promo1.png",
-    action: "Abrir cuenta"
+    action: "Abrir cuenta",
+    metric: "Cuentas, pagos y tarjetas"
   },
   {
     title: "Operativa con contexto",
     kicker: "Pagos y actividad",
     subtitle: "Consulta saldos, movimientos, límites y operaciones recientes con una experiencia pensada para entender qué ocurre.",
     image: "/assets/promos/promo2.png",
-    action: "Ver demo"
+    action: "Ver demo",
+    metric: "Actividad trazable"
   },
   {
     title: "Gestión institucional",
     kicker: "Empresas y administración",
     subtitle: "Herramientas para nóminas, soporte, documentos y revisión administrativa sin ruido visual ni promesas exageradas.",
     image: "/assets/promos/mercado-default.png",
-    action: "Conocer funciones"
+    action: "Conocer funciones",
+    metric: "Empresa, tributos y soporte"
   }
 ];
 
@@ -113,9 +120,24 @@ const landingTrust = [
 ];
 
 const landingFaq = [
-  { question: "¿Qué puedo hacer desde Banco Placeta web?", answer: "Consultar cuentas, enviar pagos, gestionar tarjetas, revisar actividad, abrir tickets y usar herramientas administrativas si tu perfil lo permite." },
+  { question: "¿Qué puedo hacer desde Banco de La Placeta web?", answer: "Consultar cuentas, enviar pagos, gestionar tarjetas, revisar actividad, abrir tickets y usar herramientas administrativas si tu perfil lo permite." },
   { question: "¿La web sustituye a la app Android?", answer: "No. La complementa: mantiene la misma lógica de cuenta y añade una experiencia más cómoda para escritorio." },
   { question: "¿Dónde veo soporte o incidencias?", answer: "Dentro del Hub puedes abrir tickets con contexto de cuentas, tarjetas, inversiones o movimientos." }
+];
+
+const landingPages = [
+  { id: "cuentas", title: "Cuentas", icon: WalletCards, text: "Consulta saldo, IBAN, actividad reciente y accesos de cuenta sin mezclar formularios en la pantalla principal.", bullets: ["Saldo y movimientos", "Transferencias por popup", "Documentos y extractos"] },
+  { id: "placezum", title: "Placezum", icon: QrCode, text: "Pagos rápidos con código temporal, contactos guardados y límites visibles antes de enviar.", bullets: ["Código temporal", "Contactos", "Límite semanal"] },
+  { id: "tarjetas", title: "Tarjetas", icon: CreditCard, text: "Gestiona tarjetas digitales y Promo Card con estado claro y acciones separadas.", bullets: ["Emitir tarjeta", "Congelar o activar", "PIN y numeración"] },
+  { id: "empresas", title: "Empresas", icon: Building2, text: "Panel para nóminas, alta de empresa, actividad y rentabilidad cuando la cuenta lo permite.", bullets: ["Nóminas", "Alta empresa", "Actividad asociada"] },
+  { id: "soporte", title: "Soporte", icon: ShieldCheck, text: "Tickets con contexto de cuenta, tarjeta, inversión o movimiento para explicar mejor cada incidencia.", bullets: ["Adjuntos", "Estado del ticket", "Historial"] },
+  { id: "seguridad", title: "Seguridad", icon: Lock, text: "Interfaz clara, permisos explícitos y validaciones de operación para reducir errores entre sesiones.", bullets: ["Notificaciones opcionales", "Validación de origen", "Modo sin conexión"] }
+];
+
+const helpPosts = [
+  { title: "Cómo enviar un pago sin errores", tag: "Pagos", text: "Revisa IBAN, importe y concepto antes de confirmar. La web separa el formulario en popup para evitar acciones accidentales." },
+  { title: "Qué cuenta usar para inversiones", tag: "Inversiones", text: "Solo la cuenta de inversión permite operar. Las cuentas empresa muestran alta, capital recibido y rentabilidad asociada." },
+  { title: "Cómo abrir un ticket útil", tag: "Soporte", text: "Incluye cuenta, tarjeta o movimiento relacionado para que la revisión sea más rápida y clara." }
 ];
 
 const landingArticles = [
@@ -127,7 +149,7 @@ const landingArticles = [
   },
   {
     title: "Tarjetas con assets originales",
-    text: "Promo Card y tarjeta virtual mantienen la identidad visual de Banco Placeta.",
+    text: "Promo Card y tarjeta virtual mantienen la identidad visual de Banco de La Placeta.",
     image: "/assets/promocard.jpg",
     icon: CreditCard
   },
@@ -346,7 +368,7 @@ export default function BancoPlacetaWeb() {
     const permission = await Notification.requestPermission();
     setNotificationPermission(permission);
     if (permission === "granted") {
-      notifyDesktop("Banco Placeta", "Notificaciones de PC activadas", "placeta-notifications-enabled", true);
+      notifyDesktop("Banco de La Placeta", "Notificaciones de PC activadas", "placeta-notifications-enabled", true);
     } else {
       setToast("Permiso de notificaciones no activado");
     }
@@ -402,7 +424,7 @@ export default function BancoPlacetaWeb() {
           localStorage.setItem("placeta-web-dip", user.dip);
         }}
         onRegister={(next, user) => {
-          void persist(next, "DIP registrado en Banco Placeta");
+          void persist(next, "DIP registrado en Banco de La Placeta");
           setActiveUser(user);
           setSelectedAccountId(user.primaryAccountId);
           localStorage.setItem("placeta-web-dip", user.dip);
@@ -416,10 +438,10 @@ export default function BancoPlacetaWeb() {
       <header className="topbar">
         <div className="top-brand">
           <span className="brand-logo">
-            <Image src="/logo.png" alt="Banco Placeta" fill sizes="54px" priority />
+            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="68px" priority />
           </span>
           <div>
-            <p className="eyebrow">Banco Placeta</p>
+            <p className="eyebrow">Banco de La Placeta</p>
             <h1>Panel web</h1>
             <span className="top-user">{activeUser.displayName}</span>
           </div>
@@ -547,7 +569,12 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [slideIndex, setSlideIndex] = useState(0);
+  const [landingPageId, setLandingPageId] = useState(landingPages[0].id);
   const slide = landingSlides[slideIndex % landingSlides.length];
+  const activeLandingPage = landingPages.find((item) => item.id === landingPageId) || landingPages[0];
+  const ActiveLandingIcon = activeLandingPage.icon;
+  const previousSlide = () => setSlideIndex((current) => (current + landingSlides.length - 1) % landingSlides.length);
+  const nextSlide = () => setSlideIndex((current) => (current + 1) % landingSlides.length);
 
   useEffect(() => {
     const timer = window.setInterval(() => setSlideIndex((current) => (current + 1) % landingSlides.length), 5200);
@@ -596,7 +623,7 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
       toAccountId: account.id,
       amountPz: 500,
       ivaPz: 0,
-      note: "Bono de bienvenida Banco Placeta",
+      note: "Bono de bienvenida Banco de La Placeta",
       status: "Settled",
       createdAt: new Date().toISOString(),
       netAmount: 500,
@@ -628,16 +655,17 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
       <header className="landing-nav">
         <div className="landing-brand">
           <span className="brand-logo landing-logo">
-            <Image src="/logo.png" alt="Banco Placeta" fill sizes="52px" priority />
+            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="66px" priority />
           </span>
           <div>
-            <strong>Banco Placeta</strong>
+            <strong>Banco de La Placeta</strong>
             <span>Web oficial</span>
           </div>
         </div>
         <div className="landing-nav-actions">
           <button className="mini-action ghost" type="button" onClick={() => document.getElementById("inicio")?.scrollIntoView({ behavior: "smooth" })}>Inicio</button>
           <button className="mini-action ghost" type="button" onClick={() => document.getElementById("producto")?.scrollIntoView({ behavior: "smooth" })}>Producto</button>
+          <button className="mini-action ghost" type="button" onClick={() => document.getElementById("ayuda")?.scrollIntoView({ behavior: "smooth" })}>Ayuda</button>
           <button className="mini-action ghost" type="button" onClick={() => document.getElementById("seguridad")?.scrollIntoView({ behavior: "smooth" })}>Seguridad</button>
           <button className="mini-action" type="button" onClick={() => document.getElementById("acceso")?.scrollIntoView({ behavior: "smooth" })}>Acceder</button>
         </div>
@@ -646,6 +674,10 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
       <section className="landing-hero">
         <article className="landing-carousel">
           <Image src={slide.image} alt={slide.title} fill priority sizes="(max-width: 900px) 100vw, 760px" />
+          <div className="landing-slide-status">
+            <span>{String(slideIndex + 1).padStart(2, "0")}</span>
+            <strong>{slide.metric}</strong>
+          </div>
           <div className="landing-copy">
             <span>{slide.kicker}</span>
             <h1>{slide.title}</h1>
@@ -659,9 +691,21 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
               </button>
             </div>
           </div>
+          <div className="landing-arrows" aria-label="Control del carrusel">
+            <button type="button" aria-label="Anterior" onClick={previousSlide}><ChevronLeft size={20} /></button>
+            <button type="button" aria-label="Siguiente" onClick={nextSlide}><ChevronRight size={20} /></button>
+          </div>
           <div className="landing-dots">
             {landingSlides.map((item, index) => (
               <button key={item.title} className={index === slideIndex ? "active" : ""} aria-label={item.title} onClick={() => setSlideIndex(index)} />
+            ))}
+          </div>
+          <div className="landing-slide-strip">
+            {landingSlides.map((item, index) => (
+              <button key={item.title} type="button" className={index === slideIndex ? "active" : ""} onClick={() => setSlideIndex(index)}>
+                <span>{item.kicker}</span>
+                <strong>{item.metric}</strong>
+              </button>
             ))}
           </div>
         </article>
@@ -693,11 +737,53 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         })}
       </section>
 
+      <section className="landing-pages" id="ayuda">
+        <div className="landing-section-title">
+          <span>Guías del banco</span>
+          <h2>Subpáginas por función</h2>
+        </div>
+        <div className="landing-page-tabs">
+          {landingPages.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button key={item.id} className={item.id === landingPageId ? "active" : ""} onClick={() => setLandingPageId(item.id)}>
+                <Icon size={18} />
+                {item.title}
+              </button>
+            );
+          })}
+        </div>
+        <article className="landing-page-detail">
+          <ActiveLandingIcon size={28} />
+          <div>
+            <strong>{activeLandingPage.title}</strong>
+            <p>{activeLandingPage.text}</p>
+            <div className="landing-bullets">
+              {activeLandingPage.bullets.map((item) => <span key={item}>{item}</span>)}
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section className="help-post-grid">
+        <div className="landing-section-title">
+          <span>Ayuda</span>
+          <h2>Posts rápidos</h2>
+        </div>
+        {helpPosts.map((post) => (
+          <article key={post.title} className="help-post">
+            <span>{post.tag}</span>
+            <strong>{post.title}</strong>
+            <p>{post.text}</p>
+          </article>
+        ))}
+      </section>
+
       <section className="landing-trust" id="seguridad">
         <div>
           <span>Confianza</span>
           <h2>Una web financiera debe explicar, no impresionar.</h2>
-          <p>Banco Placeta evita mensajes financieros irreales y organiza la información por acciones concretas: pagar, consultar, administrar y pedir soporte.</p>
+          <p>Banco de La Placeta evita mensajes financieros irreales y organiza la información por acciones concretas: pagar, consultar, administrar y pedir soporte.</p>
         </div>
         <div className="trust-list">
           {landingTrust.map((item) => (
@@ -740,7 +826,7 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
 
       <footer className="landing-footer">
         <div>
-          <strong>Banco Placeta</strong>
+          <strong>Banco de La Placeta</strong>
           <span>Banca digital, pagos y gestión financiera.</span>
         </div>
         <nav>
@@ -788,7 +874,7 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
         <button onClick={() => setActivePopup("transfer")}><CircleDollarSign size={20} /> Enviar</button>
         <button onClick={onRbu}><Sparkles size={20} /> RBU</button>
         <button onClick={() => setActivePopup("cards")}><CreditCard size={20} /> Tarjetas</button>
-        <button onClick={() => window.print()}><Download size={20} /> PDF</button>
+        <button onClick={() => generateBankPdf(account, { id: `doc-month-${account.id}`, title: "Extracto mensual", kind: "MonthlyStatement" }, transactionsFor(account.id, transactions))}><Download size={20} /> PDF</button>
       </div>
 
       <article className="panel action-summary">
@@ -1148,6 +1234,7 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
   const [ticketSubject, setTicketSubject] = useState("");
   const [ticketMessage, setTicketMessage] = useState("");
   const [ticketAttachments, setTicketAttachments] = useState<string[]>([]);
+  const [hubModal, setHubModal] = useState<"payroll" | "support" | "accounts" | "documents" | "activity" | "promos" | null>(null);
   const business = state.accounts.find((account) => account.id === businessId) || businessAccounts[0];
   const payrollTarget = state.accounts.find((account) => account.id === payrollTargetId) || payrollTargets[0];
   const workerTax = Math.ceil((payrollGross * state.treasuryConfig.payrollWorkerTaxPercent) / 100);
@@ -1160,10 +1247,17 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
     ...pendingInvestments.slice(0, 3).map((operation) => ({ id: `investment:${operation.id}`, label: `Inversión · ${operation.assetName}` })),
     ...recent.slice(0, 3).map((transaction) => ({ id: `txn:${transaction.id}`, label: `Movimiento · ${transaction.kind} ${formatPz(transaction.amountPz)} Pz` }))
   ];
-  const documents = [
-    { title: "Extracto mensual", detail: `${recent.length} movimientos recientes`, icon: Download },
-    { title: "Certificado DIP", detail: `${user.dip} · identidad activa`, icon: ShieldCheck },
-    { title: "Recibos fiscales", detail: `${state.transactions.filter((item) => item.toAccountId === TGLP_ID).length} apuntes tributarios`, icon: Gavel }
+  const primaryAccount = userAccounts.find((account) => account.id === user.primaryAccountId) || userAccounts[0];
+  const documents: Array<{ title: string; detail: string; icon: LucideIcon; kind: WebDocumentKind; id: string }> = [
+    { title: "Extracto mensual", detail: `${recent.length} movimientos recientes`, icon: Download, kind: "MonthlyStatement", id: "doc-month" },
+    { title: "Certificado DIP", detail: `${user.dip} · identidad activa`, icon: ShieldCheck, kind: "SolvencyCertificate", id: "doc-solvency" },
+    { title: "Justificante de pago", detail: "Última transacción asentada", icon: Banknote, kind: "PaymentReceipt", id: "doc-payment" },
+    { title: "Recibos fiscales", detail: `${state.transactions.filter((item) => item.toAccountId === TGLP_ID).length} apuntes tributarios`, icon: Gavel, kind: "VatReceipt", id: "doc-vat" },
+    { title: "Impuestos semanales", detail: "Liquidación semanal TGLP", icon: Landmark, kind: "WeeklyTaxReport", id: "doc-weekly" },
+    { title: "Requerimiento fiscal", detail: "Formato ATP de la app", icon: ShieldCheck, kind: "FiscalRequirement", id: "doc-fiscal" },
+    { title: "Contrato laboral", detail: "Relación laboral registrada", icon: Building2, kind: "LaborContract", id: "doc-labor" },
+    { title: "Liquidación inversión", detail: "Ticket de operación 60s", icon: TrendingUp, kind: "InvestmentLiquidation", id: "doc-investment" },
+    { title: "Informe empresa", detail: "Actividad y pagos de empresa", icon: Banknote, kind: "BusinessStatement", id: "doc-business" }
   ];
 
   function toggleAttachment(id: string) {
@@ -1176,6 +1270,7 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
       transferPayrollOrLoan(state, business.id, payrollTarget.id, payrollGross, `Nómina empresa ${business.displayName} -> ${payrollTarget.displayName}`),
       `Nómina registrada para ${payrollTarget.displayName}`
     );
+    setHubModal(null);
   }
 
   function submitTicket() {
@@ -1199,34 +1294,72 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
     setTicketSubject("");
     setTicketMessage("");
     setTicketAttachments([]);
+    setHubModal(null);
   }
+
+  const openTickets = tickets.filter((ticket) => ticket.status !== "Closed").length;
+  const activeCards = cards.filter((card) => !card.frozen).length;
+  const hubActions = [
+    { id: "payroll" as const, title: "Nóminas", detail: businessAccounts.length ? `${businessAccounts.length} empresas disponibles` : "Sin empresa vinculada", icon: Banknote },
+    { id: "support" as const, title: "Soporte", detail: openTickets ? `${openTickets} tickets abiertos` : "Abrir ticket con contexto", icon: ShieldCheck },
+    { id: "accounts" as const, title: "Cuentas", detail: `${userAccounts.length} cuentas vinculadas`, icon: Landmark },
+    { id: "documents" as const, title: "Documentos", detail: "Extractos y certificados", icon: Download },
+    { id: "activity" as const, title: "Actividad", detail: `${recent.length} movimientos recientes`, icon: Sparkles },
+    { id: "promos" as const, title: "Promos", detail: `${state.promoSlides.length} campañas activas`, icon: CreditCard }
+  ];
 
   return (
     <section className="screen-grid hub-grid">
       <article className="hero-card hub-hero">
-        <span>Más servicios · {user.dip}</span>
+        <span>Hub web · {user.dip}</span>
         <strong>{formatMoneyPz(totalBalance)} Pz</strong>
-        <p>{userAccounts.length} cuentas · {businessAccounts.length} empresas · {tickets.filter((ticket) => ticket.status !== "Closed").length} tickets abiertos</p>
+        <p>{userAccounts.length} cuentas · {businessAccounts.length} empresas · {openTickets} tickets abiertos</p>
       </article>
 
       <div className="metric-grid">
         <MetricCard label="Saldo total" value={`${formatPz(totalBalance)} Pz`} tone="purple" />
-        <MetricCard label="Empresas" value={String(businessAccounts.length)} tone="green" />
+        <MetricCard label="Tarjetas activas" value={String(activeCards)} tone="green" />
         <MetricCard label="Nómina neta" value={`${formatPz(netSalary)} Pz`} tone="gold" />
-        <MetricCard label="Tickets" value={String(tickets.length)} tone="red" />
+        <MetricCard label="Tickets abiertos" value={String(openTickets)} tone="red" />
       </div>
 
-      <article className="panel hub-panel">
-        <SectionTitle icon={MoreHorizontal} title="Más servicios" />
-        <div className="hub-service-grid">
-          <div><Banknote size={24} /><strong>Nómina GDLP</strong><span>Empresa → cuenta personal con retención trabajador/empresa.</span></div>
-          <div><ShieldCheck size={24} /><strong>DIP verificado</strong><span>{user.dip} · {user.placetaId}</span></div>
-          <div><CreditCard size={24} /><strong>Tarjetas</strong><span>{cards.filter((card) => !card.frozen).length} activas · Promo Card y virtual.</span></div>
-          <div><WifiOff size={24} /><strong>Soporte</strong><span>Tickets con adjuntos de cuentas, inversiones, tarjetas y movimientos.</span></div>
+      <article className="panel hub-panel hub-command-center">
+        <SectionTitle icon={MoreHorizontal} title="Centro de acciones" />
+        <div className="hub-action-grid">
+          {hubActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button key={action.id} onClick={() => setHubModal(action.id)}>
+                <Icon size={22} />
+                <span><strong>{action.title}</strong><small>{action.detail}</small></span>
+              </button>
+            );
+          })}
         </div>
       </article>
 
-      <article className="panel hub-panel payroll-panel">
+      <article className="panel hub-panel hub-overview">
+        <SectionTitle icon={ShieldCheck} title="Resumen operativo" />
+        <div className="hub-status-list">
+          <div><strong>DIP verificado</strong><span>{user.dip} · {user.placetaId}</span></div>
+          <div><strong>Empresas</strong><span>{businessAccounts.length ? businessAccounts.map((account) => account.displayName).join(", ") : "Sin empresa vinculada"}</span></div>
+          <div><strong>Soporte</strong><span>{openTickets ? "Hay tickets pendientes de seguimiento" : "Sin incidencias abiertas"}</span></div>
+        </div>
+      </article>
+
+      <article className="panel hub-panel">
+        <SectionTitle icon={Sparkles} title="Actividad reciente" />
+        <div className="mini-feed">
+          {recent.length ? recent.slice(0, 4).map((transaction) => (
+            <div key={transaction.id}>
+              <span>{transaction.kind}</span>
+              <strong>{formatPz(transaction.amountPz)} Pz</strong>
+            </div>
+          )) : <Empty title="Sin actividad" text="Tus movimientos aparecerán aquí." />}
+        </div>
+      </article>
+
+      <Modal title="Administración de nóminas" open={hubModal === "payroll"} onClose={() => setHubModal(null)}>
         <SectionTitle icon={Building2} title="Administración de nóminas" />
         {businessAccounts.length && payrollTargets.length ? (
           <>
@@ -1254,9 +1387,9 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
         ) : (
           <Empty title="Sin empresa disponible" text="Selecciona o crea una cuenta Empresa para registrar nóminas." />
         )}
-      </article>
+      </Modal>
 
-      <article className="panel hub-panel">
+      <Modal title="Cuentas vinculadas" open={hubModal === "accounts"} onClose={() => setHubModal(null)}>
         <SectionTitle icon={Landmark} title="Cuentas vinculadas" />
         {userAccounts.map((account) => (
           <div className="account-row" key={account.id}>
@@ -1267,24 +1400,27 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
             <b>{formatPz(account.balancePz)} Pz</b>
           </div>
         ))}
-      </article>
+      </Modal>
 
-      <article className="panel hub-panel">
+      <Modal title="Documentos" open={hubModal === "documents"} onClose={() => setHubModal(null)}>
         <SectionTitle icon={Download} title="Documentos" />
         <div className="document-grid">
           {documents.map((doc) => {
             const Icon = doc.icon;
             return (
-              <button key={doc.title}>
+              <button key={doc.title} disabled={!primaryAccount} onClick={() => {
+                if (!primaryAccount) return;
+                generateBankPdf(primaryAccount, { id: `${doc.id}-${primaryAccount.id}`, title: doc.title, kind: doc.kind }, transactionsFor(primaryAccount.id, state.transactions));
+              }}>
                 <Icon size={22} />
                 <span><strong>{doc.title}</strong><small>{doc.detail}</small></span>
               </button>
             );
           })}
         </div>
-      </article>
+      </Modal>
 
-      <article className="panel hub-panel">
+      <Modal title="Promos activas" open={hubModal === "promos"} onClose={() => setHubModal(null)}>
         <SectionTitle icon={Sparkles} title="Promos activas" />
         <div className="promo-list">
           {state.promoSlides.map((slide) => (
@@ -1297,9 +1433,9 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
             </div>
           ))}
         </div>
-      </article>
+      </Modal>
 
-      <article className="panel hub-panel">
+      <Modal title="Ticket de soporte" open={hubModal === "support"} onClose={() => setHubModal(null)}>
         <SectionTitle icon={WifiOff} title="Ticket de soporte" />
         <Field label="Asunto" value={ticketSubject} onChange={setTicketSubject} placeholder="Ej. Revisión de movimiento" />
         <Field label="Mensaje" value={ticketMessage} onChange={setTicketMessage} placeholder="Describe qué ocurre" />
@@ -1317,9 +1453,9 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
           ))}
           {!tickets.length && <div><strong>Canal soporte</strong><span>Sin tickets abiertos. Adjunta movimientos, cuentas o inversiones.</span></div>}
         </div>
-      </article>
+      </Modal>
 
-      <article className="panel hub-panel">
+      <Modal title="Actividad reciente" open={hubModal === "activity"} onClose={() => setHubModal(null)}>
         <SectionTitle icon={Sparkles} title="Actividad reciente" />
         <div className="mini-feed">
           {recent.length ? recent.map((transaction) => (
@@ -1329,7 +1465,7 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
             </div>
           )) : <Empty title="Sin actividad" text="Tus movimientos aparecerán aquí." />}
         </div>
-      </article>
+      </Modal>
     </section>
   );
 }
@@ -1340,15 +1476,22 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
   const [targetId, setTargetId] = useState(citizenAccounts[0]?.id || "");
   const [fineAmount, setFineAmount] = useState(50);
   const [vatBase, setVatBase] = useState(100);
+  const [taxModal, setTaxModal] = useState<"actions" | "alerts" | "ranking" | "history" | null>(null);
   const target = state.accounts.find((account) => account.id === targetId) || citizenAccounts[0];
   const iva = state.transactions.reduce((sum, item) => sum + (item.ivaPz || 0), 0);
   const todayTax = state.transactions.filter((item) => item.toAccountId === TGLP_ID && item.createdAt.slice(0, 10) === new Date().toISOString().slice(0, 10)).reduce((sum, item) => sum + item.amountPz + item.ivaPz, 0);
   const pendingExternal = state.transactions.filter((item) => item.kind === "ExternalBlocked" && item.status === "Pending").length;
   const fiscalTx = state.transactions.filter((item) => item.toAccountId === TGLP_ID || item.fromAccountId === TGLP_ID).slice(0, 10);
+  const taxActions = [
+    { id: "actions" as const, title: "Acciones fiscales", detail: target ? `${target.displayName} seleccionado` : "Seleccionar cuenta", icon: Gavel },
+    { id: "alerts" as const, title: "Expedientes", detail: `${state.complianceFlags.length} alertas activas`, icon: ShieldCheck },
+    { id: "ranking" as const, title: "Ranking", detail: `${citizenAccounts.length} cuentas auditables`, icon: TrendingUp },
+    { id: "history" as const, title: "Movimientos", detail: `${fiscalTx.length} apuntes fiscales`, icon: Banknote }
+  ];
   return (
     <section className="screen-grid admin-grid purple-suite">
       <article className="hero-card tributos-hero admin-command">
-        <span>TGLP · Centro fiscal</span>
+        <span>Agencia Tributaria · Centro fiscal</span>
         <strong>{formatMoneyPz(tglp?.balancePz || 0)} Pz</strong>
         <p>IVA acumulado {formatPz(iva)} Pz · {state.complianceFlags.length} alertas · {pendingExternal} externas pendientes</p>
       </article>
@@ -1360,7 +1503,31 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
         <MetricCard label="Cuentas auditables" value={String(citizenAccounts.length)} tone="green" />
       </div>
 
-      <article className="panel admin-panel">
+      <article className="panel admin-panel admin-command-center">
+        <SectionTitle icon={Gavel} title="Panel de gestión tributaria" />
+        <div className="admin-action-grid">
+          {taxActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button key={action.id} onClick={() => setTaxModal(action.id)}>
+                <Icon size={22} />
+                <span><strong>{action.title}</strong><small>{action.detail}</small></span>
+              </button>
+            );
+          })}
+        </div>
+      </article>
+
+      <article className="panel admin-panel fiscal-overview">
+        <SectionTitle icon={ShieldCheck} title="Estado fiscal" />
+        <div className="hub-status-list">
+          <div><strong>Cuenta objetivo</strong><span>{target ? `${target.displayName} · ${target.iban}` : "Sin cuenta seleccionada"}</span></div>
+          <div><strong>Riesgo operativo</strong><span>{state.complianceFlags.length ? "Hay expedientes pendientes" : "Sin expedientes abiertos"}</span></div>
+          <div><strong>Actividad de hoy</strong><span>{formatPz(todayTax)} Pz recaudados en el día</span></div>
+        </div>
+      </article>
+
+      <Modal title="Acciones fiscales" open={taxModal === "actions"} onClose={() => setTaxModal(null)}>
         <SectionTitle icon={Gavel} title="Acciones fiscales" />
         <label className="field">
           <span>Cuenta objetivo</span>
@@ -1375,13 +1542,13 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
           <Field label="Base IVA Pz" value={String(vatBase)} onChange={(value) => setVatBase(Number(value) || 0)} type="number" />
         </div>
         <div className="action-grid">
-          <button className="primary-button" disabled={!target} onClick={() => target && onPersist(chargeWeeklyTax(state, target.id), "Impuesto semanal cargado")}>Cobrar semanal</button>
-          <button className="secondary-button" disabled={!target} onClick={() => target && onPersist(issueOfficialFine(state, target.id, fineAmount), "Multa oficial emitida")}>Emitir multa</button>
-          <button className="secondary-button" disabled={!target} onClick={() => target && onPersist(forceVatRegularization(state, target.id, vatBase), "IVA regularizado")}>Regularizar IVA</button>
+          <button className="primary-button" disabled={!target} onClick={() => { if (target) onPersist(chargeWeeklyTax(state, target.id), "Impuesto semanal cargado"); setTaxModal(null); }}>Cobrar semanal</button>
+          <button className="secondary-button" disabled={!target} onClick={() => { if (target) onPersist(issueOfficialFine(state, target.id, fineAmount), "Multa oficial emitida"); setTaxModal(null); }}>Emitir multa</button>
+          <button className="secondary-button" disabled={!target} onClick={() => { if (target) onPersist(forceVatRegularization(state, target.id, vatBase), "IVA regularizado"); setTaxModal(null); }}>Regularizar IVA</button>
         </div>
-      </article>
+      </Modal>
 
-      <article className="panel admin-panel">
+      <Modal title="Alertas fiscales" open={taxModal === "alerts"} onClose={() => setTaxModal(null)}>
         <SectionTitle icon={Gavel} title="Alertas fiscales" />
         {state.complianceFlags.length ? state.complianceFlags.map((flag) => (
           <div className="holding-row" key={flag.id}>
@@ -1389,9 +1556,9 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
             <b>{formatPz(flag.amountPz)} Pz</b>
           </div>
         )) : <Empty title="Sin alertas" text="No hay expedientes fiscales pendientes." />}
-      </article>
+      </Modal>
 
-      <article className="panel admin-panel">
+      <Modal title="Ranking de balances" open={taxModal === "ranking"} onClose={() => setTaxModal(null)}>
         <SectionTitle icon={TrendingUp} title="Ranking de balances" />
         {citizenAccounts.slice(0, 8).map((account, index) => (
           <div className="holding-row" key={account.id}>
@@ -1399,9 +1566,11 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
             <b>{formatPz(account.balancePz)} Pz</b>
           </div>
         ))}
-      </article>
+      </Modal>
 
-      <History transactions={fiscalTx} accounts={state.accounts} />
+      <Modal title="Movimientos fiscales" open={taxModal === "history"} onClose={() => setTaxModal(null)}>
+        <History transactions={fiscalTx} accounts={state.accounts} />
+      </Modal>
     </section>
   );
 }
@@ -1413,14 +1582,21 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
   const [placezumLimit, setPlacezumLimit] = useState(state.treasuryConfig.placezumWeeklyLimitPz);
   const [investmentMax, setInvestmentMax] = useState(state.treasuryConfig.maxInvestmentAmountPz);
   const [dailyInvestmentLimit, setDailyInvestmentLimit] = useState(state.treasuryConfig.dailyInvestmentLimit);
+  const [adminModal, setAdminModal] = useState<"emission" | "policy" | "audit" | "users" | null>(null);
   const agldp = state.accounts.find((item) => item.id === AGLDP_ID);
   const totalMoney = state.accounts.reduce((sum, account) => sum + Math.max(0, account.balancePz), 0);
   const businessCount = state.accounts.filter((account) => account.type === "Business").length;
   const pendingRequests = state.subsidyRequests.filter((request) => request.status === "Pending").length;
+  const adminActions = [
+    { id: "emission" as const, title: "Emisión", detail: `Preparado ${formatPz(amount)} Pz`, icon: Landmark },
+    { id: "policy" as const, title: "Normativa", detail: "Límites, tasas e inversión", icon: ShieldCheck },
+    { id: "audit" as const, title: "Auditoría", detail: `${state.complianceFlags.length} flags · ${state.transactions.length} movimientos`, icon: WifiOff },
+    { id: "users" as const, title: "Usuarios", detail: `${state.users.length} perfiles registrados`, icon: Building2 }
+  ];
   return (
     <section className="screen-grid admin-grid purple-suite">
       <article className="hero-card admin-hero admin-command">
-        <span>AGLDP · Panel soberano</span>
+        <span>Administración · Banco de La Placeta</span>
         <strong>{formatMoneyPz(agldp?.balancePz || 0)} Pz</strong>
         <p>{state.users.length} usuarios · {state.accounts.length} cuentas · masa {formatPz(totalMoney)} Pz</p>
       </article>
@@ -1432,13 +1608,40 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
         <MetricCard label="Solicitudes" value={String(pendingRequests)} tone="red" />
       </div>
 
-      <article className="panel admin-panel">
-        <SectionTitle icon={Landmark} title="Emisión monetaria" />
-        <Field label="Importe Pz" value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
-        <button className="primary-button" onClick={() => onPersist(emitMoney(state, amount), "Emisión monetaria aplicada")}>Emitir hacia AGLDP</button>
+      <article className="panel admin-panel admin-command-center">
+        <SectionTitle icon={Landmark} title="Centro administrativo" />
+        <div className="admin-action-grid">
+          {adminActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <button key={action.id} onClick={() => setAdminModal(action.id)}>
+                <Icon size={22} />
+                <span><strong>{action.title}</strong><small>{action.detail}</small></span>
+              </button>
+            );
+          })}
+        </div>
       </article>
 
-      <article className="panel admin-panel">
+      <article className="panel admin-panel fiscal-overview">
+        <SectionTitle icon={ShieldCheck} title="Resumen del sistema" />
+        <div className="hub-status-list">
+          <div><strong>Saldo AGLDP</strong><span>{formatPz(agldp?.balancePz || 0)} Pz disponibles</span></div>
+          <div><strong>Normativa activa</strong><span>Placezum {formatPz(state.treasuryConfig.placezumWeeklyLimitPz)} Pz · inversión máx {formatPz(state.treasuryConfig.maxInvestmentAmountPz)} Pz</span></div>
+          <div><strong>Operación</strong><span>{pendingRequests ? `${pendingRequests} solicitudes pendientes` : "Sin solicitudes pendientes"}</span></div>
+        </div>
+      </article>
+
+      <Modal title="Emisión monetaria" open={adminModal === "emission"} onClose={() => setAdminModal(null)}>
+        <SectionTitle icon={Landmark} title="Emisión monetaria" />
+        <Field label="Importe Pz" value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
+        <button className="primary-button" onClick={() => {
+          onPersist(emitMoney(state, amount), "Emisión monetaria aplicada");
+          setAdminModal(null);
+        }}>Emitir hacia AGLDP</button>
+      </Modal>
+
+      <Modal title="Configuración normativa" open={adminModal === "policy"} onClose={() => setAdminModal(null)}>
         <SectionTitle icon={ShieldCheck} title="Configuración normativa" />
         <div className="config-grid">
           <Field label="Impuesto semanal %" value={String(weeklyTax)} onChange={(value) => setWeeklyTax(Number(value) || 0)} type="number" />
@@ -1447,25 +1650,28 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
           <Field label="Máx inversión" value={String(investmentMax)} onChange={(value) => setInvestmentMax(Number(value) || 0)} type="number" />
           <Field label="Inversiones/día" value={String(dailyInvestmentLimit)} onChange={(value) => setDailyInvestmentLimit(Number(value) || 0)} type="number" />
         </div>
-        <button className="primary-button" onClick={() => onPersist(updateTreasuryConfig(state, {
-          weeklyTaxPercent: weeklyTax,
-          operationalTransferTaxPercent: opTax,
-          placezumWeeklyLimitPz: placezumLimit,
-          maxInvestmentAmountPz: investmentMax,
-          dailyInvestmentLimit
-        }), "Configuración normativa guardada")}>Guardar configuración</button>
-      </article>
+        <button className="primary-button" onClick={() => {
+          onPersist(updateTreasuryConfig(state, {
+            weeklyTaxPercent: weeklyTax,
+            operationalTransferTaxPercent: opTax,
+            placezumWeeklyLimitPz: placezumLimit,
+            maxInvestmentAmountPz: investmentMax,
+            dailyInvestmentLimit
+          }), "Configuración normativa guardada");
+          setAdminModal(null);
+        }}>Guardar configuración</button>
+      </Modal>
 
-      <article className="panel admin-panel">
-        <SectionTitle icon={WifiOff} title="Operación remota" />
+      <Modal title="Auditoría operativa" open={adminModal === "audit"} onClose={() => setAdminModal(null)}>
+        <SectionTitle icon={WifiOff} title="Auditoría operativa" />
         <div className="ops-list">
           <div><strong>Conexión segura</strong><span>La sesión mantiene tus datos actualizados entre móvil y web.</span></div>
           <div><strong>Modo sin conexión</strong><span>La web conserva la última información disponible si pierdes señal.</span></div>
           <div><strong>Auditoría</strong><span>{state.complianceFlags.length} flags activos · {state.transactions.length} movimientos.</span></div>
         </div>
-      </article>
+      </Modal>
 
-      <article className="panel admin-panel history-panel">
+      <Modal title="Usuarios y cuentas" open={adminModal === "users"} onClose={() => setAdminModal(null)}>
         <SectionTitle icon={Building2} title="Usuarios y cuentas" />
         {state.users.map((user) => {
           const account = state.accounts.find((item) => item.id === user.primaryAccountId);
@@ -1476,7 +1682,7 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
             </div>
           );
         })}
-      </article>
+      </Modal>
     </section>
   );
 }

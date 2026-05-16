@@ -5,8 +5,6 @@ import {
   Bell,
   Building2,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
   CircleDollarSign,
   CreditCard,
   Download,
@@ -581,18 +579,6 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
   const [pin, setPin] = useState("1234");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
-  const [slideIndex, setSlideIndex] = useState(0);
-  const [landingPageId, setLandingPageId] = useState(landingPages[0].id);
-  const slide = landingSlides[slideIndex % landingSlides.length];
-  const activeLandingPage = landingPages.find((item) => item.id === landingPageId) || landingPages[0];
-  const ActiveLandingIcon = activeLandingPage.icon;
-  const previousSlide = () => setSlideIndex((current) => (current + landingSlides.length - 1) % landingSlides.length);
-  const nextSlide = () => setSlideIndex((current) => (current + 1) % landingSlides.length);
-
-  useEffect(() => {
-    const timer = window.setInterval(() => setSlideIndex((current) => (current + 1) % landingSlides.length), 5200);
-    return () => window.clearInterval(timer);
-  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -664,139 +650,100 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
   }
 
   return (
-    <main className="landing-shell" id="inicio">
-      <header className="landing-nav">
-        <div className="landing-brand">
-          <span className="brand-logo landing-logo">
-            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="66px" priority />
+    <main className="lp4-shell" id="inicio">
+      <header className="lp4-nav">
+        <a className="lp4-brand" href="#inicio" aria-label="Banco de La Placeta">
+          <span className="lp4-logo">
+            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="72px" priority />
           </span>
-          <div>
+          <span>
             <strong>Banco de La Placeta</strong>
-            <span>Web oficial</span>
-          </div>
-        </div>
-        <div className="landing-nav-actions">
-          <button className="mini-action ghost" type="button" onClick={() => document.getElementById("inicio")?.scrollIntoView({ behavior: "smooth" })}>Inicio</button>
-          <button className="mini-action ghost" type="button" onClick={() => document.getElementById("producto")?.scrollIntoView({ behavior: "smooth" })}>Producto</button>
-          <button className="mini-action ghost" type="button" onClick={() => document.getElementById("ayuda")?.scrollIntoView({ behavior: "smooth" })}>Ayuda</button>
-          <button className="mini-action ghost" type="button" onClick={() => document.getElementById("seguridad")?.scrollIntoView({ behavior: "smooth" })}>Seguridad</button>
-          <button className="mini-action" type="button" onClick={() => document.getElementById("acceso")?.scrollIntoView({ behavior: "smooth" })}>Acceder</button>
-        </div>
+            <small>Web oficial</small>
+          </span>
+        </a>
+        <nav className="lp4-links" aria-label="Navegación landing">
+          <a href="#cuentas">Cuentas</a>
+          <a href="#servicios">Servicios</a>
+          <a href="#ayuda">Ayuda</a>
+          <a href="#seguridad">Seguridad</a>
+          <a className="lp4-link-cta" href="#acceso">Acceder</a>
+        </nav>
       </header>
 
-      <section className="landing-hero landing-hero-v2">
-        <div className="landing-hero-copy">
-          <span className="landing-kicker">Banco digital para La Placeta</span>
-          <h1>Pagos, cuentas y administración desde una web clara.</h1>
-          <p>Banco de La Placeta reúne la operativa diaria en una experiencia web seria: consultar, pagar, gestionar tarjetas, abrir tickets y descargar documentos sin mezclarlo todo en una misma pantalla.</p>
-          <div className="landing-cta-row">
-            <button className="landing-cta" type="button" onClick={() => document.getElementById("acceso")?.scrollIntoView({ behavior: "smooth" })}>Entrar al banco</button>
-            <button className="landing-cta secondary" type="button" onClick={() => document.getElementById("producto")?.scrollIntoView({ behavior: "smooth" })}>Ver módulos</button>
+      <section className="lp4-hero">
+        <Image src="/assets/promos/promo2.png" alt="Banco de La Placeta web" fill priority sizes="100vw" />
+        <div className="lp4-hero-shade" />
+        <div className="lp4-hero-inner">
+          <div className="lp4-hero-copy">
+            <span>Banca digital para La Placeta</span>
+            <h1>Gestiona tu dinero con una web clara, seria y directa.</h1>
+            <p>Pagos, cuentas, tarjetas, documentos y soporte en módulos separados. Sin promesas exageradas, sin paneles confusos y con la misma lógica de la app Android.</p>
+            <div className="lp4-hero-actions">
+              <a href="#acceso">Entrar al banco</a>
+              <a href="#servicios">Ver servicios</a>
+            </div>
           </div>
-          <div className="landing-stat-row">
-            {landingStats.map((item) => (
-              <div key={item.label}>
-                <strong>{item.value}</strong>
-                <span>{item.label}</span>
-                <small>{item.detail}</small>
-              </div>
-            ))}
-          </div>
-        </div>
 
-        <article className="landing-product-preview">
-          <div className="preview-top">
-            <span>Banco de La Placeta</span>
-            <strong>{sync === "online" ? "Conectado" : sync === "offline" ? "Sin conexión" : "Sincronizando"}</strong>
-          </div>
-          <div className="preview-balance">
-            <span>Cuenta principal</span>
-            <strong>1.248,50 Pz</strong>
-            <small>IBAN visible antes de operar</small>
-          </div>
-          <div className="preview-actions">
-            <button type="button"><QrCode size={18} /> Placezum</button>
-            <button type="button"><CreditCard size={18} /> Tarjetas</button>
-            <button type="button"><Download size={18} /> PDFs</button>
-          </div>
-          <div className="preview-card-art">
-            <Image src="/assets/promocard.jpg" alt="Tarjeta Banco de La Placeta" fill sizes="360px" />
-          </div>
-          <div className="preview-feed">
-            <div><span>Transferencia</span><strong>-25,00 Pz</strong></div>
-            <div><span>Documento</span><strong>Extracto mensual</strong></div>
-            <div><span>Soporte</span><strong>Ticket con contexto</strong></div>
-          </div>
-        </article>
-      </section>
-
-      <section className="landing-access-section">
-        <form id="acceso" className="login-panel landing-login" onSubmit={submit}>
-          <div className="landing-section-title compact">
-            <span>Acceso seguro</span>
-            <h2>{mode === "login" ? "Entra con tu DIP" : "Crea una cuenta web"}</h2>
-          </div>
-          <div className="segmented">
-            <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Entrar</button>
-            <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Registro</button>
-          </div>
-          {mode === "register" && <Field label="Nombre" value={name} onChange={setName} placeholder="Tu nombre" />}
-          <Field label="DIP oficial" value={dip} onChange={setDip} placeholder="DIP-XXXX" />
-          <Field label="PIN" value={pin} onChange={setPin} placeholder="1234" type="password" />
-          {error && <p className="form-error">{error}</p>}
-          <button className="primary-button" type="submit">{mode === "login" ? "Abrir banco" : "Crear DIP"}</button>
-          <p className="login-hint">Demo: DIP-A001 / PIN 1234</p>
-        </form>
-        <div className="landing-access-info">
-          <span>Diseñado para escritorio</span>
-          <h2>La web separa cada tarea en su sitio.</h2>
-          <p>El usuario ve resumen y accesos rápidos; los formularios de pagos, tarjetas, documentos, nóminas y soporte se abren como acciones concretas para reducir errores.</p>
+          <form id="acceso" className="lp4-login" onSubmit={submit}>
+            <div className="lp4-login-head">
+              <span>{sync === "online" ? "Servicio conectado" : sync === "offline" ? "Modo sin conexión" : "Sincronizando datos"}</span>
+              <h2>{mode === "login" ? "Acceso DIP" : "Crear acceso"}</h2>
+            </div>
+            <div className="segmented">
+              <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Entrar</button>
+              <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Registro</button>
+            </div>
+            {mode === "register" && <Field label="Nombre" value={name} onChange={setName} placeholder="Tu nombre" />}
+            <Field label="DIP oficial" value={dip} onChange={setDip} placeholder="DIP-XXXX" />
+            <Field label="PIN" value={pin} onChange={setPin} placeholder="1234" type="password" />
+            {error && <p className="form-error">{error}</p>}
+            <button className="primary-button" type="submit">{mode === "login" ? "Abrir banco" : "Crear DIP"}</button>
+            <p className="login-hint">Demo: DIP-A001 / PIN 1234</p>
+          </form>
         </div>
       </section>
 
-      <section className="landing-feature-grid landing-feature-grid-v2" id="producto">
-        {landingFeatures.map((feature) => {
-          const Icon = feature.icon;
-          return (
-            <article key={feature.title} className="landing-feature">
-              <Icon size={22} />
-              <strong>{feature.title}</strong>
-              <p>{feature.text}</p>
-            </article>
-          );
-        })}
+      <section className="lp4-strip" id="cuentas" aria-label="Resumen del producto">
+        {landingStats.map((item) => (
+          <article key={item.label}>
+            <strong>{item.value}</strong>
+            <span>{item.label}</span>
+            <p>{item.detail}</p>
+          </article>
+        ))}
       </section>
 
-      <section className="landing-showcase">
-        <article className="landing-carousel landing-carousel-v2">
-          <Image src={slide.image} alt={slide.title} fill priority sizes="(max-width: 900px) 100vw, 760px" />
-          <div className="landing-slide-status">
-            <span>{String(slideIndex + 1).padStart(2, "0")}</span>
-            <strong>{slide.metric}</strong>
-          </div>
-          <div className="landing-copy">
-            <span>{slide.kicker}</span>
-            <h2>{slide.title}</h2>
-            <p>{slide.subtitle}</p>
-          </div>
-          <div className="landing-arrows" aria-label="Control del carrusel">
-            <button type="button" aria-label="Anterior" onClick={previousSlide}><ChevronLeft size={20} /></button>
-            <button type="button" aria-label="Siguiente" onClick={nextSlide}><ChevronRight size={20} /></button>
-          </div>
-          <div className="landing-dots">
-            {landingSlides.map((item, index) => (
-              <button key={item.title} className={index === slideIndex ? "active" : ""} aria-label={item.title} onClick={() => setSlideIndex(index)} />
-            ))}
-          </div>
-        </article>
-        <div className="landing-workflow">
-          <div className="landing-section-title compact">
-            <span>Cómo funciona</span>
-            <h2>Operar sin ruido visual</h2>
-          </div>
+      <section className="lp4-product" id="servicios">
+        <div className="lp4-section-head">
+          <span>Servicios</span>
+          <h2>Todo separado, todo accesible.</h2>
+          <p>La web agrupa cada tarea bancaria en una zona clara para que el usuario no tenga que buscar entre pantallas llenas.</p>
+        </div>
+        <div className="lp4-service-grid">
+          {landingPages.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.id}>
+                <Icon size={22} />
+                <strong>{item.title}</strong>
+                <p>{item.text}</p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="lp4-showcase">
+        <div className="lp4-card-visual">
+          <Image src="/assets/promocard.jpg" alt="Tarjeta Banco de La Placeta" fill sizes="420px" />
+        </div>
+        <div className="lp4-flow">
+          <span>Operativa</span>
+          <h2>Una experiencia pensada para escritorio.</h2>
+          <p>Acciones principales visibles, formularios bajo demanda, documentos descargables y tickets con contexto.</p>
           {landingWorkflow.map((item, index) => (
             <article key={item.title}>
-              <span>{index + 1}</span>
+              <b>{index + 1}</b>
               <div>
                 <strong>{item.title}</strong>
                 <p>{item.text}</p>
@@ -806,107 +753,62 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         </div>
       </section>
 
-      <section className="landing-pages landing-pages-v2" id="ayuda">
-        <div className="landing-section-title">
-          <span>Guías del banco</span>
-          <h2>Todo tiene su módulo</h2>
-        </div>
-        <div className="landing-page-tabs">
-          {landingPages.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button key={item.id} className={item.id === landingPageId ? "active" : ""} onClick={() => setLandingPageId(item.id)}>
-                <Icon size={18} />
-                {item.title}
-              </button>
-            );
-          })}
-        </div>
-        <article className="landing-page-detail">
-          <ActiveLandingIcon size={28} />
-          <div>
-            <strong>{activeLandingPage.title}</strong>
-            <p>{activeLandingPage.text}</p>
-            <div className="landing-bullets">
-              {activeLandingPage.bullets.map((item) => <span key={item}>{item}</span>)}
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <section className="help-post-grid help-post-grid-v2">
-        <div className="landing-section-title">
+      <section className="lp4-help" id="ayuda">
+        <div className="lp4-section-head">
           <span>Ayuda</span>
-          <h2>Artículos para operar mejor</h2>
+          <h2>Contenido útil para operar mejor.</h2>
         </div>
-        {helpPosts.map((post) => (
-          <article key={post.title} className="help-post">
-            <span>{post.tag}</span>
-            <strong>{post.title}</strong>
-            <p>{post.text}</p>
-          </article>
-        ))}
+        <div className="lp4-post-grid">
+          {helpPosts.map((post) => (
+            <article key={post.title}>
+              <span>{post.tag}</span>
+              <strong>{post.title}</strong>
+              <p>{post.text}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
-      <section className="landing-trust" id="seguridad">
+      <section className="lp4-trust" id="seguridad">
         <div>
-          <span>Confianza</span>
-          <h2>Una web financiera debe explicar cada operación.</h2>
-          <p>La interfaz prioriza trazabilidad, confirmaciones y módulos separados. El objetivo no es impresionar con cifras, sino que la persona entienda qué está haciendo.</p>
+          <span>Seguridad y confianza</span>
+          <h2>Lenguaje financiero real y operaciones con contexto.</h2>
+          <p>Banco de La Placeta evita promesas irreales y prioriza origen, destino, límites, documentos y soporte.</p>
         </div>
-        <div className="trust-list">
+        <div className="lp4-trust-grid">
           {landingTrust.map((item) => {
             const Icon = item.icon;
             return (
-            <article key={item.title}>
-              <Icon size={22} />
-              <strong>{item.title}</strong>
-              <p>{item.text}</p>
-            </article>
+              <article key={item.title}>
+                <Icon size={22} />
+                <strong>{item.title}</strong>
+                <p>{item.text}</p>
+              </article>
             );
           })}
         </div>
       </section>
 
-      <section className="article-grid" id="articulos">
-        {landingArticles.map((article) => {
-          const Icon = article.icon;
-          return (
-            <article key={article.title} className="landing-article">
-              <Image src={article.image} alt={article.title} fill sizes="(max-width: 760px) 100vw, 360px" />
-              <div>
-                <Icon size={24} />
-                <strong>{article.title}</strong>
-                <p>{article.text}</p>
-              </div>
-            </article>
-          );
-        })}
-      </section>
-
-      <section className="landing-faq" id="faq">
-        <div className="landing-section-title">
+      <section className="lp4-faq" id="faq">
+        <div className="lp4-section-head">
           <span>FAQ</span>
           <h2>Preguntas frecuentes</h2>
         </div>
         {landingFaq.map((item) => (
-          <article key={item.question}>
-            <strong>{item.question}</strong>
+          <details key={item.question}>
+            <summary>{item.question}</summary>
             <p>{item.answer}</p>
-          </article>
+          </details>
         ))}
       </section>
 
-      <footer className="landing-footer">
-        <div>
-          <strong>Banco de La Placeta</strong>
-          <span>Banca digital, pagos y gestión financiera.</span>
-        </div>
+      <footer className="lp4-footer">
+        <strong>Banco de La Placeta</strong>
         <nav>
           <a href="mailto:soporte@bancoplaceta.com">soporte@bancoplaceta.com</a>
+          <a href="#servicios">Servicios</a>
           <a href="#faq">FAQ</a>
           <a href="#acceso">Acceso</a>
-          <a href="#producto">Producto</a>
         </nav>
       </footer>
     </main>

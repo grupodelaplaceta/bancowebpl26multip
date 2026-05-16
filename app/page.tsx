@@ -396,13 +396,17 @@ export default function BancoPlacetaWeb() {
     <main className="app-shell">
       <header className="topbar">
         <div className="top-brand">
-          <Image src="/logo.png" alt="Banco Placeta" width={46} height={46} priority />
+          <span className="brand-logo">
+            <Image src="/logo.png" alt="Banco Placeta" fill sizes="54px" priority />
+          </span>
           <div>
             <p className="eyebrow">Banco Placeta</p>
-            <h1>{activeUser.displayName}</h1>
+            <h1>Panel web</h1>
+            <span className="top-user">{activeUser.displayName}</span>
           </div>
         </div>
         <div className="top-actions">
+          <StatusPill sync={sync} />
           <button
             className={`icon-button ${notificationPermission === "granted" ? "notify-on" : ""}`}
             aria-label={notificationPermission === "granted" ? "Notificaciones de PC activadas" : "Activar notificaciones de PC"}
@@ -411,7 +415,6 @@ export default function BancoPlacetaWeb() {
           >
             <Bell size={19} />
           </button>
-          <StatusPill sync={sync} />
           <button
             className="icon-button"
             aria-label="Cerrar sesión"
@@ -424,6 +427,18 @@ export default function BancoPlacetaWeb() {
           </button>
         </div>
       </header>
+
+      <nav className="app-nav" aria-label="Secciones del banco">
+        {visibleTabs.map((item) => {
+          const Icon = item.icon;
+          return (
+            <button key={item.id} className={tab === item.id ? "active" : ""} onClick={() => setTab(item.id)}>
+              <Icon size={19} />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+      </nav>
 
       <section className="account-strip">
         {userAccounts.map((account) => (
@@ -590,18 +605,21 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
   }
 
   return (
-    <main className="landing-shell">
+    <main className="landing-shell" id="inicio">
       <header className="landing-nav">
         <div className="landing-brand">
-          <Image src="/assets/icon2.png" alt="Banco Placeta" width={44} height={44} />
+          <span className="brand-logo landing-logo">
+            <Image src="/logo.png" alt="Banco Placeta" fill sizes="52px" priority />
+          </span>
           <div>
             <strong>Banco Placeta</strong>
-            <span>Web oficial GDLP</span>
+            <span>Web oficial</span>
           </div>
         </div>
         <div className="landing-nav-actions">
-          <StatusPill sync={sync as "loading" | "online" | "offline"} />
-          <button className="mini-action" type="button" onClick={() => document.getElementById("acceso")?.scrollIntoView({ behavior: "smooth" })}>Acceso</button>
+          <button className="mini-action ghost" type="button" onClick={() => document.getElementById("inicio")?.scrollIntoView({ behavior: "smooth" })}>Inicio</button>
+          <button className="mini-action ghost" type="button" onClick={() => document.getElementById("articulos")?.scrollIntoView({ behavior: "smooth" })}>Noticias</button>
+          <button className="mini-action" type="button" onClick={() => document.getElementById("acceso")?.scrollIntoView({ behavior: "smooth" })}>Acceder</button>
         </div>
       </header>
 
@@ -643,7 +661,7 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         <div><strong>{state.transactions.length}</strong><span>Movimientos</span></div>
       </section>
 
-      <section className="article-grid">
+      <section className="article-grid" id="articulos">
         {landingArticles.map((article) => {
           const Icon = article.icon;
           return (

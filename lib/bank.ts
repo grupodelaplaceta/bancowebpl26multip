@@ -216,6 +216,11 @@ export type BankState = {
   updatedAt?: string | null;
 };
 
+export type StateConflictPayload = {
+  error: "state_conflict";
+  remote: BankState;
+};
+
 export const treasuryDefaults: TreasuryConfig = {
   operationalTransferTaxPercent: 7,
   webBridgeCommissionPercent: 3,

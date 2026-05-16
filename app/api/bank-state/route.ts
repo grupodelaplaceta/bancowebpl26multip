@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { normalizeState } from "../../../lib/bank";
 
 const baseUrl = () => (process.env.PLACETA_API_BASE_URL || "https://apisbanco.vercel.app").replace(/\/$/, "");
 const appId = () => process.env.PLACETA_API_APP_ID || process.env.PLACETA_APP_ID || "org.laplaceta.banco";
@@ -37,6 +38,18 @@ async function callBankApi(method: "GET" | "PUT", body = "") {
   return NextResponse.json(payload, { status: response.status });
 }
 
+async function readRemoteState() {
+  const path = "/api/state";
+  const response = await fetch(`${baseUrl()}${path}`, {
+    method: "GET",
+    headers: signedHeaders("GET", path, ""),
+    cache: "no-store"
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error(text || "remote_state_unavailable");
+  return normalizeState(text ? JSON.parse(text) : null);
+}
+
 export async function GET() {
   try {
     return await callBankApi("GET");
@@ -47,7 +60,19 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    return await callBankApi("PUT", await request.text());
+    const text = await request.text();
+    const payload = text ? JSON.parse(text) : {};
+    const nextState = normalizeState(payload.state || payload);
+    const baseUpdatedAt = payload.baseUpdatedAt || null;
+
+    if (baseUpdatedAt) {
+      const remote = await readRemoteState();
+      if (remote.updatedAt && remote.updatedAt !== baseUpdatedAt) {
+        return NextResponse.json({ error: "state_conflict", remote }, { status: 409 });
+      }
+    }
+
+    return await callBankApi("PUT", JSON.stringify(nextState));
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "sync_failed" }, { status: 503 });
   }

@@ -118,9 +118,9 @@ const landingTrust = [
 ];
 
 const landingStats = [
-  { label: "Módulos", value: "6", detail: "cuentas, pagos, tarjetas, hub, mercado y tributos" },
-  { label: "Acceso", value: "DIP", detail: "identidad única para móvil y escritorio" },
-  { label: "Soporte", value: "Tickets", detail: "incidencias con contexto operativo" }
+  { label: "Servicios", value: "6", detail: "cuentas, pagos, tarjetas, documentos, hub y soporte" },
+  { label: "Identidad", value: "DIP", detail: "acceso único sincronizado con la app Android" },
+  { label: "Atención", value: "Tickets", detail: "incidencias con contexto de cuenta y operación" }
 ];
 
 const landingWorkflow = [
@@ -134,6 +134,33 @@ const landingFaq = [
   { question: "¿Qué puedo hacer desde Banco de La Placeta web?", answer: "Consultar cuentas, enviar pagos, gestionar tarjetas, revisar actividad, abrir tickets y usar herramientas administrativas si tu perfil lo permite." },
   { question: "¿La web sustituye a la app Android?", answer: "No. La complementa: mantiene la misma lógica de cuenta y añade una experiencia más cómoda para escritorio." },
   { question: "¿Dónde veo soporte o incidencias?", answer: "Dentro del Hub puedes abrir tickets con contexto de cuentas, tarjetas, inversiones o movimientos." }
+];
+
+const commercialServices = [
+  { title: "Cuenta digital", text: "Saldo, IBAN, actividad y documentos en una vista clara para operar con menos pasos.", icon: WalletCards },
+  { title: "Pagos Placezum", text: "Pagos rápidos, contactos guardados y límites visibles antes de confirmar.", icon: QrCode },
+  { title: "Tarjetas", text: "Tarjeta virtual y Promo Card con control de estado y acciones separadas.", icon: CreditCard },
+  { title: "Empresa", text: "Nóminas, alta, actividad asociada y soporte operativo para cuentas empresariales.", icon: Building2 },
+  { title: "Documentos", text: "Extractos, certificados y recibos descargables desde el Hub.", icon: Download },
+  { title: "Soporte", text: "Tickets con asunto, mensaje y contexto para acelerar la revisión.", icon: ShieldCheck }
+];
+
+const customerSegments = [
+  { title: "Particulares", text: "Pagos, tarjetas, extractos y actividad diaria con una navegación sencilla.", icon: Home },
+  { title: "Empresas", text: "Nóminas, rentabilidad, movimientos y documentos agrupados por cuenta.", icon: Building2 },
+  { title: "Administración", text: "Paneles para revisión fiscal, normativa y operación interna cuando el rol lo permite.", icon: Landmark }
+];
+
+const channelCards = [
+  { title: "Web escritorio", text: "Diseñada para revisar, comparar, descargar y gestionar operaciones con más espacio.", icon: MoreHorizontal },
+  { title: "App Android", text: "Mantiene la operativa móvil diaria con la misma identidad y lógica de cuenta.", icon: WalletCards },
+  { title: "Notificaciones", text: "Avisos opcionales en PC para movimientos, soporte y operaciones relevantes.", icon: Bell }
+];
+
+const footerColumns = [
+  { title: "Banco", links: ["Cuentas", "Pagos", "Tarjetas", "Documentos"] },
+  { title: "Ayuda", links: ["Soporte", "FAQ", "Seguridad", "Contacto"] },
+  { title: "Legal", links: ["Privacidad", "Términos", "Accesibilidad", "Cookies"] }
 ];
 
 const landingPages = [
@@ -184,6 +211,7 @@ export default function BancoPlacetaWeb() {
   const [notificationNow, setNotificationNow] = useState(0);
   const stateRef = useRef<BankState>(state);
   const persistInFlightRef = useRef(false);
+  const operationInFlightRef = useRef(false);
   const remoteRefreshInFlightRef = useRef(false);
   const notificationSeenRef = useRef<Set<string>>(new Set());
   const notificationsReadyRef = useRef(false);
@@ -385,7 +413,17 @@ export default function BancoPlacetaWeb() {
     }
   }
 
-  async function persist(next: BankState, message: string) {
+  async function fetchFreshState() {
+    const response = await fetch("/api/bank-state", { cache: "no-store" });
+    if (!response.ok) throw new Error("No se pudo leer el estado remoto");
+    const remote = normalizeState(await response.json());
+    setState(remote);
+    localStorage.setItem("placeta-web-state", JSON.stringify(remote));
+    setSync("online");
+    return remote;
+  }
+
+  async function persist(next: BankState, message: string, baseUpdatedAt: string | null = stateRef.current.updatedAt || null) {
     persistInFlightRef.current = true;
     const normalizedNext = normalizeState(next);
     setState(normalizedNext);
@@ -394,7 +432,7 @@ export default function BancoPlacetaWeb() {
       const response = await fetch("/api/bank-state", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(normalizedNext)
+        body: JSON.stringify({ state: normalizedNext, baseUpdatedAt })
       });
       setSync(response.ok ? "online" : "offline");
       if (response.ok) {
@@ -405,8 +443,14 @@ export default function BancoPlacetaWeb() {
           localStorage.setItem("placeta-web-state", JSON.stringify(remote));
           if (remote.updatedAt !== normalizedNext.updatedAt) setToast(`${message} · actualizado`);
         }
+      } else if (response.status === 409) {
+        const conflict = await response.json();
+        const remote = normalizeState(conflict.remote);
+        setState(remote);
+        localStorage.setItem("placeta-web-state", JSON.stringify(remote));
+        setToast("Operación no aplicada: los datos cambiaron en otro dispositivo. Reintenta con el saldo actualizado.");
       } else {
-        setToast("No se pudo guardar. Revisa si había una operación duplicada.");
+        setToast("No se pudo guardar. Revisa si había una operación duplicada o un conflicto de sincronización.");
       }
     } catch {
       setSync("offline");
@@ -416,11 +460,19 @@ export default function BancoPlacetaWeb() {
     }
   }
 
-  function runOperation(operation: () => BankState, message: string) {
+  async function runOperation(operation: (fresh: BankState) => BankState, message: string) {
+    if (operationInFlightRef.current) {
+      setToast("Hay una operación en curso. Espera la confirmación antes de repetir.");
+      return;
+    }
+    operationInFlightRef.current = true;
     try {
-      void persist(operation(), message);
+      const fresh = await fetchFreshState();
+      await persist(operation(fresh), message, fresh.updatedAt || null);
     } catch (error) {
       setToast(error instanceof Error ? error.message : "Operación rechazada");
+    } finally {
+      operationInFlightRef.current = false;
     }
   }
 
@@ -507,10 +559,10 @@ export default function BancoPlacetaWeb() {
           accounts={state.accounts}
           transactions={state.transactions}
           cards={state.digitalCards.filter((card) => card.accountId === selectedAccount.id)}
-          onTransfer={(iban, amount, note) => runOperation(() => transferByIban(state, selectedAccount.id, iban, amount, note, "Consumption"), "Transferencia GDLP ejecutada")}
-          onRbu={() => runOperation(() => claimRbu(state, selectedAccount.id), "RBU abonada")}
-          onIssueCard={() => runOperation(() => issueCard(state, selectedAccount.id), "Tarjeta digital emitida")}
-          onToggleCard={(cardId) => runOperation(() => toggleCard(state, cardId), "Estado de tarjeta actualizado")}
+          onTransfer={(iban, amount, note) => runOperation((fresh) => transferByIban(fresh, selectedAccount.id, iban, amount, note, "Consumption"), "Transferencia GDLP ejecutada")}
+          onRbu={() => runOperation((fresh) => claimRbu(fresh, selectedAccount.id), "RBU abonada")}
+          onIssueCard={() => runOperation((fresh) => issueCard(fresh, selectedAccount.id), "Tarjeta digital emitida")}
+          onToggleCard={(cardId) => runOperation((fresh) => toggleCard(fresh, cardId), "Estado de tarjeta actualizado")}
         />
       )}
 
@@ -522,11 +574,11 @@ export default function BancoPlacetaWeb() {
           limit={state.treasuryConfig.placezumWeeklyLimitPz}
           spent={placezumWeekSpent(state, selectedAccount.id)}
           contacts={state.savedContacts.filter((contact) => contact.ownerPlacetaId === activeUser.placetaId)}
-          onAddContact={(accountId) => runOperation(() => addSavedContact(state, activeUser.placetaId, accountId), "Contacto guardado")}
-          onRemoveContact={(accountId) => runOperation(() => removeSavedContact(state, activeUser.placetaId, accountId), "Contacto eliminado")}
+          onAddContact={(accountId) => runOperation((fresh) => addSavedContact(fresh, activeUser.placetaId, accountId), "Contacto guardado")}
+          onRemoveContact={(accountId) => runOperation((fresh) => removeSavedContact(fresh, activeUser.placetaId, accountId), "Contacto eliminado")}
           onPay={(targetId, amount) => {
             const target = accountsById.get(targetId);
-            if (target) runOperation(() => payPlacezum(state, selectedAccount.id, target.iban, amount, `Placezum a ${target.displayName}`), "Pago Placezum confirmado");
+            if (target) runOperation((fresh) => payPlacezum(fresh, selectedAccount.id, target.iban, amount, `Placezum a ${target.displayName}`), "Pago Placezum confirmado");
           }}
         />
       )}
@@ -535,18 +587,27 @@ export default function BancoPlacetaWeb() {
         <MarketScreen
           state={state}
           account={selectedAccount}
-          onStart={(marketId, amount) => runOperation(() => startTimedInvestment(state, selectedAccount.id, marketId, amount), "Inversión 60s iniciada")}
+          onStart={(marketId, amount) => runOperation((fresh) => startTimedInvestment(fresh, selectedAccount.id, marketId, amount), "Inversión 60s iniciada")}
           onSettle={(operationId) => {
-            try {
-              const result = settleTimedInvestment(state, operationId);
-              void persist(result.state, `${result.reveal.userWins ? "Resultado a favor" : "Resultado en contra"} · ${formatPz(result.reveal.amountPz)} Pz`);
-            } catch (error) {
-              setToast(error instanceof Error ? error.message : "Resultado no disponible");
+            if (operationInFlightRef.current) {
+              setToast("Hay una operación en curso. Espera la confirmación antes de repetir.");
+              return;
             }
+            operationInFlightRef.current = true;
+            void (async () => {
+              try {
+                const fresh = await fetchFreshState();
+                const result = settleTimedInvestment(fresh, operationId);
+                await persist(result.state, `${result.reveal.userWins ? "Resultado a favor" : "Resultado en contra"} · ${formatPz(result.reveal.amountPz)} Pz`, fresh.updatedAt || null);
+              } catch (error) {
+                setToast(error instanceof Error ? error.message : "Resultado no disponible");
+              } finally {
+                operationInFlightRef.current = false;
+              }
+            })();
           }}
         />
       )}
-
       {tab === "hub" && <HubScreen state={state} user={activeUser} onPersist={(next, message) => void persist(next, message)} />}
       {tab === "tributos" && <TributosScreen state={state} onPersist={(next, message) => void persist(next, message)} />}
       {tab === "admin" && <AdminScreen state={state} onPersist={(next, message) => void persist(next, message)} />}
@@ -664,6 +725,7 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         <nav className="lp4-links" aria-label="Navegación landing">
           <a href="#cuentas">Cuentas</a>
           <a href="#servicios">Servicios</a>
+          <a href="#clientes">Clientes</a>
           <a href="#ayuda">Ayuda</a>
           <a href="#seguridad">Seguridad</a>
           <a className="lp4-link-cta" href="#acceso">Acceder</a>
@@ -676,11 +738,16 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         <div className="lp4-hero-inner">
           <div className="lp4-hero-copy">
             <span>Banca digital para La Placeta</span>
-            <h1>Gestiona tu dinero con una web clara, seria y directa.</h1>
-            <p>Pagos, cuentas, tarjetas, documentos y soporte en módulos separados. Sin promesas exageradas, sin paneles confusos y con la misma lógica de la app Android.</p>
+            <h1>Tu banco web para operar con claridad y control.</h1>
+            <p>Banco de La Placeta reúne cuentas, pagos, tarjetas, documentos y soporte en una experiencia comercial lista para escritorio, con un lenguaje financiero serio y sin pantallas saturadas.</p>
             <div className="lp4-hero-actions">
               <a href="#acceso">Entrar al banco</a>
               <a href="#servicios">Ver servicios</a>
+            </div>
+            <div className="lp4-hero-badges" aria-label="Puntos destacados">
+              <span>Sin promesas irreales</span>
+              <span>Datos con trazabilidad</span>
+              <span>Responsive</span>
             </div>
           </div>
 
@@ -716,14 +783,14 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
       <section className="lp4-product" id="servicios">
         <div className="lp4-section-head">
           <span>Servicios</span>
-          <h2>Todo separado, todo accesible.</h2>
-          <p>La web agrupa cada tarea bancaria en una zona clara para que el usuario no tenga que buscar entre pantallas llenas.</p>
+          <h2>Una oferta bancaria clara, modular y vendible.</h2>
+          <p>La web agrupa cada tarea en una zona reconocible: consultar, pagar, documentar, administrar y pedir ayuda.</p>
         </div>
         <div className="lp4-service-grid">
-          {landingPages.map((item) => {
+          {commercialServices.map((item) => {
             const Icon = item.icon;
             return (
-              <article key={item.id}>
+              <article key={item.title}>
                 <Icon size={22} />
                 <strong>{item.title}</strong>
                 <p>{item.text}</p>
@@ -736,6 +803,10 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
       <section className="lp4-showcase">
         <div className="lp4-card-visual">
           <Image src="/assets/promocard.jpg" alt="Tarjeta Banco de La Placeta" fill sizes="420px" />
+          <div className="lp4-card-caption">
+            <span>Promo Card</span>
+            <strong>Assets originales de marca</strong>
+          </div>
         </div>
         <div className="lp4-flow">
           <span>Operativa</span>
@@ -750,6 +821,47 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
               </div>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="lp4-clients" id="clientes">
+        <div className="lp4-section-head">
+          <span>Clientes</span>
+          <h2>Una web preparada para cada perfil.</h2>
+          <p>El contenido cambia por rol y tipo de cuenta para evitar módulos incompatibles y mostrar solo lo que corresponde.</p>
+        </div>
+        <div className="lp4-client-grid">
+          {customerSegments.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.title}>
+                <Icon size={24} />
+                <strong>{item.title}</strong>
+                <p>{item.text}</p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="lp4-channels">
+        <div className="lp4-section-head">
+          <span>Canales</span>
+          <h2>Web y Android sincronizados.</h2>
+        </div>
+        <div className="lp4-channel-grid">
+          {channelCards.map((item) => {
+            const Icon = item.icon;
+            return (
+              <article key={item.title}>
+                <Icon size={22} />
+                <div>
+                  <strong>{item.title}</strong>
+                  <p>{item.text}</p>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -802,14 +914,33 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         ))}
       </section>
 
+      <section className="lp4-final-cta">
+        <div>
+          <span>Banco de La Placeta</span>
+          <h2>Accede a tu banca web y continúa donde lo dejaste.</h2>
+          <p>La web está pensada para operar, revisar y administrar con calma desde PC sin perder continuidad con la app.</p>
+        </div>
+        <a href="#acceso">Abrir acceso DIP</a>
+      </section>
+
       <footer className="lp4-footer">
-        <strong>Banco de La Placeta</strong>
-        <nav>
-          <a href="mailto:soporte@bancoplaceta.com">soporte@bancoplaceta.com</a>
-          <a href="#servicios">Servicios</a>
-          <a href="#faq">FAQ</a>
-          <a href="#acceso">Acceso</a>
-        </nav>
+        <div className="lp4-footer-brand">
+          <span className="lp4-logo small">
+            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="46px" />
+          </span>
+          <div>
+            <strong>Banco de La Placeta</strong>
+            <p>Banca digital, pagos y gestión financiera.</p>
+          </div>
+        </div>
+        <div className="lp4-footer-columns">
+          {footerColumns.map((column) => (
+            <nav key={column.title} aria-label={column.title}>
+              <strong>{column.title}</strong>
+              {column.links.map((link) => <a key={link} href={link === "Soporte" ? "mailto:soporte@bancoplaceta.com" : "#inicio"}>{link}</a>)}
+            </nav>
+          ))}
+        </div>
       </footer>
     </main>
   );

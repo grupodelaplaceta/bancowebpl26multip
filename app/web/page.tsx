@@ -16,6 +16,9 @@ type Session = {
 export default function WebBankPage() {
   const [dip, setDip] = useState("");
   const [password, setPassword] = useState("");
+  const [registerMode, setRegisterMode] = useState(false);
+  const [displayName, setDisplayName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState("");
   const [destination, setDestination] = useState("");
@@ -43,6 +46,12 @@ export default function WebBankPage() {
   const personalLimit = session?.treasuryConfig.personalDeclarationThresholdPz || 500_000;
   const selectedLimit = selectedAccount?.type === "Business" ? (session?.treasuryConfig.institutionalDeclarationThresholdPz || 10_000_000) : personalLimit;
   const limitUsed = Math.min(100, Math.round(((selectedAccount?.balancePz || 0) / selectedLimit) * 100));
+  const today = new Date().toISOString().slice(0, 10);
+  const dailySpent = session?.transactions
+    .filter((transaction) => transaction.fromAccountId === selectedAccount?.id && transaction.createdAt?.startsWith(today))
+    .reduce((sum, transaction) => sum + transaction.amountPz, 0) || 0;
+  const dynamicDailyLimit = selectedAccount?.sendLimitPz || (selectedAccount?.citizenshipTier === "JuniorSenior" ? 100 : undefined);
+  const dailyLeft = dynamicDailyLimit ? Math.max(0, dynamicDailyLimit - dailySpent) : null;
   const canInvest = selectedAccount && selectedAccount.type !== "Child" && !selectedAccount.citizenshipTier?.startsWith("Junior");
   const businessAccounts = session?.accounts.filter((account) => account.type === "Business") || [];
 
@@ -98,6 +107,27 @@ export default function WebBankPage() {
       setStatus("Sesión web lista");
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Error de sesión");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function register(event: FormEvent) {
+    event.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch("/api/web-register", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dip, displayName, password, birthDate })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "No se pudo registrar");
+      setStatus("Cuenta web creada y verificada por edad");
+      setRegisterMode(false);
+      await loadSession(undefined, dip, await hashPassword(password));
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Error de registro");
     } finally {
       setLoading(false);
     }
@@ -182,6 +212,17 @@ export default function WebBankPage() {
     }
   }
 
+  function downloadReceipt(transaction: LedgerTransaction) {
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Comprobante ${transaction.id}</title><style>body{font-family:Outfit,Arial,sans-serif;padding:24px;color:#170c2a} .box{border:1px solid #3f00d8;padding:20px;border-radius:8px} h1{color:#3f00d8} li{margin:8px 0}</style></head><body><div class="box"><h1>BANCO DE LA PLACETA - COMPROBANTE</h1><p><strong>ID Transacción:</strong> ${transaction.id}</p><p><strong>Fecha/Hora:</strong> ${formatDate(transaction.createdAt)}</p><p><strong>Ordenante:</strong> ${transaction.fromAccountId}</p><p><strong>Beneficiario:</strong> ${transaction.toAccountId}</p><hr/><h2>Desglose financiero</h2><ul><li>Importe bruto: ${formatPz(transaction.amountPz)} Pz</li><li>Tasas / IVA retenido: ${formatPz(transaction.taxAmount || transaction.ivaPz || 0)} Pz</li><li><strong>Neto:</strong> ${formatPz(transaction.netAmount || transaction.amountPz)} Pz</li></ul><p>Comprobante generado desde la web matriz. Los logs de IP y navegador constan en auditoría interna.</p></div></body></html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `comprobante-${transaction.id}.html`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <main className="webApp">
       {loading && (
@@ -196,18 +237,31 @@ export default function WebBankPage() {
           <h1>Panel matriz GDLP-W</h1>
           <p>La experiencia principal del Banco de La Placeta. La app móvil conserva esta misma imagen y añade las funciones físicas.</p>
         </div>
-        <form className="loginBox" onSubmit={(event) => loadSession(event)}>
+        <form className="loginBox" onSubmit={(event) => registerMode ? register(event) : loadSession(event)}>
+          {registerMode && (
+            <label>
+              Nombre de rol
+              <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Nombre visible" />
+            </label>
+          )}
           <label>
             DIP
             <input value={dip} onChange={(event) => setDip(event.target.value.toUpperCase())} placeholder="DIP-4829" />
           </label>
+          {registerMode && (
+            <label>
+              Fecha de nacimiento
+              <input type="date" value={birthDate} onChange={(event) => setBirthDate(event.target.value)} />
+            </label>
+          )}
           {!session && (
             <label>
               Clave / PIN
               <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••" />
             </label>
           )}
-          <button disabled={loading || !dip.trim() || (!session && !password.trim())}>{loading ? "Cargando" : "Entrar"}</button>
+          <button disabled={loading || !dip.trim() || (!session && !password.trim())}>{loading ? "Cargando" : registerMode ? "Crear cuenta" : "Entrar"}</button>
+          {!session && <button type="button" className="softButton" onClick={() => setRegisterMode(!registerMode)}>{registerMode ? "Ya tengo cuenta" : "Registrarme"}</button>}
           {session && <button type="button" className="softButton" onClick={logout}>Cerrar sesión</button>}
         </form>
       </section>
@@ -290,6 +344,7 @@ export default function WebBankPage() {
                 <strong className="bigNumber">{formatPz(selectedAccount?.balancePz || 0)} Pz</strong>
                 <div className="limitBar"><span style={{ width: `${limitUsed}%` }} /></div>
                 <p className="muted">Límite normativo: {formatPz(selectedLimit)} Pz</p>
+                {dailyLeft != null && <p className="muted">Disponible diario para enviar: {formatPz(dailyLeft)} Pz</p>}
               </div>
               <div className="panel">
                 <span className="kicker">Último movimiento</span>
@@ -463,8 +518,9 @@ export default function WebBankPage() {
                 <article className="movement" key={transaction.id}>
                   <div>
                     <strong>{transaction.note}</strong>
-                    <span>{formatDate(transaction.createdAt)} · {transaction.concept || transaction.kind}</span>
+                    <span>{formatDate(transaction.createdAt)} · {transaction.concept || transaction.kind} · Tasas/IVA {formatPz(transaction.taxAmount || transaction.ivaPz || 0)} Pz</span>
                   </div>
+                  <button className="softButton" onClick={() => downloadReceipt(transaction)}>Comprobante</button>
                   <b className={incoming ? "positive" : "negative"}>{incoming ? "+" : "-"}{formatPz(transaction.netAmount || transaction.amountPz)} Pz</b>
                 </article>
               );

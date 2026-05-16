@@ -32,13 +32,27 @@ export async function POST(request: Request) {
 
     const accounts = state.accounts || [];
     const from = accounts.find((account) => account.id === payload.fromAccountId);
-    const to = findDestinationAccount(accounts, payload.destination);
+    const destinationText = payload.destination.trim().toUpperCase();
+    const destinationUser = destinationText.startsWith("DIP-")
+      ? state.users?.find((item) => item.dip?.toUpperCase() === destinationText)
+      : null;
+    const to = destinationUser
+      ? accounts.find((account) => account.id === destinationUser.primaryAccountId)
+      : findDestinationAccount(accounts, payload.destination);
     if (!from || !belongsToUser(from, user)) return NextResponse.json({ error: "source_not_allowed" }, { status: 403 });
     if (!to) return NextResponse.json({ error: "destination_not_found" }, { status: 404 });
     if (from.id === to.id) return NextResponse.json({ error: "same_account" }, { status: 400 });
 
     const fee = calculateBridgeCommission(amountPz, from, to, state);
     const totalDebit = amountPz + fee.amount;
+    const today = new Date().toISOString().slice(0, 10);
+    const dailySpent = (state.transactions || [])
+      .filter((transaction) => transaction.fromAccountId === from.id && transaction.createdAt?.startsWith(today))
+      .reduce((sum, transaction) => sum + transaction.amountPz, 0);
+    const dynamicDailyLimit = from.sendLimitPz || (from.citizenshipTier === "JuniorSenior" ? 100 : undefined);
+    if (dynamicDailyLimit && dailySpent + amountPz > dynamicDailyLimit) {
+      return NextResponse.json({ error: "daily_limit_exceeded" }, { status: 409 });
+    }
     if (from.balancePz < totalDebit) return NextResponse.json({ error: "insufficient_balance" }, { status: 409 });
 
     const tglp = accounts.find((account) => account.id === TGLP_ID);

@@ -127,7 +127,7 @@ export default function AdminConsole({ mode }: Props) {
       </section>
       <p className="statusLine">{status}</p>
       <nav className="consoleTabs">
-        {["resumen", "fiscal", "cuentas", "movimientos", "tarjetas", "normativa", "operaciones"].map((item) => (
+        {["resumen", "fiscal", "cuentas", "movimientos", "tarjetas", "auditoria", "normativa", "operaciones"].map((item) => (
           <button className={section === item ? "active" : ""} key={item} onClick={() => setSection(item)}>{item}</button>
         ))}
       </nav>
@@ -154,6 +154,8 @@ export default function AdminConsole({ mode }: Props) {
                   <article className="listRow" key={flag.id}>
                     <div><strong>{account?.displayName || flag.accountId}</strong><span>{flag.reason} · {formatDate(flag.createdAt)}</span></div>
                     <b>{formatPz(flag.amountPz)} Pz</b>
+                    <button onClick={() => updateAccountStatus(flag.accountId, "DeclarationRequired")}>Auditar</button>
+                    <button onClick={() => updateAccountStatus(flag.accountId, "PendingReview")}>Congelar</button>
                   </article>
                 );
               })}
@@ -231,6 +233,22 @@ export default function AdminConsole({ mode }: Props) {
         </form>
       )}
 
+      {section === "auditoria" && (
+        <section className="panel">
+          <span className="kicker">Auditoría inmutable</span>
+          <h2>Logs de seguridad</h2>
+          {(state?.auditLogs || []).slice(0, 100).map((log) => (
+            <article className="movement" key={log.id}>
+              <div>
+                <strong>{log.action}</strong>
+                <span>{log.actorDip || "Sistema"} · {log.ip || "IP"} · {log.userAgent || "Navegador"}</span>
+              </div>
+              <b>{formatDate(log.createdAt)}</b>
+            </article>
+          ))}
+        </section>
+      )}
+
       {section === "operaciones" && (
         <form className="panel transferPanel" onSubmit={sendAdminTransfer}>
           <span className="kicker">Operaciones Admin</span>
@@ -245,6 +263,15 @@ export default function AdminConsole({ mode }: Props) {
       )}
     </main>
   );
+}
+
+async function updateAccountStatus(accountId: string, complianceStatus: string) {
+  await fetch("/api/admin-account", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ accountId, complianceStatus })
+  });
+  location.reload();
 }
 
 function Metric({ title, value, tone }: { title: string; value: string; tone?: "ok" | "warn" }) {

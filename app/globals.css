@@ -1,4 +1,23 @@
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;650;700;800;900&display=swap");
+@font-face {
+  font-family: "Outfit";
+  src: url("/fonts/Outfit.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Outfit";
+  src: url("/fonts/OutfitBold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "OutfitBlack";
+  src: url("/fonts/OutfitBlack.ttf") format("truetype");
+  font-weight: 900;
+  font-display: swap;
+}
 
 :root {
   font-synthesis: none;
@@ -1776,4 +1795,373 @@ select {
   margin-top: 8px;
   font-style: normal;
   font-weight: 900;
+}
+
+/* Placeta app skin: compacta, móvil primero y con la misma marca que Android. */
+.topbar {
+  min-height: 66px;
+  background: rgba(255, 255, 255, 0.94);
+}
+
+.brand,
+.brand small,
+.eyebrow,
+.kicker,
+.primaryButton,
+.ghostButton,
+button,
+.pill,
+.legalFooter a {
+  font-weight: 700;
+}
+
+.brand > span:last-child {
+  font-family: OutfitBlack, Outfit, sans-serif;
+  letter-spacing: 0;
+}
+
+h1,
+h2,
+.bigNumber,
+.heroDevice b,
+.mobileBalanceCard strong,
+.heroPanel h2 {
+  font-family: OutfitBlack, Outfit, sans-serif;
+  letter-spacing: 0;
+}
+
+h1 {
+  line-height: 0.96;
+}
+
+h2 {
+  line-height: 1.04;
+}
+
+.topbar nav {
+  gap: 6px;
+}
+
+.topbar nav a {
+  padding: 9px 10px;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.topbar nav a:hover {
+  background: var(--soft);
+}
+
+.hero.editorialHero {
+  min-height: min(760px, calc(100vh - 66px));
+  padding: clamp(22px, 5vw, 56px);
+  align-items: center;
+}
+
+.heroContent {
+  padding-bottom: 0;
+}
+
+.heroContent h1 {
+  max-width: 760px;
+  font-size: clamp(3rem, 8vw, 6.4rem);
+}
+
+.heroContent p {
+  max-width: 610px;
+}
+
+.heroDevice {
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08)),
+    rgba(255, 255, 255, 0.12);
+}
+
+.brandRail,
+.feature,
+.articleCard,
+.panel,
+.loginBox,
+.emptyState,
+.experienceGrid article,
+.ecosystemNode,
+.journey,
+.subGrid article,
+.legalFooter,
+.metricCard,
+.modalSheet {
+  border-radius: 18px;
+}
+
+.closingCta,
+.subHero,
+.consoleHero,
+.appLikeHeader {
+  border-radius: 24px;
+}
+
+.featureGrid,
+.articleGrid,
+.journeyGrid,
+.experienceGrid {
+  gap: 12px;
+}
+
+.feature,
+.articleCard,
+.experienceGrid article,
+.panel {
+  box-shadow: 0 16px 42px rgba(25, 6, 72, 0.08);
+}
+
+.webApp {
+  padding-top: 24px;
+}
+
+.webHeader.appLikeHeader {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  align-items: center;
+  min-height: 360px;
+}
+
+.appLikeHeader::after {
+  content: "";
+  position: absolute;
+  right: -52px;
+  bottom: -80px;
+  width: 260px;
+  height: 260px;
+  background: rgba(255, 255, 255, 0.10);
+  border-radius: 999px;
+}
+
+.webHeader h1 {
+  color: white;
+  font-size: clamp(2.6rem, 6vw, 5rem);
+}
+
+.appLikeHeader > * {
+  position: relative;
+  z-index: 1;
+}
+
+.appLikeHeader .loginBox {
+  color: var(--ink);
+  border: 0;
+  box-shadow: 0 22px 70px rgba(8, 0, 35, 0.24);
+}
+
+.loginBox {
+  display: grid;
+  gap: 10px;
+}
+
+.loginBox button {
+  width: 100%;
+}
+
+.statusLine {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 0 14px;
+  color: var(--brand);
+  background: var(--soft);
+  border-color: rgba(63, 0, 216, 0.22);
+}
+
+.clientShell {
+  gap: 12px;
+}
+
+.clientTabs {
+  top: 78px;
+  padding: 8px;
+  border-radius: 22px;
+}
+
+.clientTabs button {
+  padding: 11px 13px;
+  border-radius: 16px;
+}
+
+.heroPanel {
+  border: 0;
+  border-radius: 24px;
+}
+
+.quickStrip {
+  margin-top: 18px;
+}
+
+.quickStrip button {
+  min-height: 44px;
+  border-radius: 15px;
+}
+
+.accountTile,
+.bankCard,
+.feePreview,
+.countdownCard,
+.listRow {
+  border-radius: 18px;
+}
+
+.movement {
+  align-items: center;
+  padding: 12px;
+  border: 1px solid transparent;
+  border-bottom-color: var(--line);
+}
+
+.movement:hover {
+  border-color: var(--line);
+}
+
+.movement .softButton {
+  white-space: nowrap;
+}
+
+.movement b {
+  min-width: 96px;
+  text-align: right;
+}
+
+.cardList {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bankCard {
+  min-height: 210px;
+  align-content: end;
+}
+
+.bankCard strong {
+  font-family: OutfitBlack, Outfit, sans-serif;
+  letter-spacing: 0.05em;
+}
+
+.investmentScreen,
+.focusedScreen {
+  margin-inline: auto;
+}
+
+@media (max-width: 860px) {
+  body {
+    background: #fbfaff;
+  }
+
+  .topbar {
+    top: 0;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 10px 12px;
+  }
+
+  .brand {
+    min-width: max-content;
+  }
+
+  .topbar nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    min-width: max-content;
+  }
+
+  .topbar nav a {
+    white-space: nowrap;
+    font-size: 0.84rem;
+  }
+
+  .hero.editorialHero {
+    min-height: calc(100vh - 66px);
+    align-items: end;
+    padding: 22px 16px 24px;
+  }
+
+  .heroContent h1 {
+    font-size: clamp(3.4rem, 15vw, 5.4rem);
+  }
+
+  .heroActions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .heroDevice {
+    display: none;
+  }
+
+  .brandRail {
+    margin-top: 12px;
+    border-radius: 18px;
+  }
+
+  .band,
+  .splitBand,
+  .experienceGrid,
+  .ecosystemBand {
+    padding-block: 40px;
+  }
+
+  .webHeader.appLikeHeader {
+    min-height: auto;
+    padding: 24px 14px 18px;
+    gap: 18px;
+    border-radius: 0 0 28px 28px;
+  }
+
+  .webHeader h1 {
+    font-size: clamp(2.7rem, 13vw, 4.5rem);
+  }
+
+  .appLikeHeader p {
+    font-size: 1rem;
+  }
+
+  .loginBox {
+    padding: 14px;
+  }
+
+  .clientTabs {
+    top: 66px;
+    margin-top: 10px;
+  }
+
+  .clientTabs button {
+    font-size: 0.82rem;
+  }
+
+  .mobileAppSummary {
+    margin-top: 12px;
+  }
+
+  .clientDashboard .panel {
+    min-width: 0;
+  }
+
+  .heroPanel h2,
+  .mobileBalanceCard strong {
+    font-size: clamp(2.7rem, 13vw, 4.3rem);
+  }
+
+  .cardList {
+    grid-template-columns: 1fr;
+  }
+
+  .movement {
+    display: grid;
+    grid-template-columns: 1fr auto;
+  }
+
+  .movement .softButton {
+    grid-column: 1;
+    width: fit-content;
+  }
+
+  .movement b {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+  }
 }

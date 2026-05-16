@@ -26,15 +26,15 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <span className="brandMark"><img src="/app-icon.png" alt="" /></span>
             <span>
               Banco de La Placeta
-              <small>Web matriz</small>
+              <small>Banca web</small>
             </span>
           </Link>
           <nav>
+            <Link href="/web">Banca web</Link>
             <Link href="/personas">Personas</Link>
             <Link href="/empresas">Empresas</Link>
             <Link href="/seguridad">Seguridad</Link>
             <Link href="/#articulos">Artículos</Link>
-            <Link href="/web">Banca web</Link>
             <Link href="/admin">Admin</Link>
             <Link href="/tributos">Tributos</Link>
           </nav>

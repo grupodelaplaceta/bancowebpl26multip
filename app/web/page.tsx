@@ -213,7 +213,7 @@ export default function WebBankPage() {
   }
 
   function downloadReceipt(transaction: LedgerTransaction) {
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Comprobante ${transaction.id}</title><style>body{font-family:Outfit,Arial,sans-serif;padding:24px;color:#170c2a} .box{border:1px solid #3f00d8;padding:20px;border-radius:8px} h1{color:#3f00d8} li{margin:8px 0}</style></head><body><div class="box"><h1>BANCO DE LA PLACETA - COMPROBANTE</h1><p><strong>ID Transacción:</strong> ${transaction.id}</p><p><strong>Fecha/Hora:</strong> ${formatDate(transaction.createdAt)}</p><p><strong>Ordenante:</strong> ${transaction.fromAccountId}</p><p><strong>Beneficiario:</strong> ${transaction.toAccountId}</p><hr/><h2>Desglose financiero</h2><ul><li>Importe bruto: ${formatPz(transaction.amountPz)} Pz</li><li>Tasas / IVA retenido: ${formatPz(transaction.taxAmount || transaction.ivaPz || 0)} Pz</li><li><strong>Neto:</strong> ${formatPz(transaction.netAmount || transaction.amountPz)} Pz</li></ul><p>Comprobante generado desde la web matriz. Los logs de IP y navegador constan en auditoría interna.</p></div></body></html>`;
+    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Comprobante ${transaction.id}</title><style>@font-face{font-family:Outfit;src:url('/fonts/Outfit.ttf')}body{font-family:Outfit,Arial,sans-serif;padding:24px;color:#170c2a}.box{border:1px solid #3f00d8;padding:20px;border-radius:8px}h1{color:#3f00d8}li{margin:8px 0}</style></head><body><div class="box"><h1>BANCO DE LA PLACETA - COMPROBANTE</h1><p><strong>ID Transacción:</strong> ${transaction.id}</p><p><strong>Fecha/Hora:</strong> ${formatDate(transaction.createdAt)}</p><p><strong>Ordenante:</strong> ${transaction.fromAccountId}</p><p><strong>Beneficiario:</strong> ${transaction.toAccountId}</p><hr/><h2>Desglose financiero</h2><ul><li>Importe bruto: ${formatPz(transaction.amountPz)} Pz</li><li>Tasas / IVA retenido: ${formatPz(transaction.taxAmount || transaction.ivaPz || 0)} Pz</li><li><strong>Neto:</strong> ${formatPz(transaction.netAmount || transaction.amountPz)} Pz</li></ul><p>Comprobante generado desde Banco de La Placeta. Los registros de IP y navegador constan en auditoría interna.</p></div></body></html>`;
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -233,19 +233,19 @@ export default function WebBankPage() {
       )}
       <section className="webHeader appLikeHeader">
         <div>
-          <p className="eyebrow">Banca Web</p>
-          <h1>Panel matriz GDLP-W</h1>
-          <p>La experiencia principal del Banco de La Placeta. La app móvil conserva esta misma imagen y añade las funciones físicas.</p>
+          <p className="eyebrow">Banco de La Placeta</p>
+          <h1>Tu banca web</h1>
+          <p>Consulta saldo, mueve Placetas y gestiona tus cuentas desde navegador. NFC, PlaceZum y registro de Promo Cards quedan en la app Android.</p>
         </div>
         <form className="loginBox" onSubmit={(event) => registerMode ? register(event) : loadSession(event)}>
           {registerMode && (
             <label>
-              Nombre de rol
+              Nombre visible
               <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Nombre visible" />
             </label>
           )}
           <label>
-            DIP
+            DIP de acceso
             <input value={dip} onChange={(event) => setDip(event.target.value.toUpperCase())} placeholder="DIP-4829" />
           </label>
           {registerMode && (
@@ -256,7 +256,7 @@ export default function WebBankPage() {
           )}
           {!session && (
             <label>
-              Clave / PIN
+              Clave o PIN
               <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="••••" />
             </label>
           )}
@@ -272,8 +272,8 @@ export default function WebBankPage() {
         <section className="emptyState">
           <img src="/loading.gif" alt="" />
           <div>
-            <h2>Login preparado para cargar tu cuenta web</h2>
-            <p>Al entrar se crea o recupera tu cuenta GDLP-W y se sincroniza con el backend compartido.</p>
+            <h2>Entra con tu DIP</h2>
+            <p>La web recupera tu sesión, crea tu cuenta GDLP-W si hace falta y deja el panel listo para usar.</p>
           </div>
         </section>
       )}
@@ -289,7 +289,7 @@ export default function WebBankPage() {
               <small>Saldo total</small>
               <strong>{formatPz(totalBalance)} Pz</strong>
               <span>{session.accounts.length} cuentas · {session.cards.length} tarjetas</span>
-              <em>Web matriz del banco</em>
+              <em>Banco de La Placeta</em>
             </div>
             <div className="mobileActionGrid">
               <button onClick={() => setClientView("enviar")}>Enviar</button>
@@ -362,7 +362,7 @@ export default function WebBankPage() {
               </div>
               <div className="panel">
                 <span className="kicker">Canal</span>
-                <h2>Web matriz</h2>
+                <h2>Canal web</h2>
                 <p className="muted">Para pagos NFC, Promo Cards físicas y funciones especiales, usa la app móvil.</p>
                 <button onClick={claimRbu}>Reclamar RBU semanal</button>
               </div>
@@ -382,7 +382,7 @@ export default function WebBankPage() {
               <button onClick={() => setClientView("enviar")}>Enviar</button>
               <button onClick={() => setClientView("tarjetas")}>Tarjetas</button>
               <button onClick={() => setClientView("actividad")}>Movimientos</button>
-              <button onClick={() => location.assign("/admin")}>Demo admin</button>
+              <button onClick={() => location.assign("/admin")}>Admin demo</button>
             </div>
             <div className="accountGrid">
               {session.accounts.map((account) => (
@@ -403,9 +403,9 @@ export default function WebBankPage() {
 
           {clientView === "enviar" && (
           <form className="panel transferPanel focusedScreen" onSubmit={transfer}>
-            <span className="kicker">Operar</span>
-            <h2>Transferencia por código</h2>
-            <p className="muted">Elige origen, escribe el código o IBAN destino y confirma. La web no inicia pagos por tarjeta.</p>
+            <span className="kicker">Enviar</span>
+            <h2>Transferencia</h2>
+            <p className="muted">Elige cuenta, introduce el DIP o IBAN de destino y confirma. La web no inicia pagos NFC ni pagos con tarjeta.</p>
             <label>
               Cuenta origen
               <select value={selectedAccountId} onChange={(event) => setSelectedAccountId(event.target.value)}>
@@ -415,7 +415,7 @@ export default function WebBankPage() {
               </select>
             </label>
             <label>
-              Código, IBAN o nombre destino
+              Destino
               <input value={destination} onChange={(event) => setDestination(event.target.value)} placeholder="GDLP-AP00-000 o GDLP-W000-0000" />
             </label>
             <div className="split">
@@ -428,21 +428,21 @@ export default function WebBankPage() {
                 <input value={concept} onChange={(event) => setConcept(event.target.value)} />
               </label>
             </div>
-            <button disabled={loading || !destination || !selectedAccount}>Enviar desde web</button>
+            <button disabled={loading || !destination || !selectedAccount}>Confirmar envío</button>
             <div className="feePreview">
               <span>Tasa estimada</span>
               <strong>{formatPz(estimatedFee)} Pz</strong>
-              <small>{webFeePercent}% si cruza Web/App. La operación registra IP, navegador y timestamp.</small>
+              <small>{webFeePercent}% si cruza entre web y app. La operación queda auditada.</small>
             </div>
-            <p className="hint">Si cruza web y app se aplica comisión puente. Las tarjetas no pagan desde navegador.</p>
+            <p className="hint">Para cobros con tarjeta física o NFC usa la app móvil.</p>
           </form>
           )}
 
           {clientView === "tarjetas" && (
           <section className="panel" id="webCards">
             <span className="kicker">Tarjetas</span>
-            <h2>Consulta segura</h2>
-            <p className="muted">Aquí se ven tarjetas y Promo Cards ya registradas. Pagar y registrar tarjetas físicas se hace en la app.</p>
+            <h2>Tarjetas</h2>
+            <p className="muted">Puedes consultar tarjetas virtuales y Promo Cards ya vinculadas. El alta física y el pago móvil se hacen desde Android.</p>
             <div className="cardList">
               {session.cards.length === 0 && <p className="muted">No hay tarjetas registradas.</p>}
               {session.cards.map((card) => {
@@ -463,12 +463,12 @@ export default function WebBankPage() {
           {clientView === "inversiones" && (
           <section className="panel investmentScreen">
             <span className="kicker">Mercado 60s</span>
-            <h2>Inversión aleatoria</h2>
+            <h2>Inversión 60 segundos</h2>
             {!canInvest ? (
               <p className="muted">Módulo bloqueado para cuentas Junior o infantiles.</p>
             ) : (
               <form onSubmit={startInvestment} className="transferPanel">
-                <p className="muted">Introduce una cantidad. El backend resuelve la ganancia o pérdida y la web avisa al terminar el minuto.</p>
+                <p className="muted">Introduce una cantidad. El backend resuelve el resultado y la web avisa al terminar el minuto.</p>
                 <label>Capital a arriesgar<input value={investmentAmount} onChange={(event) => setInvestmentAmount(event.target.value.replace(/\D/g, ""))} /></label>
                 <button>Iniciar inversión 60s</button>
               </form>
@@ -488,7 +488,7 @@ export default function WebBankPage() {
             <div className="panel heroPanel">
               <span className="kicker">Empresa / Asociación</span>
               <h2>{businessAccounts.length}</h2>
-              <p>Cuentas corporativas asociadas a tu sesión. Límite institucional sincronizado: {formatPz(session.treasuryConfig.institutionalDeclarationThresholdPz || 10_000_000)} Pz.</p>
+              <p>Cuentas corporativas asociadas a tu sesión. Límite institucional: {formatPz(session.treasuryConfig.institutionalDeclarationThresholdPz || 10_000_000)} Pz.</p>
             </div>
             <div className="panel">
               <span className="kicker">Nóminas</span>
@@ -511,7 +511,7 @@ export default function WebBankPage() {
           {clientView === "actividad" && (
           <section className="panel movements" id="webMovements">
             <span className="kicker">Movimientos</span>
-            <h2>Última actividad</h2>
+            <h2>Actividad</h2>
             {session.transactions.map((transaction) => {
               const incoming = session.accounts.some((account) => account.id === transaction.toAccountId);
               return (

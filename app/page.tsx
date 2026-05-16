@@ -114,9 +114,22 @@ const landingFeatures = [
 ];
 
 const landingTrust = [
-  { title: "Sin promesas irreales", text: "La web explica funciones reales: pagos, cuentas, tarjetas y gestión." },
-  { title: "Datos comprensibles", text: "Movimientos, límites y actividad se muestran con jerarquía y trazabilidad." },
-  { title: "Experiencia consistente", text: "Misma identidad entre Android y web, con acento #3F00D8 y fuente Outfit." }
+  { title: "Operaciones verificables", text: "Cada movimiento conserva origen, destino, concepto y estado para evitar confusiones entre sesiones.", icon: ShieldCheck },
+  { title: "Diseño financiero claro", text: "Sin promesas exageradas: la landing explica pagos, cuentas, tarjetas, soporte y administración.", icon: Landmark },
+  { title: "Experiencia unificada", text: "La web acompaña a Android con la misma lógica de cuenta, documentos y color de marca.", icon: Sparkles }
+];
+
+const landingStats = [
+  { label: "Módulos", value: "6", detail: "cuentas, pagos, tarjetas, hub, mercado y tributos" },
+  { label: "Acceso", value: "DIP", detail: "identidad única para móvil y escritorio" },
+  { label: "Soporte", value: "Tickets", detail: "incidencias con contexto operativo" }
+];
+
+const landingWorkflow = [
+  { title: "Accede con tu DIP", text: "Entras con el mismo identificador usado en la app Android." },
+  { title: "Elige el módulo", text: "Las acciones se abren en paneles y popups para no llenar cada pantalla." },
+  { title: "Confirma la operación", text: "Importe, origen, destino y límites aparecen antes de guardar cambios." },
+  { title: "Consulta el historial", text: "Movimientos, PDFs, soporte y administración quedan separados por contexto." }
 ];
 
 const landingFaq = [
@@ -671,46 +684,58 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         </div>
       </header>
 
-      <section className="landing-hero">
-        <article className="landing-carousel">
-          <Image src={slide.image} alt={slide.title} fill priority sizes="(max-width: 900px) 100vw, 760px" />
-          <div className="landing-slide-status">
-            <span>{String(slideIndex + 1).padStart(2, "0")}</span>
-            <strong>{slide.metric}</strong>
+      <section className="landing-hero landing-hero-v2">
+        <div className="landing-hero-copy">
+          <span className="landing-kicker">Banco digital para La Placeta</span>
+          <h1>Pagos, cuentas y administración desde una web clara.</h1>
+          <p>Banco de La Placeta reúne la operativa diaria en una experiencia web seria: consultar, pagar, gestionar tarjetas, abrir tickets y descargar documentos sin mezclarlo todo en una misma pantalla.</p>
+          <div className="landing-cta-row">
+            <button className="landing-cta" type="button" onClick={() => document.getElementById("acceso")?.scrollIntoView({ behavior: "smooth" })}>Entrar al banco</button>
+            <button className="landing-cta secondary" type="button" onClick={() => document.getElementById("producto")?.scrollIntoView({ behavior: "smooth" })}>Ver módulos</button>
           </div>
-          <div className="landing-copy">
-            <span>{slide.kicker}</span>
-            <h1>{slide.title}</h1>
-            <p>{slide.subtitle}</p>
-            <div className="landing-cta-row">
-              <button className="landing-cta" type="button" onClick={() => document.getElementById("acceso")?.scrollIntoView({ behavior: "smooth" })}>
-                {slide.action}
-              </button>
-              <button className="landing-cta secondary" type="button" onClick={() => document.getElementById("producto")?.scrollIntoView({ behavior: "smooth" })}>
-                Ver producto
-              </button>
-            </div>
-          </div>
-          <div className="landing-arrows" aria-label="Control del carrusel">
-            <button type="button" aria-label="Anterior" onClick={previousSlide}><ChevronLeft size={20} /></button>
-            <button type="button" aria-label="Siguiente" onClick={nextSlide}><ChevronRight size={20} /></button>
-          </div>
-          <div className="landing-dots">
-            {landingSlides.map((item, index) => (
-              <button key={item.title} className={index === slideIndex ? "active" : ""} aria-label={item.title} onClick={() => setSlideIndex(index)} />
+          <div className="landing-stat-row">
+            {landingStats.map((item) => (
+              <div key={item.label}>
+                <strong>{item.value}</strong>
+                <span>{item.label}</span>
+                <small>{item.detail}</small>
+              </div>
             ))}
           </div>
-          <div className="landing-slide-strip">
-            {landingSlides.map((item, index) => (
-              <button key={item.title} type="button" className={index === slideIndex ? "active" : ""} onClick={() => setSlideIndex(index)}>
-                <span>{item.kicker}</span>
-                <strong>{item.metric}</strong>
-              </button>
-            ))}
+        </div>
+
+        <article className="landing-product-preview">
+          <div className="preview-top">
+            <span>Banco de La Placeta</span>
+            <strong>{sync === "online" ? "Conectado" : sync === "offline" ? "Sin conexión" : "Sincronizando"}</strong>
+          </div>
+          <div className="preview-balance">
+            <span>Cuenta principal</span>
+            <strong>1.248,50 Pz</strong>
+            <small>IBAN visible antes de operar</small>
+          </div>
+          <div className="preview-actions">
+            <button type="button"><QrCode size={18} /> Placezum</button>
+            <button type="button"><CreditCard size={18} /> Tarjetas</button>
+            <button type="button"><Download size={18} /> PDFs</button>
+          </div>
+          <div className="preview-card-art">
+            <Image src="/assets/promocard.jpg" alt="Tarjeta Banco de La Placeta" fill sizes="360px" />
+          </div>
+          <div className="preview-feed">
+            <div><span>Transferencia</span><strong>-25,00 Pz</strong></div>
+            <div><span>Documento</span><strong>Extracto mensual</strong></div>
+            <div><span>Soporte</span><strong>Ticket con contexto</strong></div>
           </div>
         </article>
+      </section>
 
+      <section className="landing-access-section">
         <form id="acceso" className="login-panel landing-login" onSubmit={submit}>
+          <div className="landing-section-title compact">
+            <span>Acceso seguro</span>
+            <h2>{mode === "login" ? "Entra con tu DIP" : "Crea una cuenta web"}</h2>
+          </div>
           <div className="segmented">
             <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Entrar</button>
             <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Registro</button>
@@ -722,9 +747,14 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
           <button className="primary-button" type="submit">{mode === "login" ? "Abrir banco" : "Crear DIP"}</button>
           <p className="login-hint">Demo: DIP-A001 / PIN 1234</p>
         </form>
+        <div className="landing-access-info">
+          <span>Diseñado para escritorio</span>
+          <h2>La web separa cada tarea en su sitio.</h2>
+          <p>El usuario ve resumen y accesos rápidos; los formularios de pagos, tarjetas, documentos, nóminas y soporte se abren como acciones concretas para reducir errores.</p>
+        </div>
       </section>
 
-      <section className="landing-feature-grid" id="producto">
+      <section className="landing-feature-grid landing-feature-grid-v2" id="producto">
         {landingFeatures.map((feature) => {
           const Icon = feature.icon;
           return (
@@ -737,10 +767,49 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         })}
       </section>
 
-      <section className="landing-pages" id="ayuda">
+      <section className="landing-showcase">
+        <article className="landing-carousel landing-carousel-v2">
+          <Image src={slide.image} alt={slide.title} fill priority sizes="(max-width: 900px) 100vw, 760px" />
+          <div className="landing-slide-status">
+            <span>{String(slideIndex + 1).padStart(2, "0")}</span>
+            <strong>{slide.metric}</strong>
+          </div>
+          <div className="landing-copy">
+            <span>{slide.kicker}</span>
+            <h2>{slide.title}</h2>
+            <p>{slide.subtitle}</p>
+          </div>
+          <div className="landing-arrows" aria-label="Control del carrusel">
+            <button type="button" aria-label="Anterior" onClick={previousSlide}><ChevronLeft size={20} /></button>
+            <button type="button" aria-label="Siguiente" onClick={nextSlide}><ChevronRight size={20} /></button>
+          </div>
+          <div className="landing-dots">
+            {landingSlides.map((item, index) => (
+              <button key={item.title} className={index === slideIndex ? "active" : ""} aria-label={item.title} onClick={() => setSlideIndex(index)} />
+            ))}
+          </div>
+        </article>
+        <div className="landing-workflow">
+          <div className="landing-section-title compact">
+            <span>Cómo funciona</span>
+            <h2>Operar sin ruido visual</h2>
+          </div>
+          {landingWorkflow.map((item, index) => (
+            <article key={item.title}>
+              <span>{index + 1}</span>
+              <div>
+                <strong>{item.title}</strong>
+                <p>{item.text}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="landing-pages landing-pages-v2" id="ayuda">
         <div className="landing-section-title">
           <span>Guías del banco</span>
-          <h2>Subpáginas por función</h2>
+          <h2>Todo tiene su módulo</h2>
         </div>
         <div className="landing-page-tabs">
           {landingPages.map((item) => {
@@ -765,10 +834,10 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         </article>
       </section>
 
-      <section className="help-post-grid">
+      <section className="help-post-grid help-post-grid-v2">
         <div className="landing-section-title">
           <span>Ayuda</span>
-          <h2>Posts rápidos</h2>
+          <h2>Artículos para operar mejor</h2>
         </div>
         {helpPosts.map((post) => (
           <article key={post.title} className="help-post">
@@ -782,16 +851,20 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
       <section className="landing-trust" id="seguridad">
         <div>
           <span>Confianza</span>
-          <h2>Una web financiera debe explicar, no impresionar.</h2>
-          <p>Banco de La Placeta evita mensajes financieros irreales y organiza la información por acciones concretas: pagar, consultar, administrar y pedir soporte.</p>
+          <h2>Una web financiera debe explicar cada operación.</h2>
+          <p>La interfaz prioriza trazabilidad, confirmaciones y módulos separados. El objetivo no es impresionar con cifras, sino que la persona entienda qué está haciendo.</p>
         </div>
         <div className="trust-list">
-          {landingTrust.map((item) => (
+          {landingTrust.map((item) => {
+            const Icon = item.icon;
+            return (
             <article key={item.title}>
+              <Icon size={22} />
               <strong>{item.title}</strong>
               <p>{item.text}</p>
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
 

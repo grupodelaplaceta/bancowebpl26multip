@@ -156,6 +156,18 @@ export type SubsidyRequest = {
   createdAt: string;
 };
 
+export type SupportTicket = {
+  id: string;
+  ownerDip: string;
+  accountId: string;
+  subject: string;
+  message: string;
+  attachments: string[];
+  status: "Open" | "WaitingSupport" | "Closed";
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type TreasuryConfig = {
   operationalTransferTaxPercent: number;
   webBridgeCommissionPercent: number;
@@ -199,6 +211,7 @@ export type BankState = {
   promoSlides: PromoSlide[];
   treasuryConfig: TreasuryConfig;
   complianceFlags: ComplianceFlag[];
+  supportTickets: SupportTicket[];
   schemaSeedVersion?: number;
   updatedAt?: string | null;
 };
@@ -370,6 +383,7 @@ export function demoSeed(): BankState {
       { id: "contact-dario", ownerPlacetaId: "ALBA-001", accountId: "u-dario", createdAt: now },
       { id: "contact-lia", ownerPlacetaId: "ALBA-001", accountId: "u-lia", createdAt: now }
     ],
+    supportTickets: [],
     promoSlides: [
       { id: "promo-1", title: "BANCO PLACETA", subtitle: "Tu centro financiero seguro, claro y siempre a mano.", action: "Login", imageKey: "bank", assetPath: "promos/banco-default.png" },
       { id: "promo-2", title: "PLACEZUM", subtitle: "Pagos rápidos con IBAN GDLP-APXX-XXX y control total.", action: "Register", imageKey: "placezum", assetPath: "promos/placezum-default.png" },
@@ -403,14 +417,23 @@ function txn(id: string, kind: TransactionKind, fromAccountId: string, toAccount
 export function normalizeState(input: Partial<BankState> | null | undefined): BankState {
   const seed = demoSeed();
   if (!input) return seed;
+  const transactions = dedupeBy(input.transactions?.length ? input.transactions : seed.transactions, "id")
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   return {
     ...seed,
     ...input,
-    users: input.users?.length ? input.users : seed.users,
-    accounts: input.accounts?.length ? input.accounts : seed.accounts,
-    transactions: input.transactions?.length ? input.transactions : seed.transactions,
+    users: dedupeBy(input.users?.length ? input.users : seed.users, "dip").sort((left, right) => left.displayName.localeCompare(right.displayName)),
+    accounts: dedupeBy(input.accounts?.length ? input.accounts : seed.accounts, "id"),
+    transactions,
+    subsidyRequests: dedupeBy(input.subsidyRequests || [], "id"),
+    investmentHoldings: dedupeBy(input.investmentHoldings || [], "id"),
+    investmentOperations: dedupeBy(input.investmentOperations || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    digitalCards: dedupeByComposite(input.digitalCards || [], (card) => card.id || `${card.accountId}:${card.cardNumber}`),
+    savedContacts: dedupeByComposite(input.savedContacts || [], (contact) => `${contact.ownerPlacetaId}:${contact.accountId}`).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    complianceFlags: dedupeBy(input.complianceFlags || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    supportTickets: dedupeBy(input.supportTickets || [], "id").sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
     treasuryConfig: normalizeTreasuryConfig(input.treasuryConfig || {}),
-    promoSlides: input.promoSlides?.length ? input.promoSlides : seed.promoSlides,
+    promoSlides: dedupeBy(input.promoSlides?.length ? input.promoSlides : seed.promoSlides, "id"),
     updatedAt: input.updatedAt || seed.updatedAt
   };
 }
@@ -423,11 +446,11 @@ export function applyTransactions(current: LedgerTransaction[], incoming: Ledger
 
 export function finalizeState(state: BankState): BankState {
   const config = normalizeTreasuryConfig(state.treasuryConfig);
+  const normalized = normalizeState({ ...state, treasuryConfig: config });
   return {
-    ...state,
+    ...normalized,
     treasuryConfig: config,
-    transactions: [...state.transactions].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
-    complianceFlags: buildAuditFlags(state.accounts, state.transactions, state.complianceFlags, config),
+    complianceFlags: dedupeBy(buildAuditFlags(normalized.accounts, normalized.transactions, normalized.complianceFlags, config), "id"),
     updatedAt: new Date().toISOString()
   };
 }
@@ -891,6 +914,24 @@ function buildAuditFlags(accounts: Account[], transactions: LedgerTransaction[],
 
 function upsertById<T extends { id: string }>(items: T[], item: T) {
   return [...items.filter((candidate) => candidate.id !== item.id), item];
+}
+
+function dedupeBy<T, K extends keyof T>(items: T[], key: K): T[] {
+  const byKey = new Map<string, T>();
+  for (const item of items || []) {
+    const value = item?.[key];
+    if (value == null) continue;
+    byKey.set(String(value), item);
+  }
+  return [...byKey.values()];
+}
+
+function dedupeByComposite<T>(items: T[], key: (item: T) => string): T[] {
+  const byKey = new Map<string, T>();
+  for (const item of items || []) {
+    byKey.set(key(item), item);
+  }
+  return [...byKey.values()];
 }
 
 function randomInt(min: number, maxExclusive: number) {

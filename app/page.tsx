@@ -2,6 +2,7 @@
 
 import {
   Banknote,
+  Bell,
   Building2,
   CheckCircle2,
   CircleDollarSign,
@@ -25,8 +26,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
-import type { CSSProperties } from "react";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Account,
   AGLDP_ID,
@@ -55,9 +55,11 @@ import {
   settleTimedInvestment,
   sha256,
   startTimedInvestment,
+  SupportTicket,
   TGLP_ID,
   toggleCard,
   transferByIban,
+  transferPayrollOrLoan,
   updateTreasuryConfig,
   UserProfile
 } from "../lib/bank";
@@ -73,23 +75,83 @@ const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
   { id: "admin", label: "Admin", icon: Landmark }
 ];
 
+const landingSlides = [
+  {
+    title: "Banco Placeta",
+    kicker: "Web Hub GDLP",
+    subtitle: "Banca digital, Placezum, tarjetas y documentos en una experiencia pensada para escritorio y móvil.",
+    image: "/assets/promos/promo1.png",
+    action: "Entrar al banco"
+  },
+  {
+    title: "Mercado Plazet",
+    kicker: "Inversiones 60s",
+    subtitle: "Consulta liquidez, riesgo, operaciones abiertas y resultados recientes con validación contra duplicados.",
+    image: "/assets/promos/promo2.png",
+    action: "Ver cartera"
+  },
+  {
+    title: "Tributos GDLP",
+    kicker: "Normativa y control",
+    subtitle: "Panel fiscal, auditoría, multas, IVA y configuración monetaria con el morado oficial #3F00D8.",
+    image: "/assets/promos/mercado-default.png",
+    action: "Abrir panel"
+  }
+];
+
+const landingArticles = [
+  {
+    title: "Placezum para pagos rápidos",
+    text: "Contactos guardados, IBAN oficial y límites semanales visibles antes de enviar.",
+    image: "/assets/promos/placezum-default.png",
+    icon: QrCode
+  },
+  {
+    title: "Tarjetas con assets originales",
+    text: "Promo Card y tarjeta virtual mantienen la identidad visual de Banco Placeta.",
+    image: "/assets/promocard.jpg",
+    icon: CreditCard
+  },
+  {
+    title: "Hub ciudadano completo",
+    text: "Cuentas, documentos, actividad fiscal y soporte organizados para trabajar mejor en web.",
+    image: "/assets/logobanco.jpg",
+    icon: MoreHorizontal
+  }
+];
+
 export default function BancoPlacetaWeb() {
   const [state, setState] = useState<BankState>(() => normalizeState(null));
   const [activeUser, setActiveUser] = useState<UserProfile | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState("u-alba");
   const [tab, setTab] = useState<Tab>("home");
   const [sync, setSync] = useState<"loading" | "online" | "offline">("loading");
+  const [hydrated, setHydrated] = useState(false);
   const [toast, setToast] = useState("");
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("default");
+  const [notificationNow, setNotificationNow] = useState(0);
+  const stateRef = useRef<BankState>(state);
+  const persistInFlightRef = useRef(false);
+  const remoteRefreshInFlightRef = useRef(false);
+  const notificationSeenRef = useRef<Set<string>>(new Set());
+  const notificationsReadyRef = useRef(false);
+  const notificationUserRef = useRef("");
 
   useEffect(() => {
     const cached = localStorage.getItem("placeta-web-state");
     const savedDip = localStorage.getItem("placeta-web-dip");
-    if (cached) setState(normalizeState(JSON.parse(cached)));
+    let cachedState: BankState | null = null;
+    if (cached) {
+      cachedState = normalizeState(JSON.parse(cached));
+      setState(cachedState);
+      setHydrated(true);
+    }
     fetch("/api/bank-state", { cache: "no-store" })
       .then(async (response) => {
-        if (!response.ok) throw new Error("API no disponible");
+        if (!response.ok) throw new Error("Servicio no disponible");
         const remote = normalizeState(await response.json());
         setState(remote);
+        setHydrated(true);
         localStorage.setItem("placeta-web-state", JSON.stringify(remote));
         setSync("online");
         if (savedDip) {
@@ -100,8 +162,9 @@ export default function BancoPlacetaWeb() {
       })
       .catch(() => {
         setSync("offline");
+        setHydrated(true);
         if (savedDip) {
-          const user = normalizeState(cached ? JSON.parse(cached) : demoSeed()).users.find((item) => item.dip === savedDip) || null;
+          const user = (cachedState || normalizeState(demoSeed())).users.find((item) => item.dip === savedDip) || null;
           setActiveUser(user);
           if (user) setSelectedAccountId(user.primaryAccountId);
         }
@@ -109,8 +172,33 @@ export default function BancoPlacetaWeb() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("placeta-web-state", JSON.stringify(state));
+    if (hydrated) localStorage.setItem("placeta-web-state", JSON.stringify(normalizeState(state)));
+  }, [hydrated, state]);
+
+  useEffect(() => {
+    stateRef.current = state;
   }, [state]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!("Notification" in window)) {
+      setNotificationPermission("unsupported");
+      return;
+    }
+    setNotificationPermission(Notification.permission);
+    const stored = localStorage.getItem("placeta-web-notification-seen");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) notificationSeenRef.current = new Set(parsed.filter((item) => typeof item === "string"));
+      } catch {
+        notificationSeenRef.current = new Set();
+      }
+    }
+    setNotificationNow(Date.now());
+    const timer = window.setInterval(() => setNotificationNow(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const accountsById = useMemo(() => new Map(state.accounts.map((account) => [account.id, account])), [state.accounts]);
   const userAccounts = useMemo(() => {
@@ -120,14 +208,141 @@ export default function BancoPlacetaWeb() {
   const selectedAccount = accountsById.get(selectedAccountId) || userAccounts[0] || state.accounts.find((item) => item.id === "u-alba")!;
   const visibleTabs = activeUser?.dip === "DIP-A001" ? tabs : tabs.filter((item) => !["tributos", "admin"].includes(item.id));
 
+  const saveSeenNotifications = useCallback(() => {
+    if (typeof window === "undefined") return;
+    const compact = Array.from(notificationSeenRef.current).slice(-600);
+    notificationSeenRef.current = new Set(compact);
+    localStorage.setItem("placeta-web-notification-seen", JSON.stringify(compact));
+  }, []);
+
+  const notifyDesktop = useCallback((title: string, body: string, tag: string, force = false) => {
+    setToast(body);
+    if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") return;
+    if (!force && document.visibilityState === "visible") return;
+    new Notification(title, {
+      body,
+      icon: "/assets/icon2.png",
+      badge: "/assets/icon2.png",
+      tag
+    });
+  }, []);
+
+  const silentRemoteRefresh = useCallback(async () => {
+    if (persistInFlightRef.current || remoteRefreshInFlightRef.current) return;
+    remoteRefreshInFlightRef.current = true;
+    try {
+      const response = await fetch("/api/bank-state", { cache: "no-store" });
+      if (!response.ok) throw new Error("Servicio no disponible");
+      const remote = normalizeState(await response.json());
+      const current = stateRef.current;
+      const remoteTime = Date.parse(remote.updatedAt || "");
+      const currentTime = Date.parse(current.updatedAt || "");
+      const remoteIsNewer = Number.isFinite(remoteTime) && Number.isFinite(currentTime) ? remoteTime >= currentTime : true;
+      const remoteHasMoreLedger = remote.transactions.length > current.transactions.length;
+      if (remoteIsNewer || remoteHasMoreLedger) {
+        setState(remote);
+        localStorage.setItem("placeta-web-state", JSON.stringify(remote));
+      }
+      setSync("online");
+    } catch {
+      setSync("offline");
+    } finally {
+      remoteRefreshInFlightRef.current = false;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    const timer = window.setInterval(() => {
+      void silentRemoteRefresh();
+    }, 5000);
+    return () => window.clearInterval(timer);
+  }, [hydrated, silentRemoteRefresh]);
+
+  useEffect(() => {
+    if (!activeUser || !hydrated) return;
+    const accountIds = new Set(userAccounts.map((account) => account.id));
+    if (!accountIds.size) return;
+
+    const readyNow = notificationNow || Date.now();
+    const transactions = state.transactions.filter((transaction) => accountIds.has(transaction.fromAccountId) || accountIds.has(transaction.toAccountId));
+    const readyInvestments = pendingInvestmentOperations(state).filter((operation) => accountIds.has(operation.accountId) && readyNow >= Date.parse(operation.readyAt));
+    const tickets = (state.supportTickets || []).filter((ticket) => ticket.ownerDip === activeUser.dip);
+    const currentIds = [
+      ...transactions.map((transaction) => `txn:${transaction.id}`),
+      ...readyInvestments.map((operation) => `investment-ready:${operation.id}`),
+      ...tickets.map((ticket) => `ticket:${ticket.id}:${ticket.updatedAt}`)
+    ];
+
+    if (!notificationsReadyRef.current || notificationUserRef.current !== activeUser.dip) {
+      notificationUserRef.current = activeUser.dip;
+      notificationSeenRef.current = new Set([...notificationSeenRef.current, ...currentIds]);
+      saveSeenNotifications();
+      notificationsReadyRef.current = true;
+      return;
+    }
+
+    const pendingAlerts: Array<{ id: string; title: string; body: string }> = [];
+    for (const transaction of transactions) {
+      const id = `txn:${transaction.id}`;
+      if (notificationSeenRef.current.has(id)) continue;
+      const incoming = accountIds.has(transaction.toAccountId);
+      pendingAlerts.push({
+        id,
+        title: incoming ? "Ingreso recibido" : "Movimiento enviado",
+        body: `${transaction.kind} · ${formatPz(transaction.amountPz)} Pz`
+      });
+    }
+    for (const operation of readyInvestments) {
+      const id = `investment-ready:${operation.id}`;
+      if (notificationSeenRef.current.has(id)) continue;
+      pendingAlerts.push({
+        id,
+        title: "Inversión lista",
+        body: `${operation.assetName} · ${formatPz(operation.amountPz)} Pz pendiente de liquidar`
+      });
+    }
+    for (const ticket of tickets) {
+      const id = `ticket:${ticket.id}:${ticket.updatedAt}`;
+      if (notificationSeenRef.current.has(id)) continue;
+      pendingAlerts.push({
+        id,
+        title: "Ticket de soporte",
+        body: `${ticket.status} · ${ticket.subject}`
+      });
+    }
+
+    if (!pendingAlerts.length) return;
+    for (const alert of pendingAlerts) notificationSeenRef.current.add(alert.id);
+    saveSeenNotifications();
+    if (notificationPermission === "granted") pendingAlerts.slice(-3).forEach((alert) => notifyDesktop(alert.title, alert.body, alert.id));
+  }, [activeUser, hydrated, notificationNow, notificationPermission, notifyDesktop, saveSeenNotifications, state, userAccounts]);
+
+  async function requestDesktopNotifications() {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      setNotificationPermission("unsupported");
+      setToast("Este navegador no soporta notificaciones de PC");
+      return;
+    }
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+    if (permission === "granted") {
+      notifyDesktop("Banco Placeta", "Notificaciones de PC activadas", "placeta-notifications-enabled", true);
+    } else {
+      setToast("Permiso de notificaciones no activado");
+    }
+  }
+
   async function persist(next: BankState, message: string) {
-    setState(next);
+    persistInFlightRef.current = true;
+    const normalizedNext = normalizeState(next);
+    setState(normalizedNext);
     setToast(message);
     try {
       const response = await fetch("/api/bank-state", {
         method: "PUT",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(next)
+        body: JSON.stringify(normalizedNext)
       });
       setSync(response.ok ? "online" : "offline");
       if (response.ok) {
@@ -136,10 +351,16 @@ export default function BancoPlacetaWeb() {
           const remote = normalizeState(await fresh.json());
           setState(remote);
           localStorage.setItem("placeta-web-state", JSON.stringify(remote));
+          if (remote.updatedAt !== normalizedNext.updatedAt) setToast(`${message} · actualizado`);
         }
+      } else {
+        setToast("No se pudo guardar. Revisa si había una operación duplicada.");
       }
     } catch {
       setSync("offline");
+      setToast(`${message} · guardado localmente`);
+    } finally {
+      persistInFlightRef.current = false;
     }
   }
 
@@ -174,11 +395,22 @@ export default function BancoPlacetaWeb() {
   return (
     <main className="app-shell">
       <header className="topbar">
-        <div>
-          <p className="eyebrow">Banco Digital de La Placeta</p>
-          <h1>{activeUser.displayName}</h1>
+        <div className="top-brand">
+          <Image src="/logo.png" alt="Banco Placeta" width={46} height={46} priority />
+          <div>
+            <p className="eyebrow">Banco Placeta</p>
+            <h1>{activeUser.displayName}</h1>
+          </div>
         </div>
         <div className="top-actions">
+          <button
+            className={`icon-button ${notificationPermission === "granted" ? "notify-on" : ""}`}
+            aria-label={notificationPermission === "granted" ? "Notificaciones de PC activadas" : "Activar notificaciones de PC"}
+            title={notificationPermission === "granted" ? "Notificaciones de PC activadas" : "Activar notificaciones de PC"}
+            onClick={requestDesktopNotifications}
+          >
+            <Bell size={19} />
+          </button>
           <StatusPill sync={sync} />
           <button
             className="icon-button"
@@ -248,7 +480,7 @@ export default function BancoPlacetaWeb() {
         />
       )}
 
-      {tab === "hub" && <HubScreen state={state} user={activeUser} />}
+      {tab === "hub" && <HubScreen state={state} user={activeUser} onPersist={(next, message) => void persist(next, message)} />}
       {tab === "tributos" && <TributosScreen state={state} onPersist={(next, message) => void persist(next, message)} />}
       {tab === "admin" && <AdminScreen state={state} onPersist={(next, message) => void persist(next, message)} />}
 
@@ -280,7 +512,13 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
   const [pin, setPin] = useState("1234");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
-  const slide = state.promoSlides[0];
+  const [slideIndex, setSlideIndex] = useState(0);
+  const slide = landingSlides[slideIndex % landingSlides.length];
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setSlideIndex((current) => (current + 1) % landingSlides.length), 5200);
+    return () => window.clearInterval(timer);
+  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -352,17 +590,40 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
   }
 
   return (
-    <main className="login-shell">
-      <Image className="login-bg" src={assetUrl(slide?.assetPath, slide?.imageKey)} alt="" fill priority />
-      <div className="login-content">
-        <div className="brand-lockup">
-          <Image src="/assets/icon2.png" alt="Banco Placeta" width={58} height={58} />
+    <main className="landing-shell">
+      <header className="landing-nav">
+        <div className="landing-brand">
+          <Image src="/assets/icon2.png" alt="Banco Placeta" width={44} height={44} />
           <div>
-            <p>{slide?.subtitle || "Servicios GDLP disponibles"}</p>
-            <h1>{slide?.title || "BANCO PLACETA"}</h1>
+            <strong>Banco Placeta</strong>
+            <span>Web oficial GDLP</span>
           </div>
         </div>
-        <form className="login-panel" onSubmit={submit}>
+        <div className="landing-nav-actions">
+          <StatusPill sync={sync as "loading" | "online" | "offline"} />
+          <button className="mini-action" type="button" onClick={() => document.getElementById("acceso")?.scrollIntoView({ behavior: "smooth" })}>Acceso</button>
+        </div>
+      </header>
+
+      <section className="landing-hero">
+        <article className="landing-carousel">
+          <Image src={slide.image} alt={slide.title} fill priority sizes="(max-width: 900px) 100vw, 760px" />
+          <div className="landing-copy">
+            <span>{slide.kicker}</span>
+            <h1>{slide.title}</h1>
+            <p>{slide.subtitle}</p>
+            <button className="landing-cta" type="button" onClick={() => document.getElementById("acceso")?.scrollIntoView({ behavior: "smooth" })}>
+              {slide.action}
+            </button>
+          </div>
+          <div className="landing-dots">
+            {landingSlides.map((item, index) => (
+              <button key={item.title} className={index === slideIndex ? "active" : ""} aria-label={item.title} onClick={() => setSlideIndex(index)} />
+            ))}
+          </div>
+        </article>
+
+        <form id="acceso" className="login-panel landing-login" onSubmit={submit}>
           <div className="segmented">
             <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Entrar</button>
             <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Registro</button>
@@ -373,9 +634,30 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
           {error && <p className="form-error">{error}</p>}
           <button className="primary-button" type="submit">{mode === "login" ? "Abrir banco" : "Crear DIP"}</button>
           <p className="login-hint">Demo: DIP-A001 / PIN 1234</p>
-          <StatusPill sync={sync as "loading" | "online" | "offline"} />
         </form>
-      </div>
+      </section>
+
+      <section className="landing-strip">
+        <div><strong>{state.users.length}</strong><span>DIP activos</span></div>
+        <div><strong>{state.accounts.length}</strong><span>Cuentas GDLP</span></div>
+        <div><strong>{state.transactions.length}</strong><span>Movimientos</span></div>
+      </section>
+
+      <section className="article-grid">
+        {landingArticles.map((article) => {
+          const Icon = article.icon;
+          return (
+            <article key={article.title} className="landing-article">
+              <Image src={article.image} alt={article.title} fill sizes="(max-width: 760px) 100vw, 360px" />
+              <div>
+                <Icon size={24} />
+                <strong>{article.title}</strong>
+                <p>{article.text}</p>
+              </div>
+            </article>
+          );
+        })}
+      </section>
     </main>
   );
 }
@@ -528,14 +810,28 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
     .sort((left, right) => (left.investmentRiskLevel || 3) - (right.investmentRiskLevel || 3));
   const isInvestmentAccount = account.type === "Investment";
   const pending = pendingInvestmentOperations(state, account.id);
-  const results = investmentResultRows(state, account.id).slice(0, 6);
+  const allResults = investmentResultRows(state, account.id);
+  const results = allResults.slice(0, 6);
+  const wins = allResults.filter((row) => row.netResultPz >= 0).length;
+  const totalPrincipal = allResults.reduce((sum, row) => sum + row.principalPz, 0);
+  const totalNetResult = allResults.reduce((sum, row) => sum + row.netResultPz, 0);
+  const roiPercent = totalPrincipal > 0 ? Math.round((totalNetResult / totalPrincipal) * 100) : 0;
+  const winRate = allResults.length ? Math.round((wins / allResults.length) * 100) : 0;
+  const bestResult = [...allResults].sort((left, right) => right.netResultPz - left.netResultPz)[0];
+  const worstResult = [...allResults].sort((left, right) => left.netResultPz - right.netResultPz)[0];
+  const companyBuys = state.transactions.filter((transaction) => transaction.kind === "InvestmentBuy" && transaction.toAccountId === account.id);
+  const companySettlements = state.transactions.filter((transaction) => transaction.kind === "InvestmentSell" && transaction.fromAccountId === account.id && transaction.concept === "INVESTMENT_60S_RESULT");
+  const companyOpen = pendingInvestmentOperations(state).filter((operation) => operation.companyId === account.id);
+  const companyReceived = companyBuys.reduce((sum, transaction) => sum + transaction.amountPz, 0);
+  const companyPaid = companySettlements.reduce((sum, transaction) => sum + transaction.amountPz, 0);
+  const companyNet = companyReceived - companyPaid;
+  const companyInvestors = new Set(companyBuys.map((transaction) => transaction.fromAccountId)).size;
   const today = new Date().toISOString().slice(0, 10);
   const dailyInvestmentCount = state.transactions.filter((transaction) =>
     transaction.fromAccountId === account.id &&
     transaction.kind === "InvestmentBuy" &&
     transaction.createdAt.slice(0, 10) === today
   ).length;
-  const totalNetResult = results.reduce((sum, row) => sum + row.netResultPz, 0);
   const remainingToday = Math.max(0, state.treasuryConfig.dailyInvestmentLimit - dailyInvestmentCount);
   const pendingCapital = pending.reduce((sum, operation) => sum + operation.amountPz, 0);
   const maxAmount = state.treasuryConfig.maxInvestmentAmountPz;
@@ -563,7 +859,39 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
       {!isInvestmentAccount && (
         <article className="panel market-alert">
           <SectionTitle icon={ShieldCheck} title="Cuenta de inversión" />
-          <p className="muted">Selecciona la cuenta “Cartera Plazet” para operar. Este mercado usa el sistema Android de inversión 60s.</p>
+          <p className="muted">{account.type === "Business" ? "Vista empresa: aquí ves cómo van las inversiones que recibe tu empresa/fondo. Para invertir como usuario selecciona “Cartera Plazet”." : "Selecciona la cuenta “Cartera Plazet” para operar. Este mercado usa el sistema Android de inversión 60s."}</p>
+        </article>
+      )}
+      <article className="panel investment-analysis">
+        <SectionTitle icon={Sparkles} title="Cómo vas" />
+        <div className="analysis-grid">
+          <div><span>ROI cerrado</span><strong className={roiPercent >= 0 ? "good" : "bad"}>{roiPercent >= 0 ? "+" : ""}{roiPercent}%</strong></div>
+          <div><span>Aciertos</span><strong>{wins}/{allResults.length || 0}</strong></div>
+          <div><span>Capital cerrado</span><strong>{formatPz(totalPrincipal)} Pz</strong></div>
+          <div><span>Resultado neto</span><strong className={totalNetResult >= 0 ? "good" : "bad"}>{totalNetResult >= 0 ? "+" : ""}{formatPz(totalNetResult)} Pz</strong></div>
+        </div>
+        <div className="progress-meter">
+          <span style={{ width: `${Math.max(0, Math.min(100, winRate))}%` }} />
+        </div>
+        <p className="muted">{allResults.length ? `Mejor: ${bestResult?.assetName} (${bestResult && bestResult.netResultPz >= 0 ? "+" : ""}${formatPz(bestResult?.netResultPz || 0)} Pz). Peor: ${worstResult?.assetName} (${worstResult && worstResult.netResultPz >= 0 ? "+" : ""}${formatPz(worstResult?.netResultPz || 0)} Pz).` : "Aún no hay suficientes liquidaciones para calcular rendimiento."}</p>
+      </article>
+      {account.type === "Business" && (
+        <article className="panel investment-analysis company-analysis">
+          <SectionTitle icon={Building2} title="Análisis empresa" />
+          <div className="analysis-grid">
+            <div><span>Capital recibido</span><strong>{formatPz(companyReceived)} Pz</strong></div>
+            <div><span>Liquidado</span><strong>{formatPz(companyPaid)} Pz</strong></div>
+            <div><span>Saldo neto inversión</span><strong className={companyNet >= 0 ? "good" : "bad"}>{companyNet >= 0 ? "+" : ""}{formatPz(companyNet)} Pz</strong></div>
+            <div><span>Inversores</span><strong>{companyInvestors}</strong></div>
+          </div>
+          <div className="company-open-list">
+            {companyOpen.length ? companyOpen.slice(0, 4).map((operation) => (
+              <div key={operation.id}>
+                <strong>{formatPz(operation.amountPz)} Pz abiertos</strong>
+                <span>{operation.accountId} · vence {operation.readyAt.slice(11, 16)}</span>
+              </div>
+            )) : <span>Sin capital pendiente de liquidación.</span>}
+          </div>
         </article>
       )}
       <article className="panel market-ticket">
@@ -592,7 +920,7 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
                 <div>
                   <strong>{fund.displayName}</strong>
                   <span>Liquidez {formatPz(fund.balancePz)} Pz · riesgo {risk}/7</span>
-                  <i style={{ "--risk": `${Math.round((risk / 7) * 100)}%` } as CSSProperties & Record<"--risk", string>} />
+                  <i><span style={{ width: `${Math.round((risk / 7) * 100)}%` }} /></i>
                 </div>
                 <b>{isInvestmentAccount ? "Invertir" : "Bloqueado"}</b>
               </button>
@@ -633,42 +961,129 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
   );
 }
 
-function HubScreen({ state, user }: { state: BankState; user: UserProfile }) {
+function HubScreen({ state, user, onPersist }: { state: BankState; user: UserProfile; onPersist: (state: BankState, message: string) => void }) {
   const userAccounts = state.accounts.filter((account) => account.placetaId === user.placetaId || account.id === user.primaryAccountId);
+  const businessAccounts = userAccounts.filter((account) => account.type === "Business");
+  const payrollTargets = userAccounts.filter((account) => account.type === "Current");
   const totalBalance = userAccounts.reduce((sum, account) => sum + account.balancePz, 0);
   const cards = state.digitalCards.filter((card) => userAccounts.some((account) => account.id === card.accountId));
   const recent = state.transactions
     .filter((transaction) => userAccounts.some((account) => account.id === transaction.fromAccountId || account.id === transaction.toAccountId))
     .slice(0, 5);
   const pendingInvestments = pendingInvestmentOperations(state).filter((operation) => userAccounts.some((account) => account.id === operation.accountId));
+  const tickets = (state.supportTickets || []).filter((ticket) => ticket.ownerDip === user.dip).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+  const [businessId, setBusinessId] = useState(businessAccounts[0]?.id || "");
+  const [payrollTargetId, setPayrollTargetId] = useState(payrollTargets[0]?.id || "");
+  const [payrollGross, setPayrollGross] = useState(state.treasuryConfig.minimumWeeklySalaryPz);
+  const [ticketSubject, setTicketSubject] = useState("");
+  const [ticketMessage, setTicketMessage] = useState("");
+  const [ticketAttachments, setTicketAttachments] = useState<string[]>([]);
+  const business = state.accounts.find((account) => account.id === businessId) || businessAccounts[0];
+  const payrollTarget = state.accounts.find((account) => account.id === payrollTargetId) || payrollTargets[0];
+  const workerTax = Math.ceil((payrollGross * state.treasuryConfig.payrollWorkerTaxPercent) / 100);
+  const employerTax = Math.ceil((payrollGross * state.treasuryConfig.payrollEmployerTaxPercent) / 100);
+  const netSalary = Math.max(0, payrollGross - workerTax);
+  const payrollCost = payrollGross + employerTax;
+  const attachments = [
+    ...userAccounts.slice(0, 4).map((account) => ({ id: `account:${account.id}`, label: `Cuenta · ${account.displayName}` })),
+    ...cards.slice(0, 3).map((card) => ({ id: `card:${card.id}`, label: `Tarjeta · ${card.alias}` })),
+    ...pendingInvestments.slice(0, 3).map((operation) => ({ id: `investment:${operation.id}`, label: `Inversión · ${operation.assetName}` })),
+    ...recent.slice(0, 3).map((transaction) => ({ id: `txn:${transaction.id}`, label: `Movimiento · ${transaction.kind} ${formatPz(transaction.amountPz)} Pz` }))
+  ];
   const documents = [
     { title: "Extracto mensual", detail: `${recent.length} movimientos recientes`, icon: Download },
     { title: "Certificado DIP", detail: `${user.dip} · identidad activa`, icon: ShieldCheck },
     { title: "Recibos fiscales", detail: `${state.transactions.filter((item) => item.toAccountId === TGLP_ID).length} apuntes tributarios`, icon: Gavel }
   ];
+
+  function toggleAttachment(id: string) {
+    setTicketAttachments((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
+  function submitPayroll() {
+    if (!business || !payrollTarget) return;
+    onPersist(
+      transferPayrollOrLoan(state, business.id, payrollTarget.id, payrollGross, `Nómina empresa ${business.displayName} -> ${payrollTarget.displayName}`),
+      `Nómina registrada para ${payrollTarget.displayName}`
+    );
+  }
+
+  function submitTicket() {
+    const now = new Date().toISOString();
+    const ticket: SupportTicket = {
+      id: `SUP-${Date.now().toString().slice(-6)}`,
+      ownerDip: user.dip,
+      accountId: user.primaryAccountId,
+      subject: ticketSubject.trim() || "Consulta de soporte",
+      message: ticketMessage.trim() || ticketSubject.trim() || "Consulta de soporte",
+      attachments: ticketAttachments,
+      status: "Open",
+      createdAt: now,
+      updatedAt: now
+    };
+    onPersist({
+      ...state,
+      supportTickets: [ticket, ...(state.supportTickets || [])],
+      updatedAt: now
+    }, `Ticket de soporte enviado: ${ticket.id}`);
+    setTicketSubject("");
+    setTicketMessage("");
+    setTicketAttachments([]);
+  }
+
   return (
     <section className="screen-grid hub-grid">
       <article className="hero-card hub-hero">
-        <span>Hub ciudadano · {user.dip}</span>
+        <span>Más servicios · {user.dip}</span>
         <strong>{formatMoneyPz(totalBalance)} Pz</strong>
-        <p>{userAccounts.length} cuentas · {cards.length} tarjetas · {pendingInvestments.length} inversiones 60s abiertas</p>
+        <p>{userAccounts.length} cuentas · {businessAccounts.length} empresas · {tickets.filter((ticket) => ticket.status !== "Closed").length} tickets abiertos</p>
       </article>
 
       <div className="metric-grid">
         <MetricCard label="Saldo total" value={`${formatPz(totalBalance)} Pz`} tone="purple" />
-        <MetricCard label="Cuentas" value={String(userAccounts.length)} tone="green" />
-        <MetricCard label="Tarjetas" value={String(cards.length)} tone="gold" />
-        <MetricCard label="60s abiertas" value={String(pendingInvestments.length)} tone="red" />
+        <MetricCard label="Empresas" value={String(businessAccounts.length)} tone="green" />
+        <MetricCard label="Nómina neta" value={`${formatPz(netSalary)} Pz`} tone="gold" />
+        <MetricCard label="Tickets" value={String(tickets.length)} tone="red" />
       </div>
 
       <article className="panel hub-panel">
-        <SectionTitle icon={Building2} title="Centro de servicios" />
+        <SectionTitle icon={MoreHorizontal} title="Más servicios" />
         <div className="hub-service-grid">
-          <div><Banknote size={24} /><strong>Nómina GDLP</strong><span>Alta laboral con retención trabajador/empresa y trazabilidad fiscal.</span></div>
+          <div><Banknote size={24} /><strong>Nómina GDLP</strong><span>Empresa → cuenta personal con retención trabajador/empresa.</span></div>
           <div><ShieldCheck size={24} /><strong>DIP verificado</strong><span>{user.dip} · {user.placetaId}</span></div>
           <div><CreditCard size={24} /><strong>Tarjetas</strong><span>{cards.filter((card) => !card.frozen).length} activas · Promo Card y virtual.</span></div>
-          <div><TrendingUp size={24} /><strong>Mercado 60s</strong><span>{pendingInvestments.length ? "Resultados pendientes disponibles pronto." : "Sin operaciones abiertas."}</span></div>
+          <div><WifiOff size={24} /><strong>Soporte</strong><span>Tickets con adjuntos de cuentas, inversiones, tarjetas y movimientos.</span></div>
         </div>
+      </article>
+
+      <article className="panel hub-panel payroll-panel">
+        <SectionTitle icon={Building2} title="Administración de nóminas" />
+        {businessAccounts.length && payrollTargets.length ? (
+          <>
+            <div className="field">
+              <span>Empresa origen</span>
+              <select value={business?.id || ""} onChange={(event) => setBusinessId(event.target.value)}>
+                {businessAccounts.map((account) => <option key={account.id} value={account.id}>{account.displayName} · {formatPz(account.balancePz)} Pz</option>)}
+              </select>
+            </div>
+            <div className="field">
+              <span>Trabajador / cuenta destino</span>
+              <select value={payrollTarget?.id || ""} onChange={(event) => setPayrollTargetId(event.target.value)}>
+                {payrollTargets.map((account) => <option key={account.id} value={account.id}>{account.displayName} · {account.iban}</option>)}
+              </select>
+            </div>
+            <Field label={`Nómina bruta semanal · SMI ${formatPz(state.treasuryConfig.minimumWeeklySalaryPz)} Pz`} value={String(payrollGross)} onChange={(value) => setPayrollGross(Number(value) || 0)} type="number" />
+            <div className="payroll-summary">
+              <div><span>Trabajador {state.treasuryConfig.payrollWorkerTaxPercent}%</span><strong>-{formatPz(workerTax)} Pz</strong></div>
+              <div><span>Empresa {state.treasuryConfig.payrollEmployerTaxPercent}%</span><strong>+{formatPz(employerTax)} Pz</strong></div>
+              <div><span>Neto trabajador</span><strong>{formatPz(netSalary)} Pz</strong></div>
+              <div><span>Coste empresa</span><strong>{formatPz(payrollCost)} Pz</strong></div>
+            </div>
+            <button className="primary-button" disabled={!business || !payrollTarget || payrollGross < state.treasuryConfig.minimumWeeklySalaryPz} onClick={submitPayroll}>Registrar nómina</button>
+          </>
+        ) : (
+          <Empty title="Sin empresa disponible" text="Selecciona o crea una cuenta Empresa para registrar nóminas." />
+        )}
       </article>
 
       <article className="panel hub-panel">
@@ -715,11 +1130,27 @@ function HubScreen({ state, user }: { state: BankState; user: UserProfile }) {
       </article>
 
       <article className="panel hub-panel">
-        <SectionTitle icon={MoreHorizontal} title="Soporte y actividad" />
-        <div className="support-thread">
-          <div><strong>Canal soporte</strong><span>Prioridad normal · respuesta operativa GDLP.</span></div>
-          <div><strong>Estado cuenta</strong><span>{state.complianceFlags.some((flag) => userAccounts.some((account) => account.id === flag.accountId)) ? "Revisión fiscal pendiente" : "Sin incidencias activas"}</span></div>
+        <SectionTitle icon={WifiOff} title="Ticket de soporte" />
+        <Field label="Asunto" value={ticketSubject} onChange={setTicketSubject} placeholder="Ej. Revisión de movimiento" />
+        <Field label="Mensaje" value={ticketMessage} onChange={setTicketMessage} placeholder="Describe qué ocurre" />
+        <div className="attachment-grid">
+          {attachments.map((attachment) => (
+            <button key={attachment.id} className={ticketAttachments.includes(attachment.id) ? "active" : ""} onClick={() => toggleAttachment(attachment.id)}>
+              {attachment.label}
+            </button>
+          ))}
         </div>
+        <button className="primary-button" onClick={submitTicket}>Abrir ticket</button>
+        <div className="support-thread">
+          {tickets.slice(0, 3).map((ticket) => (
+            <div key={ticket.id}><strong>{ticket.id} · {ticket.subject}</strong><span>{ticket.attachments.length} adjuntos · {ticket.status}</span></div>
+          ))}
+          {!tickets.length && <div><strong>Canal soporte</strong><span>Sin tickets abiertos. Adjunta movimientos, cuentas o inversiones.</span></div>}
+        </div>
+      </article>
+
+      <article className="panel hub-panel">
+        <SectionTitle icon={Sparkles} title="Actividad reciente" />
         <div className="mini-feed">
           {recent.length ? recent.map((transaction) => (
             <div key={transaction.id}>
@@ -858,8 +1289,8 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
       <article className="panel admin-panel">
         <SectionTitle icon={WifiOff} title="Operación remota" />
         <div className="ops-list">
-          <div><strong>API firmada</strong><span>Proxy server-side `/api/bank-state` con HMAC compatible con Android.</span></div>
-          <div><strong>Estado local</strong><span>Fallback en navegador si Mongo/Vercel no responde.</span></div>
+          <div><strong>Conexión segura</strong><span>La sesión mantiene tus datos actualizados entre móvil y web.</span></div>
+          <div><strong>Modo sin conexión</strong><span>La web conserva la última información disponible si pierdes señal.</span></div>
           <div><strong>Auditoría</strong><span>{state.complianceFlags.length} flags activos · {state.transactions.length} movimientos.</span></div>
         </div>
       </article>
@@ -925,7 +1356,7 @@ function MetricCard({ label, value, tone }: { label: string; value: string; tone
 }
 
 function StatusPill({ sync }: { sync: "loading" | "online" | "offline" }) {
-  return <span className={`status-pill ${sync}`}>{sync === "online" ? "Mongo conectado" : sync === "loading" ? "Sincronizando" : "Modo local"}</span>;
+  return <span className={`status-pill ${sync}`}>{sync === "online" ? "Al día" : sync === "loading" ? "Actualizando" : "Sin conexión"}</span>;
 }
 
 function Empty({ title, text }: { title: string; text: string }) {

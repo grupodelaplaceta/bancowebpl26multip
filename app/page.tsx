@@ -440,7 +440,8 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
   const [amount, setAmount] = useState(12);
   const [contactQuery, setContactQuery] = useState("");
   const [tick, setTick] = useState(0);
-  const code = useMemo(() => generatePlacezumCode(account), [account, tick]);
+  const codeWindow = Math.floor(tick / 120);
+  const code = useMemo(() => generatePlacezumCode(account), [account, codeWindow]);
   const normalizedQuery = contactQuery.trim().toUpperCase();
   const resolvedContact = normalizedQuery
     ? accounts.find((candidate) =>

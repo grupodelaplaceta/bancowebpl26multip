@@ -897,21 +897,22 @@ function randomInt(min: number, maxExclusive: number) {
   return Math.floor(Math.random() * Math.max(1, maxExclusive - min)) + min;
 }
 
-function ensureVaultEmission(accounts: Account[]) {
+function ensureVaultEmission(accounts: Account[]): Account[] {
   if (accounts.some((account) => account.id === VAULT_EMISION)) return accounts;
+  const vault: Account = {
+    id: VAULT_EMISION,
+    displayName: "Vault Emisión",
+    kind: "AGLDP",
+    balancePz: Number.MAX_SAFE_INTEGER / 4,
+    placetaId: null,
+    role: "Administracion",
+    type: "Current",
+    iban: ibanGenerate(VAULT_EMISION),
+    citizenshipTier: "Institucion",
+    complianceStatus: "Clear"
+  };
   return [
     ...accounts,
-    {
-      id: VAULT_EMISION,
-      displayName: "Vault Emisión",
-      kind: "AGLDP",
-      balancePz: Number.MAX_SAFE_INTEGER / 4,
-      placetaId: null,
-      role: "Administracion",
-      type: "Current",
-      iban: ibanGenerate(VAULT_EMISION),
-      citizenshipTier: "Institucion",
-      complianceStatus: "Clear"
-    }
+    vault
   ];
 }

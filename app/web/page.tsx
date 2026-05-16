@@ -13,6 +13,17 @@ type Session = {
   updatedAt: string | null;
 };
 
+type ClientView = "resumen" | "cuentas" | "enviar" | "tarjetas" | "inversiones" | "empresa" | "actividad";
+
+const appTabs: Array<{ id: string; label: string; target?: ClientView; href?: string }> = [
+  { id: "cartera", label: "Cartera", target: "resumen" },
+  { id: "placezum", label: "Placezum", target: "enviar" },
+  { id: "mercado", label: "Mercado", target: "inversiones" },
+  { id: "mas", label: "Más", target: "cuentas" },
+  { id: "tglp", label: "TGLP", href: "/tributos" },
+  { id: "junta", label: "Junta", href: "/admin" }
+];
+
 export default function WebBankPage() {
   const [dip, setDip] = useState("");
   const [password, setPassword] = useState("");
@@ -29,8 +40,9 @@ export default function WebBankPage() {
   const [concept, setConcept] = useState("Transferencia web");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const [receiptLoadingId, setReceiptLoadingId] = useState("");
   const [cardModal, setCardModal] = useState<DigitalCard | null>(null);
-  const [clientView, setClientView] = useState<"resumen" | "cuentas" | "enviar" | "tarjetas" | "inversiones" | "empresa" | "actividad">("resumen");
+  const [clientView, setClientView] = useState<ClientView>("resumen");
 
   const selectedAccount = useMemo(() => {
     if (!session) return null;
@@ -54,6 +66,22 @@ export default function WebBankPage() {
   const dailyLeft = dynamicDailyLimit ? Math.max(0, dynamicDailyLimit - dailySpent) : null;
   const canInvest = selectedAccount && selectedAccount.type !== "Child" && !selectedAccount.citizenshipTier?.startsWith("Junior");
   const businessAccounts = session?.accounts.filter((account) => account.type === "Business") || [];
+  const activeTab = clientView === "resumen"
+    ? "cartera"
+    : clientView === "enviar"
+      ? "placezum"
+      : clientView === "inversiones"
+        ? "mercado"
+        : "mas";
+  const visibleTabs = session?.user.dip === "DIP-A001" ? appTabs : appTabs.filter((tab) => tab.id !== "tglp" && tab.id !== "junta");
+
+  function openAppTab(tab: (typeof appTabs)[number]) {
+    if (tab.href) {
+      location.assign(tab.href);
+      return;
+    }
+    if (tab.target) setClientView(tab.target);
+  }
 
   useEffect(() => {
     if (!investmentResult) return;
@@ -212,15 +240,101 @@ export default function WebBankPage() {
     }
   }
 
-  function downloadReceipt(transaction: LedgerTransaction) {
-    const html = `<!doctype html><html><head><meta charset="utf-8"><title>Comprobante ${transaction.id}</title><style>@font-face{font-family:Outfit;src:url('/fonts/Outfit.ttf')}body{font-family:Outfit,Arial,sans-serif;padding:24px;color:#170c2a}.box{border:1px solid #3f00d8;padding:20px;border-radius:8px}h1{color:#3f00d8}li{margin:8px 0}</style></head><body><div class="box"><h1>BANCO DE LA PLACETA - COMPROBANTE</h1><p><strong>ID Transacción:</strong> ${transaction.id}</p><p><strong>Fecha/Hora:</strong> ${formatDate(transaction.createdAt)}</p><p><strong>Ordenante:</strong> ${transaction.fromAccountId}</p><p><strong>Beneficiario:</strong> ${transaction.toAccountId}</p><hr/><h2>Desglose financiero</h2><ul><li>Importe bruto: ${formatPz(transaction.amountPz)} Pz</li><li>Tasas / IVA retenido: ${formatPz(transaction.taxAmount || transaction.ivaPz || 0)} Pz</li><li><strong>Neto:</strong> ${formatPz(transaction.netAmount || transaction.amountPz)} Pz</li></ul><p>Comprobante generado desde Banco de La Placeta. Los registros de IP y navegador constan en auditoría interna.</p></div></body></html>`;
-    const blob = new Blob([html], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `comprobante-${transaction.id}.html`;
-    link.click();
-    URL.revokeObjectURL(url);
+  async function fontAsBase64(path: string) {
+    const response = await fetch(path);
+    const buffer = await response.arrayBuffer();
+    let binary = "";
+    new Uint8Array(buffer).forEach((byte) => {
+      binary += String.fromCharCode(byte);
+    });
+    return btoa(binary);
+  }
+
+  async function downloadReceipt(transaction: LedgerTransaction) {
+    setReceiptLoadingId(transaction.id);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "pt", format: "a4" });
+      let pdfFont = "helvetica";
+      try {
+        const outfit = await fontAsBase64("/fonts/Outfit.ttf");
+        const outfitBold = await fontAsBase64("/fonts/OutfitBold.ttf");
+        doc.addFileToVFS("Outfit.ttf", outfit);
+        doc.addFileToVFS("OutfitBold.ttf", outfitBold);
+        doc.addFont("Outfit.ttf", "Outfit", "normal");
+        doc.addFont("OutfitBold.ttf", "Outfit", "bold");
+        doc.setFont("Outfit", "normal");
+        pdfFont = "Outfit";
+      } catch {
+        doc.setFont("helvetica", "normal");
+      }
+
+      const gross = formatPz(transaction.amountPz);
+      const taxes = formatPz(transaction.taxAmount || transaction.ivaPz || 0);
+      const net = formatPz(transaction.netAmount || transaction.amountPz);
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      doc.setFillColor(63, 0, 216);
+      doc.roundedRect(34, 34, pageWidth - 68, 86, 12, 12, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont(pdfFont, "bold");
+      doc.setFontSize(18);
+      doc.text("BANCO DE LA PLACETA", 58, 72);
+      doc.setFont(pdfFont, "normal");
+      doc.setFontSize(11);
+      doc.text("Comprobante de transacción bancaria e IVA", 58, 94);
+
+      doc.setTextColor(23, 12, 42);
+      doc.setDrawColor(63, 0, 216);
+      doc.setLineWidth(1);
+      doc.roundedRect(34, 148, pageWidth - 68, 330, 10, 10, "S");
+
+      doc.setFont(pdfFont, "bold");
+      doc.setFontSize(13);
+      doc.text("Datos de la operación", 58, 178);
+      doc.setFont(pdfFont, "normal");
+      doc.setFontSize(10.5);
+      const rows = [
+        ["ID de transacción", transaction.id],
+        ["Fecha y hora", formatDate(transaction.createdAt)],
+        ["Ordenante", transaction.fromAccountId || "No disponible"],
+        ["Beneficiario", transaction.toAccountId || "No disponible"],
+        ["Concepto", transaction.concept || transaction.kind],
+        ["Canal", "Banco de La Placeta Web"],
+        ["Auditoría", "IP, navegador y timestamp registrados en backend"]
+      ];
+      rows.forEach(([label, value], index) => {
+        const y = 208 + index * 24;
+        doc.setTextColor(108, 88, 120);
+        doc.text(label, 58, y);
+        doc.setTextColor(23, 12, 42);
+        doc.text(String(value).slice(0, 74), 205, y);
+      });
+
+      doc.setFillColor(245, 241, 255);
+      doc.roundedRect(58, 392, pageWidth - 116, 58, 10, 10, "F");
+      doc.setFont(pdfFont, "bold");
+      doc.setTextColor(63, 0, 216);
+      doc.text("Desglose financiero", 78, 415);
+      doc.setFont(pdfFont, "normal");
+      doc.setTextColor(23, 12, 42);
+      doc.text(`Bruto: ${gross} Pz`, 78, 437);
+      doc.text(`Tasas / IVA: ${taxes} Pz`, 230, 437);
+      doc.setFont(pdfFont, "bold");
+      doc.text(`Neto: ${net} Pz`, 392, 437);
+
+      doc.setFont(pdfFont, "normal");
+      doc.setFontSize(9.5);
+      doc.setTextColor(108, 88, 120);
+      doc.text("Documento emitido por Banco de La Placeta dentro de una simulación de rol sin valor económico real.", 58, 520, { maxWidth: pageWidth - 116 });
+      doc.text("Base normativa: Normativa Unificada GDLP, capítulos III, IV y XIV.", 58, 548);
+      doc.save(`comprobante-${transaction.id}.pdf`);
+      setStatus("Comprobante PDF generado");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "No se pudo generar el PDF");
+    } finally {
+      setReceiptLoadingId("");
+    }
   }
 
   return (
@@ -233,9 +347,9 @@ export default function WebBankPage() {
       )}
       <section className="webHeader appLikeHeader">
         <div>
-          <p className="eyebrow">Banco de La Placeta</p>
-          <h1>Tu banca web</h1>
-          <p>Consulta saldo, mueve Placetas y gestiona tus cuentas desde navegador. NFC, PlaceZum y registro de Promo Cards quedan en la app Android.</p>
+          <p className="eyebrow">Banco Placeta</p>
+          <h1>La app, en web</h1>
+          <p>La misma Cartera, Placezum, Mercado y Más de Android, usando el mismo backend y las mismas reglas. Solo cambian las funciones físicas que dependen de NFC.</p>
         </div>
         <form className="loginBox" onSubmit={(event) => registerMode ? register(event) : loadSession(event)}>
           {registerMode && (
@@ -292,9 +406,9 @@ export default function WebBankPage() {
               <em>Banco de La Placeta</em>
             </div>
             <div className="mobileActionGrid">
-              <button onClick={() => setClientView("enviar")}>Enviar</button>
-              <button onClick={() => setClientView("tarjetas")}>Tarjetas</button>
-              <button onClick={() => setClientView("actividad")}>Actividad</button>
+              <button onClick={() => setClientView("enviar")}>Placezum</button>
+              <button onClick={() => setClientView("inversiones")}>Mercado</button>
+              <button onClick={() => setClientView("cuentas")}>Más</button>
             </div>
             {lastMovement && (
               <article className="mobileLastMovement">
@@ -304,22 +418,14 @@ export default function WebBankPage() {
               </article>
             )}
           </div>
-          <nav className="clientTabs" aria-label="Panel cliente">
-            {[
-              ["resumen", "Resumen"],
-              ["cuentas", "Cuentas"],
-              ["enviar", "Enviar"],
-              ["tarjetas", "Tarjetas"],
-              ["inversiones", "Inversiones"],
-              ["empresa", "Empresa"],
-              ["actividad", "Actividad"]
-            ].map(([id, label]) => (
+          <nav className="clientTabs appTabs" aria-label="Navegación principal de la app">
+            {visibleTabs.map((tab) => (
               <button
-                key={id}
-                className={clientView === id ? "active" : ""}
-                onClick={() => setClientView(id as typeof clientView)}
+                key={tab.id}
+                className={activeTab === tab.id ? "active" : ""}
+                onClick={() => openAppTab(tab)}
               >
-                {label}
+                {tab.label}
               </button>
             ))}
           </nav>
@@ -329,12 +435,22 @@ export default function WebBankPage() {
               <div className="panel heroPanel">
                 <span className="kicker">Posición global</span>
                 <h2>{formatPz(totalBalance)} Pz</h2>
-                <p>{session.accounts.length} cuentas activas · {session.cards.length} tarjetas visibles · sesión guardada</p>
-                <div className="quickStrip">
-                  <button onClick={() => setClientView("enviar")}>Enviar dinero</button>
-                  <button onClick={() => setClientView("tarjetas")}>Ver tarjetas</button>
-                  <button onClick={() => setClientView("inversiones")}>Invertir 60s</button>
-                  <button onClick={() => setClientView("actividad")}>Movimientos</button>
+                <p>{session.accounts.length} cuentas activas · {session.cards.length} tarjetas visibles · sistemas sincronizados con Android</p>
+                <div className="appActionBar">
+                  <button onClick={() => setClientView("enviar")}><span>⌁</span> Placezum</button>
+                  <button onClick={() => setClientView("cuentas")}><span>↓</span> Recibir</button>
+                  <button onClick={() => setClientView("tarjetas")}><span>▣</span> Tarjetas</button>
+                  <button onClick={() => setClientView("actividad")}><span>≡</span> Movimientos</button>
+                </div>
+              </div>
+              <div className="panel appSystemPanel">
+                <span className="kicker">Mismos sistemas</span>
+                <h2>GDLP compartido</h2>
+                <p className="muted">La web lee usuarios, cuentas, tarjetas, inversiones, límites, nóminas y tributos desde el mismo backend de la app.</p>
+                <div className="miniStatGrid">
+                  <span><b>Cartera</b>Cuentas</span>
+                  <span><b>Placezum</b>Código</span>
+                  <span><b>Mercado</b>60s</span>
                 </div>
               </div>
               <div className="panel">
@@ -343,8 +459,11 @@ export default function WebBankPage() {
                 <p className="muted">{selectedAccount?.iban}</p>
                 <strong className="bigNumber">{formatPz(selectedAccount?.balancePz || 0)} Pz</strong>
                 <div className="limitBar"><span style={{ width: `${limitUsed}%` }} /></div>
-                <p className="muted">Límite normativo: {formatPz(selectedLimit)} Pz</p>
-                {dailyLeft != null && <p className="muted">Disponible diario para enviar: {formatPz(dailyLeft)} Pz</p>}
+                <div className="miniStatGrid">
+                  <span><b>{limitUsed}%</b>Límite usado</span>
+                  <span><b>{formatPz(selectedLimit)} Pz</b>Máximo</span>
+                  <span><b>{dailyLeft != null ? `${formatPz(dailyLeft)} Pz` : "Libre"}</b>Disponible hoy</span>
+                </div>
               </div>
               <div className="panel">
                 <span className="kicker">Último movimiento</span>
@@ -361,10 +480,13 @@ export default function WebBankPage() {
                 )}
               </div>
               <div className="panel">
-                <span className="kicker">Canal</span>
-                <h2>Canal web</h2>
-                <p className="muted">Para pagos NFC, Promo Cards físicas y funciones especiales, usa la app móvil.</p>
-                <button onClick={claimRbu}>Reclamar RBU semanal</button>
+                <span className="kicker">Más</span>
+                <h2>Accesos de app</h2>
+                <p className="muted">Documentos, soporte, tarjetas, empresa y movimientos igual que en Android. NFC queda reservado al móvil.</p>
+                <div className="stackActions">
+                  <button onClick={claimRbu}>Reclamar RBU semanal</button>
+                  <button className="softButton" onClick={() => setClientView("inversiones")}>Abrir inversiones</button>
+                </div>
               </div>
             </section>
           )}
@@ -379,9 +501,10 @@ export default function WebBankPage() {
               <span className="pill">Comisión puente {session.treasuryConfig.webBridgeCommissionPercent ?? 3}%</span>
             </div>
             <div className="quickStrip">
-              <button onClick={() => setClientView("enviar")}>Enviar</button>
+              <button onClick={() => setClientView("enviar")}>Placezum</button>
               <button onClick={() => setClientView("tarjetas")}>Tarjetas</button>
               <button onClick={() => setClientView("actividad")}>Movimientos</button>
+              <button onClick={() => setClientView("empresa")}>Empresa</button>
               <button onClick={() => location.assign("/admin")}>Admin demo</button>
             </div>
             <div className="accountGrid">
@@ -403,9 +526,9 @@ export default function WebBankPage() {
 
           {clientView === "enviar" && (
           <form className="panel transferPanel focusedScreen" onSubmit={transfer}>
-            <span className="kicker">Enviar</span>
-            <h2>Transferencia</h2>
-            <p className="muted">Elige cuenta, introduce el DIP o IBAN de destino y confirma. La web no inicia pagos NFC ni pagos con tarjeta.</p>
+            <span className="kicker">Placezum</span>
+            <h2>Pago por código</h2>
+            <p className="muted">Mismo sistema Placezum de la app, adaptado a web: envía por DIP, IBAN o código. El lector NFC físico sigue estando solo en Android.</p>
             <label>
               Cuenta origen
               <select value={selectedAccountId} onChange={(event) => setSelectedAccountId(event.target.value)}>
@@ -434,13 +557,16 @@ export default function WebBankPage() {
               <strong>{formatPz(estimatedFee)} Pz</strong>
               <small>{webFeePercent}% si cruza entre web y app. La operación queda auditada.</small>
             </div>
-            <p className="hint">Para cobros con tarjeta física o NFC usa la app móvil.</p>
+            <div className="webCompatibilityNote">
+              <strong>Compatibilidad web</strong>
+              <span>Tarjeta virtual NFC, lector Placezum y vinculación de Promo Cards se ejecutan en Android. La web usa el mismo backend y opera por código.</span>
+            </div>
           </form>
           )}
 
           {clientView === "tarjetas" && (
           <section className="panel" id="webCards">
-            <span className="kicker">Tarjetas</span>
+            <span className="kicker">Más · Tarjetas</span>
             <h2>Tarjetas</h2>
             <p className="muted">Puedes consultar tarjetas virtuales y Promo Cards ya vinculadas. El alta física y el pago móvil se hacen desde Android.</p>
             <div className="cardList">
@@ -462,7 +588,7 @@ export default function WebBankPage() {
 
           {clientView === "inversiones" && (
           <section className="panel investmentScreen">
-            <span className="kicker">Mercado 60s</span>
+            <span className="kicker">Mercado</span>
             <h2>Inversión 60 segundos</h2>
             {!canInvest ? (
               <p className="muted">Módulo bloqueado para cuentas Junior o infantiles.</p>
@@ -486,7 +612,7 @@ export default function WebBankPage() {
           {clientView === "empresa" && (
           <section className="clientDashboard">
             <div className="panel heroPanel">
-              <span className="kicker">Empresa / Asociación</span>
+              <span className="kicker">Más · Empresa / Asociación</span>
               <h2>{businessAccounts.length}</h2>
               <p>Cuentas corporativas asociadas a tu sesión. Límite institucional: {formatPz(session.treasuryConfig.institutionalDeclarationThresholdPz || 10_000_000)} Pz.</p>
             </div>
@@ -510,7 +636,7 @@ export default function WebBankPage() {
 
           {clientView === "actividad" && (
           <section className="panel movements" id="webMovements">
-            <span className="kicker">Movimientos</span>
+            <span className="kicker">Más · Movimientos</span>
             <h2>Actividad</h2>
             {session.transactions.map((transaction) => {
               const incoming = session.accounts.some((account) => account.id === transaction.toAccountId);
@@ -520,7 +646,9 @@ export default function WebBankPage() {
                     <strong>{transaction.note}</strong>
                     <span>{formatDate(transaction.createdAt)} · {transaction.concept || transaction.kind} · Tasas/IVA {formatPz(transaction.taxAmount || transaction.ivaPz || 0)} Pz</span>
                   </div>
-                  <button className="softButton" onClick={() => downloadReceipt(transaction)}>Comprobante</button>
+                  <button className="softButton" disabled={receiptLoadingId === transaction.id} onClick={() => downloadReceipt(transaction)}>
+                    {receiptLoadingId === transaction.id ? "Generando" : "PDF"}
+                  </button>
                   <b className={incoming ? "positive" : "negative"}>{incoming ? "+" : "-"}{formatPz(transaction.netAmount || transaction.amountPz)} Pz</b>
                 </article>
               );
@@ -546,10 +674,11 @@ export default function WebBankPage() {
       )}
       {session && (
         <nav className="mobileDock">
-          <button className={clientView === "resumen" ? "active" : ""} onClick={() => setClientView("resumen")}>Inicio</button>
-          <button className={clientView === "enviar" ? "active" : ""} onClick={() => setClientView("enviar")}>Enviar</button>
-          <button className={clientView === "tarjetas" ? "active" : ""} onClick={() => setClientView("tarjetas")}>Tarjetas</button>
-          <button className={clientView === "inversiones" ? "active" : ""} onClick={() => setClientView("inversiones")}>Invertir</button>
+          {visibleTabs.slice(0, 4).map((tab) => (
+            <button key={tab.id} className={activeTab === tab.id ? "active" : ""} onClick={() => openAppTab(tab)}>
+              {tab.label}
+            </button>
+          ))}
         </nav>
       )}
     </main>

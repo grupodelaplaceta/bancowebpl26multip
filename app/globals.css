@@ -1462,6 +1462,21 @@ select {
   }
 }
 
+@keyframes activePop {
+  from {
+    transform: scale(0.96);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes fillBar {
+  from {
+    width: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -1985,6 +2000,14 @@ h2 {
   border-radius: 16px;
 }
 
+.appTabs {
+  justify-content: center;
+}
+
+.appTabs button {
+  min-width: 112px;
+}
+
 .heroPanel {
   border: 0;
   border-radius: 24px;
@@ -2025,6 +2048,115 @@ h2 {
 .movement b {
   min-width: 96px;
   text-align: right;
+}
+
+.appActionBar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.appActionBar button {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  min-height: 86px;
+  padding: 12px 8px;
+  color: white;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.20);
+  border-radius: 20px;
+  box-shadow: none;
+}
+
+.appActionBar button span {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  color: var(--brand);
+  background: white;
+  border-radius: 13px;
+  font-family: OutfitBlack, Outfit, sans-serif;
+  font-size: 1.1rem;
+}
+
+.miniStatGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.miniStatGrid span {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px;
+  color: var(--muted);
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  font-size: 0.78rem;
+}
+
+.miniStatGrid b {
+  color: var(--brand);
+  font-size: 0.95rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stackActions {
+  display: grid;
+  gap: 9px;
+}
+
+.appSystemPanel {
+  background:
+    linear-gradient(135deg, rgba(63, 0, 216, 0.07), rgba(255, 255, 255, 0.96)),
+    white;
+}
+
+.webCompatibilityNote {
+  display: grid;
+  gap: 4px;
+  padding: 13px;
+  color: var(--muted);
+  background: rgba(63, 0, 216, 0.06);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.webCompatibilityNote strong {
+  color: var(--brand);
+}
+
+button:disabled {
+  cursor: progress;
+  opacity: 0.62;
+  transform: none;
+  box-shadow: none;
+}
+
+.panel,
+.accountTile,
+.bankCard,
+.movement,
+.feePreview,
+.countdownCard {
+  animation: riseIn 360ms ease both;
+}
+
+.clientTabs button.active,
+.mobileDock button.active {
+  animation: activePop 220ms ease both;
+}
+
+.limitBar span {
+  animation: fillBar 720ms ease both;
 }
 
 .cardList {
@@ -2163,5 +2295,13 @@ h2 {
   .movement b {
     grid-row: 1 / span 2;
     grid-column: 2;
+  }
+
+  .appActionBar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .miniStatGrid {
+    grid-template-columns: 1fr;
   }
 }

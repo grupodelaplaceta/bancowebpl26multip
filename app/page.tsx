@@ -440,7 +440,7 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
   const [amount, setAmount] = useState(12);
   const [contactQuery, setContactQuery] = useState("");
   const [tick, setTick] = useState(0);
-  const code = useMemo(() => generatePlacezumCode(account), [account.iban, tick]);
+  const code = useMemo(() => generatePlacezumCode(account), [account, tick]);
   const normalizedQuery = contactQuery.trim().toUpperCase();
   const resolvedContact = normalizedQuery
     ? accounts.find((candidate) =>
@@ -450,7 +450,8 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
     : undefined;
   const favoriteAccounts = contacts
     .map((contact) => accounts.find((item) => item.id === contact.accountId))
-    .filter((item): item is Account => Boolean(item) && item.id !== account.id)
+    .filter((item): item is Account => item !== undefined)
+    .filter((item) => item.id !== account.id)
     .filter((item, index, all) => all.findIndex((candidate) => candidate.id === item.id) === index)
     .sort((left, right) => left.displayName.localeCompare(right.displayName));
 

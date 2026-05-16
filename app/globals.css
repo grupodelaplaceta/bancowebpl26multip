@@ -1,11 +1,11 @@
 :root {
-  --bg: #f2f0fb;
-  --bg-2: #fbfaff;
+  --bg: #f7f7fa;
+  --bg-2: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f7f5ff;
+  --surface-2: #f4f3f8;
   --ink: #171322;
   --ink-soft: #322b45;
-  --muted: #716b80;
+  --muted: #686579;
   --line: rgba(63, 0, 216, 0.12);
   --line-strong: rgba(63, 0, 216, 0.24);
   --brand: #3F00D8;
@@ -18,8 +18,8 @@
   --red: #c6423a;
   --green: #168255;
   --blue: #1f6f9f;
-  --shadow-sm: 0 10px 24px rgba(36, 9, 88, 0.08);
-  --shadow: 0 22px 54px rgba(36, 9, 88, 0.14);
+  --shadow-sm: 0 8px 20px rgba(23, 19, 34, 0.06);
+  --shadow: 0 18px 44px rgba(23, 19, 34, 0.1);
   --radius: 14px;
   --radius-lg: 18px;
   --nav-h: 76px;
@@ -1471,7 +1471,7 @@ button:focus-visible, input:focus-visible {
 .landing-shell {
   min-height: 100vh;
   padding: 0 18px 48px;
-  background: #f2f0fb;
+  background: #f7f7fa;
 }
 .landing-nav {
   position: sticky;
@@ -1485,7 +1485,7 @@ button:focus-visible, input:focus-visible {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  background: rgba(242, 240, 251, .9);
+  background: rgba(247, 247, 250, .94);
   backdrop-filter: blur(18px);
 }
 .landing-brand,
@@ -1532,64 +1532,75 @@ button:focus-visible, input:focus-visible {
 }
 .landing-carousel {
   position: relative;
-  min-height: 590px;
-  border-radius: 22px;
+  min-height: 560px;
+  border-radius: 20px;
   overflow: hidden;
   isolation: isolate;
-  box-shadow: 0 28px 76px rgba(36, 9, 88, .22);
-  background: #171322;
+  box-shadow: var(--shadow);
+  background: white;
 }
 .landing-carousel > img {
   object-fit: cover;
-  filter: saturate(1.06) contrast(1.02);
+  filter: saturate(.92) contrast(.98);
 }
 .landing-carousel::after {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: rgba(63, 0, 216, .72);
+  background: rgba(255,255,255,.76);
 }
 .landing-copy {
   position: relative;
   z-index: 2;
   width: min(650px, 88%);
-  min-height: 590px;
+  min-height: 560px;
   padding: clamp(26px, 5vw, 56px);
-  color: white;
+  color: var(--ink);
   display: grid;
   align-content: center;
 }
 .landing-copy span {
-  color: rgba(255,255,255,.76);
+  color: var(--brand);
   font-size: .82rem;
   font-weight: 900;
   text-transform: uppercase;
 }
 .landing-copy h1 {
   margin: 12px 0 14px;
-  font-size: clamp(3rem, 8vw, 6.7rem);
-  line-height: .92;
+  font-size: clamp(2.8rem, 7vw, 5.8rem);
+  line-height: .96;
   letter-spacing: 0;
 }
 .landing-copy p {
   max-width: 560px;
   margin: 0;
-  color: rgba(255,255,255,.82);
+  color: var(--muted);
   font-size: clamp(1rem, 2vw, 1.22rem);
   line-height: 1.45;
   font-weight: 650;
 }
+.landing-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
 .landing-cta {
   width: fit-content;
   min-height: 48px;
-  margin-top: 24px;
   padding: 0 18px;
   border-radius: 14px;
-  color: #3F00D8;
-  background: white;
+  color: white;
+  background: #3F00D8;
   font-weight: 950;
-  box-shadow: 0 18px 40px rgba(0,0,0,.22);
+  box-shadow: 0 12px 28px rgba(63,0,216,.18);
+}
+.landing-cta.secondary {
+  color: var(--brand);
+  background: white;
+  border: 1px solid rgba(63,0,216,.16);
+  box-shadow: none;
 }
 .landing-dots {
   position: absolute;
@@ -1603,51 +1614,118 @@ button:focus-visible, input:focus-visible {
   width: 34px;
   height: 8px;
   border-radius: 999px;
-  background: rgba(255,255,255,.36);
+  background: rgba(63,0,216,.18);
 }
 .landing-dots button.active {
   width: 54px;
-  background: white;
+  background: #3F00D8;
 }
 .landing-login {
   align-self: center;
   min-height: 0;
   border-color: rgba(63, 0, 216, .16);
 }
-.landing-strip {
+.landing-feature-grid {
   width: min(1180px, 100%);
   margin: 18px auto;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
-.landing-strip div {
-  min-height: 92px;
-  padding: 16px;
+.landing-feature {
+  min-height: 172px;
+  padding: 20px;
   border-radius: 18px;
-  border: 1px solid rgba(63, 0, 216, .12);
-  background: rgba(255,255,255,.86);
+  border: 1px solid rgba(23, 19, 34, .08);
+  background: white;
   box-shadow: var(--shadow-sm);
   display: grid;
-  align-content: center;
+  align-content: start;
+  gap: 10px;
 }
-.landing-strip strong,
-.landing-strip span {
+.landing-feature svg {
+  color: var(--brand);
+}
+.landing-feature strong,
+.landing-feature p {
   display: block;
 }
-.landing-strip strong {
+.landing-feature strong {
+  color: var(--ink);
+  font-size: 1.18rem;
+}
+.landing-feature p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.42;
+  font-weight: 650;
+}
+.landing-trust,
+.landing-faq,
+.landing-footer {
+  width: min(1180px, 100%);
+  margin: 18px auto 0;
+  border-radius: 20px;
+  border: 1px solid rgba(23, 19, 34, .08);
+  background: white;
+  box-shadow: var(--shadow-sm);
+}
+.landing-trust {
+  padding: clamp(22px, 4vw, 34px);
+  display: grid;
+  grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+  gap: 22px;
+}
+.landing-trust span,
+.landing-section-title span {
   color: var(--brand);
-  font-size: 2rem;
+  font-size: .78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+.landing-trust h2,
+.landing-section-title h2 {
+  margin: 8px 0 10px;
+  color: var(--ink);
+  font-size: clamp(1.9rem, 4vw, 3.4rem);
   line-height: 1;
 }
-.landing-strip span {
-  margin-top: 5px;
+.landing-trust p,
+.landing-faq p {
+  margin: 0;
   color: var(--muted);
-  font-weight: 850;
+  line-height: 1.45;
+  font-weight: 650;
+}
+.trust-list {
+  display: grid;
+  gap: 10px;
+}
+.trust-list article,
+.landing-faq article {
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(63, 0, 216, .1);
+  background: #fafafe;
+}
+.trust-list strong,
+.landing-faq strong {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--ink);
+  font-size: 1rem;
+}
+.landing-faq {
+  padding: clamp(20px, 4vw, 32px);
+  display: grid;
+  gap: 10px;
+}
+.landing-section-title {
+  margin-bottom: 6px;
 }
 .article-grid {
   width: min(1180px, 100%);
-  margin: 0 auto;
+  margin: 18px auto 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
@@ -1659,7 +1737,7 @@ button:focus-visible, input:focus-visible {
   overflow: hidden;
   isolation: isolate;
   background: #171322;
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 .landing-article > img {
   object-fit: cover;
@@ -1669,7 +1747,7 @@ button:focus-visible, input:focus-visible {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: rgba(23,19,34,.68);
+  background: rgba(23,19,34,.56);
 }
 .landing-article div {
   position: absolute;
@@ -1692,6 +1770,33 @@ button:focus-visible, input:focus-visible {
   margin: 8px 0 0;
   color: rgba(255,255,255,.78);
   line-height: 1.3;
+}
+.landing-footer {
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.landing-footer strong,
+.landing-footer span {
+  display: block;
+}
+.landing-footer span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-weight: 650;
+}
+.landing-footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 12px;
+}
+.landing-footer a {
+  color: var(--brand);
+  text-decoration: none;
+  font-weight: 850;
 }
 
 @media (max-width: 900px) {
@@ -1731,6 +1836,10 @@ button:focus-visible, input:focus-visible {
     align-items: end;
   }
   .landing-hero {
+    grid-template-columns: 1fr;
+  }
+  .landing-feature-grid,
+  .landing-trust {
     grid-template-columns: 1fr;
   }
   .landing-carousel,
@@ -1920,12 +2029,19 @@ button:focus-visible, input:focus-visible {
     left: 22px;
     bottom: 22px;
   }
-  .landing-strip {
+  .landing-feature-grid {
     grid-template-columns: 1fr;
     gap: 10px;
   }
-  .landing-strip div {
-    min-height: 76px;
+  .landing-feature {
+    min-height: 132px;
+  }
+  .landing-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .landing-footer nav {
+    justify-content: flex-start;
   }
 }
 
@@ -2005,6 +2121,9 @@ button:focus-visible, input:focus-visible {
     min-height: 430px;
   }
   .landing-cta {
+    width: 100%;
+  }
+  .landing-cta-row {
     width: 100%;
   }
   .landing-article {

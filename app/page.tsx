@@ -78,25 +78,43 @@ const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
 const landingSlides = [
   {
     title: "Banco Placeta",
-    kicker: "Web Hub GDLP",
-    subtitle: "Banca digital, Placezum, tarjetas y documentos en una experiencia pensada para escritorio y móvil.",
+    kicker: "Banca digital",
+    subtitle: "Gestiona pagos, tarjetas, cuentas y documentos desde una plataforma clara para móvil y escritorio.",
     image: "/assets/promos/promo1.png",
-    action: "Entrar al banco"
+    action: "Abrir cuenta"
   },
   {
-    title: "Mercado Plazet",
-    kicker: "Inversiones 60s",
-    subtitle: "Consulta liquidez, riesgo, operaciones abiertas y resultados recientes con validación contra duplicados.",
+    title: "Operativa con contexto",
+    kicker: "Pagos y actividad",
+    subtitle: "Consulta saldos, movimientos, límites y operaciones recientes con una experiencia pensada para entender qué ocurre.",
     image: "/assets/promos/promo2.png",
-    action: "Ver cartera"
+    action: "Ver demo"
   },
   {
-    title: "Tributos GDLP",
-    kicker: "Normativa y control",
-    subtitle: "Panel fiscal, auditoría, multas, IVA y configuración monetaria con el morado oficial #3F00D8.",
+    title: "Gestión institucional",
+    kicker: "Empresas y administración",
+    subtitle: "Herramientas para nóminas, soporte, documentos y revisión administrativa sin ruido visual ni promesas exageradas.",
     image: "/assets/promos/mercado-default.png",
-    action: "Abrir panel"
+    action: "Conocer funciones"
   }
+];
+
+const landingFeatures = [
+  { title: "Pagos digitales", text: "Placezum, IBAN y transferencias con límites visibles antes de confirmar.", icon: QrCode },
+  { title: "Tarjetas y cuentas", text: "Tarjeta digital, cuentas personales y empresa con estado claro en cada operación.", icon: CreditCard },
+  { title: "Administración", text: "Nóminas, documentos, soporte y tributos en paneles separados para trabajar mejor.", icon: Landmark }
+];
+
+const landingTrust = [
+  { title: "Sin promesas irreales", text: "La web explica funciones reales: pagos, cuentas, tarjetas y gestión." },
+  { title: "Datos comprensibles", text: "Movimientos, límites y actividad se muestran con jerarquía y trazabilidad." },
+  { title: "Experiencia consistente", text: "Misma identidad entre Android y web, con acento #3F00D8 y fuente Outfit." }
+];
+
+const landingFaq = [
+  { question: "¿Qué puedo hacer desde Banco Placeta web?", answer: "Consultar cuentas, enviar pagos, gestionar tarjetas, revisar actividad, abrir tickets y usar herramientas administrativas si tu perfil lo permite." },
+  { question: "¿La web sustituye a la app Android?", answer: "No. La complementa: mantiene la misma lógica de cuenta y añade una experiencia más cómoda para escritorio." },
+  { question: "¿Dónde veo soporte o incidencias?", answer: "Dentro del Hub puedes abrir tickets con contexto de cuentas, tarjetas, inversiones o movimientos." }
 ];
 
 const landingArticles = [
@@ -114,7 +132,7 @@ const landingArticles = [
   },
   {
     title: "Hub ciudadano completo",
-    text: "Cuentas, documentos, actividad fiscal y soporte organizados para trabajar mejor en web.",
+    text: "Cuentas, documentos, administración y soporte organizados en módulos separados.",
     image: "/assets/logobanco.jpg",
     icon: MoreHorizontal
   }
@@ -618,7 +636,8 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         </div>
         <div className="landing-nav-actions">
           <button className="mini-action ghost" type="button" onClick={() => document.getElementById("inicio")?.scrollIntoView({ behavior: "smooth" })}>Inicio</button>
-          <button className="mini-action ghost" type="button" onClick={() => document.getElementById("articulos")?.scrollIntoView({ behavior: "smooth" })}>Noticias</button>
+          <button className="mini-action ghost" type="button" onClick={() => document.getElementById("producto")?.scrollIntoView({ behavior: "smooth" })}>Producto</button>
+          <button className="mini-action ghost" type="button" onClick={() => document.getElementById("seguridad")?.scrollIntoView({ behavior: "smooth" })}>Seguridad</button>
           <button className="mini-action" type="button" onClick={() => document.getElementById("acceso")?.scrollIntoView({ behavior: "smooth" })}>Acceder</button>
         </div>
       </header>
@@ -630,9 +649,14 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
             <span>{slide.kicker}</span>
             <h1>{slide.title}</h1>
             <p>{slide.subtitle}</p>
-            <button className="landing-cta" type="button" onClick={() => document.getElementById("acceso")?.scrollIntoView({ behavior: "smooth" })}>
-              {slide.action}
-            </button>
+            <div className="landing-cta-row">
+              <button className="landing-cta" type="button" onClick={() => document.getElementById("acceso")?.scrollIntoView({ behavior: "smooth" })}>
+                {slide.action}
+              </button>
+              <button className="landing-cta secondary" type="button" onClick={() => document.getElementById("producto")?.scrollIntoView({ behavior: "smooth" })}>
+                Ver producto
+              </button>
+            </div>
           </div>
           <div className="landing-dots">
             {landingSlides.map((item, index) => (
@@ -655,10 +679,33 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         </form>
       </section>
 
-      <section className="landing-strip">
-        <div><strong>{state.users.length}</strong><span>DIP activos</span></div>
-        <div><strong>{state.accounts.length}</strong><span>Cuentas GDLP</span></div>
-        <div><strong>{state.transactions.length}</strong><span>Movimientos</span></div>
+      <section className="landing-feature-grid" id="producto">
+        {landingFeatures.map((feature) => {
+          const Icon = feature.icon;
+          return (
+            <article key={feature.title} className="landing-feature">
+              <Icon size={22} />
+              <strong>{feature.title}</strong>
+              <p>{feature.text}</p>
+            </article>
+          );
+        })}
+      </section>
+
+      <section className="landing-trust" id="seguridad">
+        <div>
+          <span>Confianza</span>
+          <h2>Una web financiera debe explicar, no impresionar.</h2>
+          <p>Banco Placeta evita mensajes financieros irreales y organiza la información por acciones concretas: pagar, consultar, administrar y pedir soporte.</p>
+        </div>
+        <div className="trust-list">
+          {landingTrust.map((item) => (
+            <article key={item.title}>
+              <strong>{item.title}</strong>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
       </section>
 
       <section className="article-grid" id="articulos">
@@ -676,6 +723,32 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
           );
         })}
       </section>
+
+      <section className="landing-faq" id="faq">
+        <div className="landing-section-title">
+          <span>FAQ</span>
+          <h2>Preguntas frecuentes</h2>
+        </div>
+        {landingFaq.map((item) => (
+          <article key={item.question}>
+            <strong>{item.question}</strong>
+            <p>{item.answer}</p>
+          </article>
+        ))}
+      </section>
+
+      <footer className="landing-footer">
+        <div>
+          <strong>Banco Placeta</strong>
+          <span>Banca digital, pagos y gestión financiera.</span>
+        </div>
+        <nav>
+          <a href="mailto:soporte@bancoplaceta.com">soporte@bancoplaceta.com</a>
+          <a href="#faq">FAQ</a>
+          <a href="#acceso">Acceso</a>
+          <a href="#producto">Producto</a>
+        </nav>
+      </footer>
     </main>
   );
 }

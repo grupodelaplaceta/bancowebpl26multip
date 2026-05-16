@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
+import type { CSSProperties } from "react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   Account,
@@ -129,6 +130,14 @@ export default function BancoPlacetaWeb() {
         body: JSON.stringify(next)
       });
       setSync(response.ok ? "online" : "offline");
+      if (response.ok) {
+        const fresh = await fetch("/api/bank-state", { cache: "no-store" });
+        if (fresh.ok) {
+          const remote = normalizeState(await fresh.json());
+          setState(remote);
+          localStorage.setItem("placeta-web-state", JSON.stringify(remote));
+        }
+      }
     } catch {
       setSync("offline");
     }
@@ -514,7 +523,9 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
 function MarketScreen({ state, account, onStart, onSettle }: { state: BankState; account: Account; onStart: (marketId: string, amount: number) => void; onSettle: (operationId: string) => void }) {
   const [amount, setAmount] = useState(120);
   const [now, setNow] = useState(Date.now());
-  const market = state.accounts.filter((item) => item.listedInvestmentFund || item.id.startsWith("biz-market-"));
+  const market = state.accounts
+    .filter((item) => item.listedInvestmentFund || item.id.startsWith("biz-market-"))
+    .sort((left, right) => (left.investmentRiskLevel || 3) - (right.investmentRiskLevel || 3));
   const isInvestmentAccount = account.type === "Investment";
   const pending = pendingInvestmentOperations(state, account.id);
   const results = investmentResultRows(state, account.id).slice(0, 6);
@@ -525,6 +536,11 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
     transaction.createdAt.slice(0, 10) === today
   ).length;
   const totalNetResult = results.reduce((sum, row) => sum + row.netResultPz, 0);
+  const remainingToday = Math.max(0, state.treasuryConfig.dailyInvestmentLimit - dailyInvestmentCount);
+  const pendingCapital = pending.reduce((sum, operation) => sum + operation.amountPz, 0);
+  const maxAmount = state.treasuryConfig.maxInvestmentAmountPz;
+  const safeAmount = Math.min(Math.max(0, amount), maxAmount);
+  const quickAmounts = [100, 250, 500, maxAmount].filter((value, index, all) => value <= maxAmount && all.indexOf(value) === index);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -532,42 +548,67 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
   }, []);
 
   return (
-    <section className="screen-grid">
+    <section className="screen-grid market-grid">
       <article className="hero-card market-hero">
-        <span>Cartera Plazet</span>
+        <span>Mercado GDLP · Cartera Plazet</span>
         <strong>{formatMoneyPz(account.balancePz)} Pz</strong>
-        <p>{pending.length} abiertas · {dailyInvestmentCount}/{state.treasuryConfig.dailyInvestmentLimit} hoy · {totalNetResult >= 0 ? "+" : ""}{formatPz(totalNetResult)} Pz</p>
+        <p>{pending.length} abiertas · {remainingToday} disponibles hoy · resultado reciente {totalNetResult >= 0 ? "+" : ""}{formatPz(totalNetResult)} Pz</p>
       </article>
+      <div className="metric-grid market-metrics">
+        <MetricCard label="Disponible" value={`${formatPz(account.balancePz)} Pz`} tone="purple" />
+        <MetricCard label="Pendiente 60s" value={`${formatPz(pendingCapital)} Pz`} tone="gold" />
+        <MetricCard label="Cupos hoy" value={`${remainingToday}/${state.treasuryConfig.dailyInvestmentLimit}`} tone="green" />
+        <MetricCard label="Resultado" value={`${totalNetResult >= 0 ? "+" : ""}${formatPz(totalNetResult)} Pz`} tone={totalNetResult >= 0 ? "green" : "red"} />
+      </div>
       {!isInvestmentAccount && (
-        <article className="panel">
+        <article className="panel market-alert">
           <SectionTitle icon={ShieldCheck} title="Cuenta de inversión" />
           <p className="muted">Selecciona la cuenta “Cartera Plazet” para operar. Este mercado usa el sistema Android de inversión 60s.</p>
         </article>
       )}
-      <article className="panel">
-        <SectionTitle icon={TrendingUp} title="Fondos GDLP" />
-        <Field label={`Importe Pz · máximo ${formatPz(state.treasuryConfig.maxInvestmentAmountPz)}`} value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
-        <div className="fund-list">
-          {market.map((fund) => (
-            <button key={fund.id} disabled={!isInvestmentAccount} onClick={() => onStart(fund.id, amount)}>
-              <div>
-                <strong>{fund.displayName}</strong>
-                <span>Riesgo {fund.investmentRiskLevel || 3}/7 · {formatPz(fund.balancePz)} Pz liquidez</span>
-              </div>
-              <TrendingUp size={20} />
+      <article className="panel market-ticket">
+        <SectionTitle icon={CircleDollarSign} title="Ticket de inversión" />
+        <Field label={`Importe Pz · máximo ${formatPz(maxAmount)}`} value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
+        <div className="amount-chips">
+          {quickAmounts.map((value) => (
+            <button key={value} className={safeAmount === value ? "active" : ""} onClick={() => setAmount(value)}>
+              {value === maxAmount ? "Máx" : formatPz(value)}
             </button>
           ))}
         </div>
+        <div className="investment-rules">
+          <div><strong>{formatPz(safeAmount)} Pz</strong><span>importe preparado</span></div>
+          <div><strong>{remainingToday}</strong><span>operaciones restantes</span></div>
+        </div>
+        <p className="muted">Cada orden queda vinculada a su cuenta origen e IBAN. El backend valida saldo, origen y liquidación para evitar duplicados entre sesiones.</p>
       </article>
-      <article className="panel">
+      <article className="panel market-funds-panel">
+        <SectionTitle icon={TrendingUp} title="Fondos GDLP" />
+        <div className="fund-list">
+          {market.map((fund) => {
+            const risk = fund.investmentRiskLevel || 3;
+            return (
+              <button key={fund.id} className="fund-card" disabled={!isInvestmentAccount || remainingToday <= 0 || safeAmount <= 0} onClick={() => onStart(fund.id, safeAmount)}>
+                <div>
+                  <strong>{fund.displayName}</strong>
+                  <span>Liquidez {formatPz(fund.balancePz)} Pz · riesgo {risk}/7</span>
+                  <i style={{ "--risk": `${Math.round((risk / 7) * 100)}%` } as CSSProperties & Record<"--risk", string>} />
+                </div>
+                <b>{isInvestmentAccount ? "Invertir" : "Bloqueado"}</b>
+              </button>
+            );
+          })}
+        </div>
+      </article>
+      <article className="panel market-ops">
         <SectionTitle icon={Landmark} title="Operaciones 60s" />
         {pending.length ? pending.map((operation) => {
           const secondsLeft = Math.max(0, Math.ceil((Date.parse(operation.readyAt) - now) / 1000));
           return (
-            <div className="holding-row" key={operation.id}>
+            <div className="investment-row pending" key={operation.id}>
               <div>
                 <strong>{operation.assetName}</strong>
-                <span>{formatPz(operation.amountPz)} Pz · {secondsLeft > 0 ? `faltan ${secondsLeft}s` : "resultado listo"}</span>
+                <span>{formatPz(operation.amountPz)} Pz · {operation.createdAt.slice(11, 16)} · {secondsLeft > 0 ? `faltan ${secondsLeft}s` : "resultado listo"}</span>
               </div>
               <button className="mini-action" disabled={secondsLeft > 0} onClick={() => onSettle(operation.id)}>
                 {secondsLeft > 0 ? `${secondsLeft}s` : "Resultado"}
@@ -576,10 +617,10 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
           );
         }) : <Empty title="Sin inversiones abiertas" text="Inicia una inversión y vuelve cuando pasen 60 segundos." />}
       </article>
-      <article className="panel history-panel">
+      <article className="panel history-panel market-results">
         <SectionTitle icon={Sparkles} title="Análisis reciente" />
         {results.length ? results.map((row) => (
-          <div className="holding-row" key={row.id}>
+          <div className={`investment-row ${row.netResultPz >= 0 ? "win" : "loss"}`} key={row.id}>
             <div>
               <strong>{row.assetName}</strong>
               <span>{formatPz(row.principalPz)} → {formatPz(row.returnedPz)} Pz · {row.won ? "+" : "-"}{row.movementPercent}%</span>

@@ -1805,6 +1805,448 @@ select {
   }
 }
 
+/* Web app v2: shell multipantalla, más cercano a una app real en navegador. */
+.webAppV2 {
+  width: min(1440px, calc(100% - 28px));
+  padding: 18px 0 90px;
+}
+
+.webLoginPage {
+  min-height: calc(100vh - 126px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.webLoginHero,
+.webLoginCard,
+.bankSidebar,
+.workspaceTop {
+  border-radius: 22px;
+}
+
+.webLoginHero {
+  display: flex;
+  min-height: 640px;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: clamp(24px, 5vw, 54px);
+  color: white;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(23, 12, 42, 0.90), rgba(63, 0, 216, 0.72)),
+    url("/logobanco.jpg");
+  background-size: cover;
+  background-position: center;
+}
+
+.webLoginHero .eyebrow,
+.webLoginHero h1,
+.webLoginHero p {
+  color: white;
+}
+
+.webLoginHero h1 {
+  max-width: 850px;
+  font-size: clamp(3rem, 8vw, 7rem);
+}
+
+.webLoginHero p {
+  max-width: 680px;
+  font-size: 1.12rem;
+  line-height: 1.65;
+}
+
+.loginHighlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.loginHighlights span {
+  padding: 9px 12px;
+  color: white;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+}
+
+.webLoginCard {
+  align-self: center;
+  padding: 20px;
+}
+
+.webLoginCard h2 {
+  color: var(--brand);
+}
+
+.formStatus {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+}
+
+.bankShell {
+  display: grid;
+  grid-template-columns: 286px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.bankSidebar {
+  position: sticky;
+  top: 82px;
+  min-height: calc(100vh - 112px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+}
+
+.sidebarBrand,
+.workspaceTop,
+.workspaceActions,
+.sidebarLinks {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sidebarBrand img {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.sidebarBrand strong,
+.sidebarBrand span,
+.sidebarBalance span,
+.sidebarBalance small {
+  display: block;
+}
+
+.sidebarBrand strong {
+  color: var(--brand);
+}
+
+.sidebarBrand span,
+.sidebarBalance span,
+.sidebarBalance small {
+  color: var(--muted);
+}
+
+.sidebarBalance {
+  padding: 16px;
+  color: white;
+  background:
+    linear-gradient(135deg, rgba(63, 0, 216, 0.98), rgba(23, 12, 42, 0.92)),
+    url("/logobanco.jpg");
+  background-size: cover;
+  border-radius: 18px;
+}
+
+.sidebarBalance span,
+.sidebarBalance small {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.sidebarBalance strong {
+  display: block;
+  margin: 5px 0;
+  font-family: OutfitBlack, Outfit, sans-serif;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.bankSidebar nav {
+  display: grid;
+  gap: 12px;
+}
+
+.navGroup {
+  display: grid;
+  gap: 6px;
+}
+
+.navGroup > span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.navGroup button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 10px;
+  color: var(--ink);
+  background: transparent;
+  box-shadow: none;
+  text-align: left;
+}
+
+.navGroup button i,
+.mobileDock i {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: var(--brand);
+  background: var(--soft);
+  border-radius: 10px;
+  font-style: normal;
+}
+
+.navGroup button.active {
+  color: var(--brand);
+  background: var(--soft);
+}
+
+.navGroup button.active i {
+  color: white;
+  background: var(--brand);
+}
+
+.sidebarLinks {
+  margin-top: auto;
+  flex-wrap: wrap;
+}
+
+.sidebarLinks a,
+.sidebarLinks button {
+  flex: 1;
+  min-width: 76px;
+  padding: 10px;
+  color: var(--brand);
+  background: var(--soft);
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 700;
+}
+
+.bankWorkspace {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.workspaceTop {
+  justify-content: space-between;
+  padding: 18px;
+  background: white;
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+}
+
+.workspaceTop h1 {
+  margin-bottom: 2px;
+  color: var(--brand);
+  font-size: clamp(2.2rem, 5vw, 4.6rem);
+}
+
+.workspaceTop span {
+  color: var(--muted);
+}
+
+.workspaceActions button {
+  min-width: 92px;
+}
+
+.screenGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  gap: 12px;
+  align-items: stretch;
+}
+
+.summaryScreen .balanceHero {
+  min-height: 390px;
+}
+
+.operationLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 12px;
+  align-items: start;
+}
+
+.transferAside {
+  position: sticky;
+  top: 90px;
+  display: grid;
+  gap: 12px;
+}
+
+.v2Accounts {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.accountFocus {
+  min-height: 300px;
+}
+
+.webAppV2 .clientTabs {
+  top: 82px;
+  margin: 0;
+}
+
+.webAppV2 .statusLine {
+  width: 100%;
+  margin: 0;
+}
+
+.mobileDock i {
+  margin: 0 auto 3px;
+}
+
+.mobileDock span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .bankShell {
+    grid-template-columns: 92px minmax(0, 1fr);
+  }
+
+  .bankSidebar {
+    padding: 10px;
+  }
+
+  .sidebarBrand div,
+  .sidebarBalance small,
+  .navGroup > span,
+  .navGroup button:not(.active),
+  .sidebarLinks a {
+    font-size: 0;
+  }
+
+  .navGroup button {
+    justify-content: center;
+  }
+
+  .navGroup button i {
+    margin: 0;
+  }
+
+  .sidebarBalance {
+    padding: 12px 8px;
+    text-align: center;
+  }
+
+  .sidebarBalance strong {
+    font-size: 1.1rem;
+  }
+
+  .v2Accounts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .webAppV2 {
+    width: 100%;
+    padding: 0 12px 96px;
+  }
+
+  .webLoginPage,
+  .bankShell,
+  .screenGrid,
+  .operationLayout,
+  .v2Accounts {
+    grid-template-columns: 1fr;
+  }
+
+  .webLoginPage {
+    min-height: auto;
+    gap: 0;
+    margin-inline: -12px;
+  }
+
+  .webLoginHero {
+    min-height: 52vh;
+    padding: 26px 16px;
+    border-radius: 0 0 28px 28px;
+  }
+
+  .webLoginHero h1 {
+    font-size: clamp(3rem, 14vw, 5.2rem);
+  }
+
+  .webLoginCard {
+    width: calc(100% - 24px);
+    margin: -24px auto 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  .bankSidebar {
+    display: none;
+  }
+
+  .workspaceTop {
+    position: sticky;
+    top: 66px;
+    z-index: 22;
+    margin-inline: -12px;
+    border-radius: 0 0 22px 22px;
+    padding: 14px 12px;
+  }
+
+  .workspaceTop h1 {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+
+  .workspaceActions {
+    display: none;
+  }
+
+  .webAppV2 .clientTabs {
+    top: 144px;
+  }
+
+  .summaryScreen .balanceHero,
+  .heroPanel {
+    min-height: 300px;
+  }
+
+  .operationLayout .focusedScreen,
+  .investmentScreen {
+    width: 100%;
+  }
+
+  .transferAside {
+    position: static;
+  }
+
+  .mobileDock {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .mobileDock button {
+    display: block;
+    padding: 8px 4px;
+  }
+
+  .mobileDock i {
+    width: 26px;
+    height: 26px;
+  }
+}
+
 .mobileBalanceCard em {
   display: block;
   margin-top: 8px;
@@ -2303,5 +2745,49 @@ button:disabled {
 
   .miniStatGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Final precedence for the rebuilt web banking shell. */
+.webAppV2 {
+  width: min(1440px, calc(100% - 28px));
+  padding: 18px 0 90px;
+}
+
+.webAppV2 .focusedScreen,
+.webAppV2 .investmentScreen {
+  margin-inline: 0;
+}
+
+.webAppV2 .mobileDock {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.webAppV2 .mobileDock button {
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .webAppV2 {
+    width: 100%;
+    padding: 0 12px 96px;
+  }
+
+  .webAppV2 .clientTabs {
+    top: 144px;
+    margin-top: 0;
+  }
+
+  .webAppV2 .workspaceTop {
+    position: sticky;
+    top: 66px;
+    z-index: 22;
+    margin-inline: -12px;
+    border-radius: 0 0 22px 22px;
+  }
+
+  .webAppV2 .focusedScreen,
+  .webAppV2 .investmentScreen {
+    width: 100%;
   }
 }

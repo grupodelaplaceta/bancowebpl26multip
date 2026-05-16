@@ -1,27 +1,27 @@
 :root {
-  --bg: #eef2f0;
-  --bg-2: #f8faf7;
+  --bg: #f2f0fb;
+  --bg-2: #fbfaff;
   --surface: #ffffff;
-  --surface-2: #f4f6f2;
-  --ink: #17211f;
-  --ink-soft: #33403c;
-  --muted: #6b7772;
-  --line: rgba(23, 33, 31, 0.11);
-  --line-strong: rgba(23, 33, 31, 0.18);
-  --brand: #245c4f;
-  --brand-2: #473f8f;
-  --brand-3: #116d7c;
-  --brand-purple: #6f2cff;
-  --brand-purple-2: #9b5cff;
-  --brand-purple-dark: #2b1267;
+  --surface-2: #f7f5ff;
+  --ink: #171322;
+  --ink-soft: #322b45;
+  --muted: #716b80;
+  --line: rgba(63, 0, 216, 0.12);
+  --line-strong: rgba(63, 0, 216, 0.24);
+  --brand: #3F00D8;
+  --brand-2: #6d35ff;
+  --brand-3: #a05cff;
+  --brand-purple: #3F00D8;
+  --brand-purple-2: #7b42ff;
+  --brand-purple-dark: #260083;
   --gold: #b77912;
   --red: #c6423a;
   --green: #168255;
   --blue: #1f6f9f;
-  --shadow-sm: 0 8px 22px rgba(23, 33, 31, 0.07);
-  --shadow: 0 18px 46px rgba(23, 33, 31, 0.12);
-  --radius: 18px;
-  --radius-lg: 24px;
+  --shadow-sm: 0 10px 24px rgba(36, 9, 88, 0.08);
+  --shadow: 0 22px 54px rgba(36, 9, 88, 0.14);
+  --radius: 14px;
+  --radius-lg: 18px;
   --nav-h: 76px;
 }
 
@@ -58,8 +58,8 @@
 html {
   min-height: 100%;
   background:
-    radial-gradient(circle at top left, rgba(36, 92, 79, 0.13), transparent 34rem),
-    linear-gradient(180deg, var(--bg-2), var(--bg));
+    radial-gradient(circle at top left, rgba(63, 0, 216, 0.13), transparent 34rem),
+    linear-gradient(180deg, var(--bg-2), var(--bg) 58%, #ece8fb);
 }
 body {
   margin: 0;
@@ -84,15 +84,15 @@ button:disabled {
   cursor: not-allowed;
 }
 button:focus-visible, input:focus-visible {
-  outline: 3px solid rgba(31, 111, 159, .26);
+  outline: 3px solid rgba(63, 0, 216, .24);
   outline-offset: 2px;
 }
 
 .app-shell {
-  width: min(1120px, 100%);
+  width: min(1240px, 100%);
   min-height: 100vh;
   margin: 0 auto;
-  padding: 22px 18px calc(var(--nav-h) + 36px);
+  padding: 22px 20px calc(var(--nav-h) + 36px);
 }
 
 .topbar, .top-actions, .hero-topline, .section-title, .transaction-row, .holding-row {
@@ -107,10 +107,10 @@ button:focus-visible, input:focus-visible {
   justify-content: space-between;
   gap: 16px;
   min-height: 72px;
-  margin: -22px -18px 14px;
-  padding: 18px;
-  background: rgba(248, 250, 247, .84);
-  border-bottom: 1px solid rgba(23, 33, 31, .07);
+  margin: -22px -20px 16px;
+  padding: 18px 20px;
+  background: rgba(251, 250, 255, .88);
+  border-bottom: 1px solid rgba(63, 0, 216, .09);
   backdrop-filter: blur(18px);
 }
 .topbar h1 {
@@ -133,7 +133,7 @@ button:focus-visible, input:focus-visible {
 .icon-button {
   width: 44px;
   height: 44px;
-  border-radius: 15px;
+  border-radius: 14px;
   display: grid;
   place-items: center;
   background: var(--surface);
@@ -178,16 +178,16 @@ button:focus-visible, input:focus-visible {
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scroll-snap-type: x proximity;
-  padding: 4px 2px 18px;
+  padding: 4px 2px 20px;
   scrollbar-width: none;
 }
 .account-strip::-webkit-scrollbar { display: none; }
 .account-chip {
   scroll-snap-align: start;
-  flex: 0 0 174px;
-  min-height: 72px;
+  flex: 0 0 188px;
+  min-height: 76px;
   padding: 13px 14px;
-  border-radius: var(--radius);
+  border-radius: 16px;
   background: rgba(255, 255, 255, .86);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-sm);
@@ -213,25 +213,25 @@ button:focus-visible, input:focus-visible {
 .account-chip.active {
   color: white;
   border-color: transparent;
-  background: linear-gradient(135deg, var(--brand), var(--brand-2));
-  box-shadow: 0 14px 32px rgba(36, 92, 79, .24);
+  background: linear-gradient(135deg, #3F00D8, #7b42ff);
+  box-shadow: 0 16px 34px rgba(63, 0, 216, .26);
 }
 .account-chip.active span, .account-chip.active strong { color: white; }
 .account-chip.active span { opacity: .76; }
 
 .screen-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(310px, .72fr);
+  grid-template-columns: minmax(0, 1.12fr) minmax(320px, .88fr);
   align-items: start;
-  gap: 16px;
+  gap: 18px;
 }
 .screen-grid > :first-child { grid-column: 1 / -1; }
 
 .hero-card, .placezum-card {
   position: relative;
-  min-height: 190px;
+  min-height: 212px;
   padding: 24px;
-  border-radius: 26px;
+  border-radius: 20px;
   color: white;
   overflow: hidden;
   box-shadow: var(--shadow);
@@ -243,7 +243,7 @@ button:focus-visible, input:focus-visible {
   inset: 0;
   z-index: -2;
   background: url("/assets/logobanco.jpg") center/cover;
-  opacity: .2;
+  opacity: .14;
 }
 .hero-card::after, .placezum-card::after {
   content: "";
@@ -251,7 +251,7 @@ button:focus-visible, input:focus-visible {
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(135deg, rgba(36, 92, 79, .96), rgba(71, 63, 143, .94)),
+    linear-gradient(135deg, rgba(63, 0, 216, .98), rgba(123, 66, 255, .92)),
     linear-gradient(45deg, rgba(255, 255, 255, .12), transparent 46%);
 }
 .hero-card strong, .placezum-card strong {
@@ -268,20 +268,20 @@ button:focus-visible, input:focus-visible {
   font-weight: 760;
 }
 .hero-topline { justify-content: space-between; gap: 12px; }
-.market-hero::after { background: linear-gradient(135deg, #0f6d63, #334673 62%, #8b6114); }
-.tributos-hero::after { background: linear-gradient(135deg, #4d13d1, #8b35ff 52%, #18a49a); }
-.admin-hero::after { background: linear-gradient(135deg, #250b63, #6f2cff 54%, #c36bff); }
-.hub-hero::after { background: linear-gradient(135deg, #17211f, #245c4f 46%, #6f2cff); }
+.market-hero::after { background: linear-gradient(135deg, #260083, #3F00D8 58%, #9b5cff); }
+.tributos-hero::after { background: linear-gradient(135deg, #260083, #3F00D8 52%, #c36bff); }
+.admin-hero::after { background: linear-gradient(135deg, #16004d, #3F00D8 54%, #a05cff); }
+.hub-hero::after { background: linear-gradient(135deg, #171322, #3F00D8 50%, #7b42ff); }
 
 .quick-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 .quick-grid button, .contact-grid button {
-  min-height: 78px;
+  min-height: 82px;
   padding: 12px;
-  border-radius: var(--radius);
+  border-radius: 16px;
   background: var(--surface);
   border: 1px solid var(--line);
   box-shadow: var(--shadow-sm);
@@ -293,17 +293,17 @@ button:focus-visible, input:focus-visible {
 }
 .quick-grid button:hover, .contact-grid button:hover, .fund-list button:hover {
   transform: translateY(-1px);
-  border-color: rgba(36, 92, 79, .22);
+  border-color: rgba(63, 0, 216, .26);
   box-shadow: var(--shadow);
 }
 .quick-grid svg { color: var(--brand); }
 
 .panel {
   min-width: 0;
-  padding: 18px;
+  padding: 20px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  background: rgba(255, 255, 255, .92);
+  background: rgba(255, 255, 255, .94);
   box-shadow: var(--shadow-sm);
 }
 .purple-suite {
@@ -316,8 +316,8 @@ button:focus-visible, input:focus-visible {
 }
 .admin-command {
   min-height: 220px;
-  border: 1px solid rgba(155, 92, 255, .24);
-  box-shadow: 0 26px 70px rgba(111, 44, 255, .25);
+  border: 1px solid rgba(63, 0, 216, .24);
+  box-shadow: 0 26px 70px rgba(63, 0, 216, .25);
 }
 .admin-command::before {
   opacity: .13;
@@ -326,7 +326,7 @@ button:focus-visible, input:focus-visible {
   text-shadow: 0 10px 28px rgba(32, 0, 93, .32);
 }
 .admin-panel {
-  border-color: rgba(111, 44, 255, .18);
+  border-color: rgba(63, 0, 216, .18);
   background:
     linear-gradient(180deg, rgba(255,255,255,.96), rgba(250,247,255,.94));
   box-shadow: 0 18px 44px rgba(69, 34, 137, .12);
@@ -338,12 +338,12 @@ button:focus-visible, input:focus-visible {
   grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 .metric-card {
   min-height: 104px;
   padding: 16px;
-  border-radius: 22px;
+  border-radius: 18px;
   color: white;
   display: grid;
   align-content: space-between;
@@ -375,7 +375,7 @@ button:focus-visible, input:focus-visible {
   line-height: 1;
   overflow-wrap: anywhere;
 }
-.metric-card.purple { background: linear-gradient(135deg, #4d13d1, #9b5cff); }
+.metric-card.purple { background: linear-gradient(135deg, #3F00D8, #8a4fff); }
 .metric-card.green { background: linear-gradient(135deg, #067b67, #17b39a); }
 .metric-card.gold { background: linear-gradient(135deg, #98600d, #e0a626); }
 .metric-card.red { background: linear-gradient(135deg, #a62e61, #e14f74); }
@@ -387,14 +387,14 @@ button:focus-visible, input:focus-visible {
 .secondary-button {
   width: 100%;
   min-height: 48px;
-  border-radius: 16px;
-  border: 1px solid rgba(111, 44, 255, .24);
-  background: rgba(111, 44, 255, .08);
+  border-radius: 14px;
+  border: 1px solid rgba(63, 0, 216, .24);
+  background: rgba(63, 0, 216, .08);
   color: var(--brand-purple-dark);
   font-weight: 900;
 }
 .secondary-button:hover {
-  background: rgba(111, 44, 255, .13);
+  background: rgba(63, 0, 216, .13);
   transform: translateY(-1px);
 }
 .field select {
@@ -402,7 +402,7 @@ button:focus-visible, input:focus-visible {
   min-height: 48px;
   padding: 0 13px;
   border: 1px solid var(--line);
-  border-radius: 15px;
+  border-radius: 14px;
   background: var(--surface-2);
   color: var(--ink);
   font: inherit;
@@ -418,9 +418,9 @@ button:focus-visible, input:focus-visible {
 }
 .ops-list div {
   padding: 13px;
-  border-radius: 16px;
-  border: 1px solid rgba(111, 44, 255, .12);
-  background: rgba(111, 44, 255, .06);
+  border-radius: 14px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  background: rgba(63, 0, 216, .06);
 }
 .ops-list strong, .ops-list span {
   display: block;
@@ -435,7 +435,7 @@ button:focus-visible, input:focus-visible {
 }
 .hub-panel {
   background:
-    linear-gradient(180deg, rgba(255,255,255,.96), rgba(246,250,247,.94));
+    linear-gradient(180deg, rgba(255,255,255,.96), rgba(248,246,255,.94));
 }
 .hub-panel .section-title svg {
   color: var(--brand);
@@ -448,9 +448,9 @@ button:focus-visible, input:focus-visible {
 .hub-service-grid div {
   min-height: 132px;
   padding: 15px;
-  border-radius: 18px;
-  border: 1px solid rgba(36, 92, 79, .12);
-  background: linear-gradient(180deg, #f7faf6, #eef4f1);
+  border-radius: 16px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  background: linear-gradient(180deg, #ffffff, #f4f0ff);
   display: grid;
   align-content: start;
   gap: 8px;
@@ -500,8 +500,8 @@ button:focus-visible, input:focus-visible {
 .document-grid button {
   min-height: 68px;
   padding: 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(36, 92, 79, .12);
+  border-radius: 14px;
+  border: 1px solid rgba(63, 0, 216, .12);
   background: var(--surface-2);
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
@@ -531,9 +531,9 @@ button:focus-visible, input:focus-visible {
 }
 .support-thread div {
   padding: 13px;
-  border-radius: 16px;
-  background: rgba(36, 92, 79, .08);
-  border: 1px solid rgba(36, 92, 79, .12);
+  border-radius: 14px;
+  background: rgba(63, 0, 216, .07);
+  border: 1px solid rgba(63, 0, 216, .12);
 }
 .support-thread strong, .support-thread span {
   display: block;
@@ -591,7 +591,7 @@ button:focus-visible, input:focus-visible {
   min-height: 48px;
   padding: 0 13px;
   border: 1px solid var(--line);
-  border-radius: 15px;
+  border-radius: 14px;
   background: var(--surface-2);
   color: var(--ink);
   font-size: 1rem;
@@ -607,15 +607,15 @@ button:focus-visible, input:focus-visible {
 .primary-button {
   width: 100%;
   min-height: 50px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, var(--brand), var(--brand-3));
+  border-radius: 14px;
+  background: linear-gradient(135deg, #3F00D8, #7b42ff);
   color: white;
-  box-shadow: 0 14px 26px rgba(17, 109, 124, .22);
+  box-shadow: 0 14px 28px rgba(63, 0, 216, .24);
   font-weight: 900;
 }
 .primary-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 18px 34px rgba(17, 109, 124, .28);
+  box-shadow: 0 18px 36px rgba(63, 0, 216, .3);
 }
 
 .cards-stack { display: grid; gap: 12px; }
@@ -623,7 +623,7 @@ button:focus-visible, input:focus-visible {
   position: relative;
   min-height: 136px;
   padding: 18px;
-  border-radius: 22px;
+  border-radius: 18px;
   color: white;
   background: #17211f;
   box-shadow: 0 16px 32px rgba(31, 36, 50, .18);
@@ -698,11 +698,11 @@ button:focus-visible, input:focus-visible {
   flex: 0 0 auto;
   width: 40px;
   height: 40px;
-  border-radius: 14px;
+  border-radius: 13px;
   display: grid;
   place-items: center;
-  background: rgba(71, 63, 143, .11);
-  color: var(--brand-2);
+  background: rgba(63, 0, 216, .1);
+  color: var(--brand);
 }
 .txn-icon.income {
   background: rgba(22, 130, 85, .12);
@@ -715,7 +715,7 @@ button:focus-visible, input:focus-visible {
   justify-content: space-between;
   gap: 18px;
 }
-.placezum-card::after { background: linear-gradient(135deg, #253046, #116d7c 58%, #245c4f); }
+.placezum-card::after { background: linear-gradient(135deg, #171322, #3F00D8 58%, #7b42ff); }
 .placezum-card strong {
   font-variant-numeric: tabular-nums;
   letter-spacing: .08em;
@@ -736,7 +736,7 @@ button:focus-visible, input:focus-visible {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: linear-gradient(135deg, var(--brand-2), var(--brand-3));
+  background: linear-gradient(135deg, #3F00D8, #7b42ff);
   color: white;
 }
 .contact-grid small { color: var(--muted); }
@@ -748,9 +748,9 @@ button:focus-visible, input:focus-visible {
 .contact-resolver {
   min-height: 72px;
   padding: 12px;
-  border-radius: 18px;
-  border: 1px dashed rgba(36, 92, 79, .2);
-  background: rgba(36, 92, 79, .06);
+  border-radius: 16px;
+  border: 1px dashed rgba(63, 0, 216, .22);
+  background: rgba(63, 0, 216, .06);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -786,8 +786,8 @@ button:focus-visible, input:focus-visible {
 .contact-pay {
   min-height: 78px;
   padding: 12px;
-  border-radius: 18px;
-  border: 1px solid rgba(36, 92, 79, .12);
+  border-radius: 16px;
+  border: 1px solid rgba(63, 0, 216, .12);
   background: var(--surface-2);
   display: grid;
   grid-template-columns: 44px minmax(0, 1fr);
@@ -803,7 +803,7 @@ button:focus-visible, input:focus-visible {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--brand-2), var(--brand-3));
+  background: linear-gradient(135deg, #3F00D8, #7b42ff);
   color: white;
   display: grid;
   place-items: center;
@@ -835,9 +835,9 @@ button:focus-visible, input:focus-visible {
 .split-panel div, .service-grid div {
   min-height: 112px;
   padding: 14px;
-  border-radius: var(--radius);
+  border-radius: 16px;
   background: var(--surface-2);
-  border: 1px solid rgba(23, 33, 31, .06);
+  border: 1px solid rgba(63, 0, 216, .1);
   display: grid;
   align-content: start;
   gap: 7px;
@@ -857,9 +857,9 @@ button:focus-visible, input:focus-visible {
   gap: 12px;
   min-height: 74px;
   padding: 13px 14px;
-  border-radius: var(--radius);
+  border-radius: 16px;
   background: var(--surface-2);
-  border: 1px solid rgba(23, 33, 31, .06);
+  border: 1px solid rgba(63, 0, 216, .1);
   text-align: left;
 }
 .fund-list button:disabled, .mini-action:disabled {
@@ -883,8 +883,8 @@ button:focus-visible, input:focus-visible {
 .mini-action {
   min-height: 38px;
   padding: 0 13px;
-  border-radius: 13px;
-  background: linear-gradient(135deg, var(--brand), var(--brand-3));
+  border-radius: 12px;
+  background: linear-gradient(135deg, #3F00D8, #7b42ff);
   color: white;
   font-size: .84rem;
   font-weight: 900;
@@ -914,8 +914,8 @@ button:focus-visible, input:focus-visible {
 .promo-list div {
   padding: 10px;
   border-radius: 14px;
-  border: 1px solid rgba(17, 109, 124, .13);
-  border-left: 4px solid var(--brand-3);
+  border: 1px solid rgba(63, 0, 216, .13);
+  border-left: 4px solid #3F00D8;
   background: var(--surface-2);
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr);
@@ -960,10 +960,10 @@ button:focus-visible, input:focus-visible {
   width: min(720px, calc(100% - 24px));
   min-height: var(--nav-h);
   padding: 8px;
-  border: 1px solid rgba(23, 33, 31, .12);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, .9);
-  box-shadow: 0 18px 44px rgba(23, 33, 31, .18);
+  border: 1px solid rgba(63, 0, 216, .16);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 18px 44px rgba(36, 9, 88, .18);
   backdrop-filter: blur(18px);
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -972,7 +972,7 @@ button:focus-visible, input:focus-visible {
 .bottom-nav button {
   min-width: 0;
   min-height: 58px;
-  border-radius: 18px;
+  border-radius: 16px;
   background: transparent;
   color: var(--muted);
   display: grid;
@@ -981,11 +981,11 @@ button:focus-visible, input:focus-visible {
   font-size: .7rem;
   font-weight: 850;
 }
-.bottom-nav button:hover { background: rgba(36, 92, 79, .08); }
+.bottom-nav button:hover { background: rgba(63, 0, 216, .08); }
 .bottom-nav button.active {
   color: white;
-  background: linear-gradient(135deg, var(--brand), var(--brand-2));
-  box-shadow: 0 10px 20px rgba(36, 92, 79, .22);
+  background: linear-gradient(135deg, #3F00D8, #7b42ff);
+  box-shadow: 0 10px 22px rgba(63, 0, 216, .26);
 }
 
 .toast {
@@ -997,8 +997,8 @@ button:focus-visible, input:focus-visible {
   width: min(540px, calc(100% - 30px));
   min-height: 50px;
   padding: 12px 16px;
-  border-radius: 16px;
-  background: #17211f;
+  border-radius: 14px;
+  background: #171322;
   color: white;
   box-shadow: var(--shadow);
   display: flex;
@@ -1011,7 +1011,7 @@ button:focus-visible, input:focus-visible {
 .login-shell {
   position: relative;
   min-height: 100vh;
-  background: #17211f;
+  background: #171322;
   isolation: isolate;
   overflow: hidden;
 }
@@ -1026,11 +1026,11 @@ button:focus-visible, input:focus-visible {
   inset: 0;
   z-index: -1;
   background:
-    linear-gradient(90deg, rgba(18, 25, 24, .94), rgba(18, 25, 24, .6) 48%, rgba(18, 25, 24, .34)),
-    linear-gradient(180deg, transparent, rgba(18, 25, 24, .72));
+    linear-gradient(90deg, rgba(23, 19, 34, .95), rgba(45, 0, 140, .64) 48%, rgba(45, 0, 140, .32)),
+    linear-gradient(180deg, transparent, rgba(23, 19, 34, .74));
 }
 .login-content {
-  width: min(980px, 100%);
+  width: min(1120px, 100%);
   min-height: 100vh;
   margin: 0 auto;
   padding: 36px 20px;
@@ -1066,7 +1066,7 @@ button:focus-visible, input:focus-visible {
 .login-panel {
   padding: 18px;
   border: 1px solid rgba(255, 255, 255, .18);
-  border-radius: 26px;
+  border-radius: 20px;
   background: rgba(255, 255, 255, .93);
   box-shadow: 0 24px 70px rgba(0, 0, 0, .24);
   backdrop-filter: blur(16px);
@@ -1077,18 +1077,18 @@ button:focus-visible, input:focus-visible {
   gap: 4px;
   margin-bottom: 16px;
   padding: 4px;
-  border-radius: 16px;
-  background: #e8ede8;
+  border-radius: 14px;
+  background: #ece8fb;
 }
 .segmented button {
   min-height: 42px;
-  border-radius: 13px;
+  border-radius: 12px;
   background: transparent;
   font-weight: 900;
 }
 .segmented button.active {
   color: white;
-  background: #17211f;
+  background: #3F00D8;
   box-shadow: var(--shadow-sm);
 }
 .login-hint {
@@ -1104,6 +1104,9 @@ button:focus-visible, input:focus-visible {
 }
 
 @media (max-width: 900px) {
+  .app-shell {
+    width: min(760px, 100%);
+  }
   .screen-grid, .admin-grid, .hub-grid {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -1117,6 +1120,9 @@ button:focus-visible, input:focus-visible {
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .history-panel {
+    grid-column: auto;
+  }
   .hub-service-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1129,7 +1135,7 @@ button:focus-visible, input:focus-visible {
 @media (max-width: 760px) {
   :root { --nav-h: 66px; }
   .app-shell {
-    padding: 14px 12px calc(var(--nav-h) + 28px);
+    padding: 14px 12px calc(var(--nav-h) + 30px);
   }
   .topbar {
     min-height: 64px;
@@ -1153,14 +1159,17 @@ button:focus-visible, input:focus-visible {
     border-radius: 14px;
   }
   .account-chip {
-    flex-basis: 150px;
+    flex-basis: 164px;
     min-height: 66px;
     padding: 11px 12px;
   }
+  .account-chip strong {
+    font-size: .94rem;
+  }
   .hero-card, .placezum-card {
-    min-height: 170px;
-    padding: 19px;
-    border-radius: 22px;
+    min-height: 176px;
+    padding: 18px;
+    border-radius: 18px;
   }
   .hero-card strong, .placezum-card strong {
     font-size: clamp(2rem, 11vw, 3.2rem);
@@ -1181,7 +1190,16 @@ button:focus-visible, input:focus-visible {
   }
   .panel {
     padding: 15px;
-    border-radius: 20px;
+    border-radius: 16px;
+  }
+  .metric-card {
+    min-height: 94px;
+    border-radius: 16px;
+  }
+  .hub-service-grid div,
+  .split-panel div,
+  .service-grid div {
+    min-height: 104px;
   }
   .contact-grid, .service-grid, .split-panel {
     grid-template-columns: 1fr;
@@ -1213,11 +1231,12 @@ button:focus-visible, input:focus-visible {
     width: calc(100% - 12px);
     min-height: var(--nav-h);
     padding: 6px;
-    border-radius: 21px;
+    border-radius: 18px;
+    grid-template-columns: repeat(6, minmax(44px, 1fr));
   }
   .bottom-nav button {
     min-height: 52px;
-    border-radius: 16px;
+    border-radius: 14px;
   }
   .bottom-nav span { display: none; }
   .toast {
@@ -1235,7 +1254,7 @@ button:focus-visible, input:focus-visible {
     font-size: clamp(2.4rem, 14vw, 4.1rem);
   }
   .login-panel {
-    border-radius: 22px;
+    border-radius: 18px;
     padding: 15px;
   }
 }
@@ -1244,7 +1263,7 @@ button:focus-visible, input:focus-visible {
   .topbar h1 { font-size: 1.22rem; }
   .eyebrow { font-size: .66rem; }
   .quick-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .metric-grid {
     grid-template-columns: 1fr;
@@ -1256,15 +1275,13 @@ button:focus-visible, input:focus-visible {
     align-items: flex-start;
   }
   .quick-grid button {
-    grid-template-columns: auto 1fr;
-    justify-content: start;
-    place-items: center start;
-    min-height: 52px;
-    padding: 0 14px;
-    text-align: left;
+    min-height: 58px;
+    padding: 8px;
+    font-size: .8rem;
   }
   .placezum-card {
     align-items: flex-start;
+    display: grid;
   }
   .placezum-card svg {
     width: 58px;
@@ -1275,5 +1292,31 @@ button:focus-visible, input:focus-visible {
   }
   .mini-action {
     min-width: 84px;
+  }
+  .contact-pay {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+  .contact-pay > span {
+    width: 38px;
+    height: 38px;
+  }
+  .bottom-nav {
+    gap: 3px;
+  }
+  .bottom-nav button {
+    min-height: 50px;
+  }
+}
+
+@media (max-width: 340px) {
+  .quick-grid,
+  .contact-grid,
+  .metric-grid,
+  .hub-service-grid {
+    grid-template-columns: 1fr;
+  }
+  .bottom-nav {
+    width: calc(100% - 8px);
+    padding: 4px;
   }
 }

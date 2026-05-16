@@ -1,2793 +1,378 @@
-@font-face {
-  font-family: "Outfit";
-  src: url("/fonts/Outfit.ttf") format("truetype");
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Outfit";
-  src: url("/fonts/OutfitBold.ttf") format("truetype");
-  font-weight: 700;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "OutfitBlack";
-  src: url("/fonts/OutfitBlack.ttf") format("truetype");
-  font-weight: 900;
-  font-display: swap;
-}
-
 :root {
-  font-synthesis: none;
-  --brand: #3f00d8;
-  --ink: #170c2a;
-  --muted: #6c5878;
-  --surface: #ffffff;
-  --soft: #f5f1ff;
-  --soft-strong: #ede5ff;
-  --mint: #00b894;
-  --gold: #d99a00;
-  --danger: #d93863;
-  --line: rgba(63, 0, 216, 0.15);
-  --shadow: 0 22px 70px rgba(25, 6, 72, 0.12);
+  --bg: #f7f5ef;
+  --surface: #fffdf8;
+  --ink: #241c35;
+  --muted: #756f82;
+  --line: rgba(36, 28, 53, 0.12);
+  --purple: #3f00d8;
+  --violet: #7b4dff;
+  --teal: #008c7e;
+  --gold: #d89a12;
+  --coral: #d74d3f;
+  --green: #188657;
+  --shadow: 0 18px 60px rgba(36, 28, 53, 0.13);
 }
 
-* {
-  box-sizing: border-box;
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); }
+body, button, input { font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+button { border: 0; cursor: pointer; color: inherit; }
+
+.app-shell {
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 22px 18px 100px;
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  color: var(--ink);
-  background:
-    radial-gradient(circle at 18% -10%, rgba(63, 0, 216, 0.10), transparent 34rem),
-    radial-gradient(circle at 88% 8%, rgba(0, 184, 148, 0.09), transparent 28rem),
-    #fbfaff;
-  font-family: Outfit, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button,
-input,
-select {
-  font: inherit;
-}
-
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 30;
+.topbar, .top-actions, .hero-topline, .section-title, .transaction-row, .holding-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 14px clamp(18px, 4vw, 54px);
-  background: rgba(255, 255, 255, 0.82);
-  border-bottom: 1px solid var(--line);
-  backdrop-filter: blur(18px);
 }
 
-.brand,
-.topbar nav,
-.heroActions,
-.panelHead,
-.split {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
+.topbar { justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.topbar h1 { margin: 0; font-size: clamp(1.45rem, 5vw, 2.3rem); letter-spacing: 0; }
+.eyebrow { margin: 0 0 4px; color: var(--muted); font-size: .78rem; font-weight: 800; text-transform: uppercase; }
+.top-actions { gap: 8px; }
 
-.brand {
-  font-weight: 900;
-}
-
-.brand > span:last-child {
+.icon-button {
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
   display: grid;
-  line-height: 1.05;
-}
-
-.brand small {
-  color: var(--brand);
-  font-size: 0.72rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.brandMark {
-  display: grid;
-  width: 36px;
-  height: 36px;
   place-items: center;
-  color: white;
-  background: var(--brand);
-  border-radius: 8px;
-  overflow: hidden;
+  background: var(--surface);
+  box-shadow: 0 8px 22px rgba(36, 28, 53, .08);
 }
+.icon-button.light { background: rgba(255, 255, 255, .2); color: white; }
 
-.brandMark img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.topbar nav a {
-  color: var(--muted);
-  font-weight: 750;
-  transition: color 160ms ease, transform 160ms ease;
-}
-
-.topbar nav a:hover {
-  color: var(--brand);
-  transform: translateY(-1px);
-}
-
-.cleanButton {
-  font: inherit;
-}
-
-.hero {
-  position: relative;
-  min-height: calc(100vh - 65px);
-  overflow: hidden;
-  display: grid;
-  align-items: end;
-  padding: clamp(26px, 6vw, 78px);
-}
-
-.editorialHero {
-  min-height: calc(100vh - 65px);
-}
-
-.heroImage {
-  object-fit: cover;
-}
-
-.heroShade {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(23, 12, 42, 0.90), rgba(63, 0, 216, 0.58) 55%, rgba(23, 12, 42, 0.18)),
-    radial-gradient(circle at 72% 52%, rgba(255, 255, 255, 0.18), transparent 20rem);
-}
-
-.heroGrain {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 38px 38px;
-  mask-image: linear-gradient(90deg, black, transparent);
-}
-
-.heroContent {
-  position: relative;
-  width: min(720px, 100%);
-  color: white;
-  padding-bottom: 8vh;
-  animation: riseIn 700ms ease both;
-}
-
-.wideHero {
-  width: min(860px, 100%);
-}
-
-.heroDevice {
-  position: absolute;
-  right: clamp(18px, 7vw, 96px);
-  bottom: clamp(18px, 8vh, 90px);
-  width: min(340px, 34vw);
-  min-width: 260px;
-  padding: 20px;
-  color: white;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 30px;
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.26);
-  backdrop-filter: blur(22px);
-  animation: floatCard 5s ease-in-out infinite;
-}
-
-.parentBadge {
-  width: fit-content;
-  margin-bottom: 16px;
-  padding: 8px 10px;
-  color: var(--brand);
-  background: white;
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.deviceTop {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
+.status-pill {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 28px;
-}
-
-.deviceTop span {
-  width: 34px;
-  height: 34px;
-  background: var(--mint);
-  border-radius: 10px;
-}
-
-.heroDevice b {
-  display: block;
-  font-size: clamp(2rem, 5vw, 3.7rem);
-  line-height: 1;
-}
-
-.heroDevice small {
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.deviceRows {
-  display: grid;
-  gap: 10px;
-  margin-top: 28px;
-}
-
-.deviceRows span {
-  height: 12px;
+  min-height: 32px;
+  padding: 0 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
+  font-size: .78rem;
+  font-weight: 800;
+  background: rgba(216, 154, 18, .16);
+  color: #7a5300;
+  white-space: nowrap;
 }
+.status-pill.online { background: rgba(24, 134, 87, .14); color: var(--green); }
+.status-pill.offline { background: rgba(215, 77, 63, .12); color: var(--coral); }
 
-.heroBadges,
-.brandRail {
+.account-strip {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 3px 0 18px;
 }
-
-.heroBadges {
-  margin-top: 20px;
-}
-
-.heroBadges span,
-.brandRail span {
-  padding: 8px 11px;
-  font-weight: 900;
-  border-radius: 999px;
-}
-
-.heroBadges span {
-  color: white;
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-}
-
-.brandRail {
-  justify-content: center;
-  width: min(1180px, calc(100% - 32px));
-  margin: 18px auto 0;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.82);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-.brandRail span {
-  color: var(--brand);
-  background: var(--soft);
-}
-
-.eyebrow,
-.kicker {
-  margin: 0 0 8px;
-  color: var(--brand);
-  font-size: 0.78rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.hero .eyebrow {
-  color: #d9ceff;
-}
-
-h1,
-h2,
-h3,
-p {
-  margin-top: 0;
-}
-
-h1 {
-  margin-bottom: 12px;
-  font-size: clamp(3rem, 9vw, 7rem);
-  line-height: 0.92;
-}
-
-h2 {
-  margin-bottom: 8px;
-  font-size: clamp(1.7rem, 4vw, 3rem);
-  line-height: 1;
-}
-
-.hero p {
-  max-width: 680px;
-  color: rgba(255, 255, 255, 0.86);
-  font-size: 1.18rem;
-}
-
-.primaryButton,
-.ghostButton,
-button {
-  border: 0;
-  border-radius: 8px;
-  cursor: pointer;
-  font-weight: 900;
-  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
-}
-
-.primaryButton:hover,
-.ghostButton:hover,
-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 14px 28px rgba(63, 0, 216, 0.18);
-}
-
-.primaryButton,
-button {
-  color: white;
-  background: var(--brand);
-  padding: 13px 18px;
-}
-
-.softButton {
-  color: var(--brand);
-  background: var(--soft);
-}
-
-.ghostButton {
-  color: white;
-  background: transparent;
-  padding: 12px 17px;
-  border: 1px solid rgba(255, 255, 255, 0.55);
-}
-
-.band,
-.webApp,
-.articlePage {
-  width: min(1180px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 72px 0;
-}
-
-.consoleApp {
-  width: min(1280px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 34px 0 90px;
-}
-
-.introBand {
-  padding-top: 90px;
-}
-
-.soft {
-  width: 100%;
-  padding-inline: max(16px, calc((100vw - 1180px) / 2));
-  background: var(--soft);
-}
-
-.sectionHead {
-  max-width: 760px;
-  margin-bottom: 22px;
-}
-
-.featureGrid,
-.articleGrid,
-.dashboardGrid,
-.accountGrid,
-.clientShell,
-.clientDashboard {
-  display: grid;
-  gap: 14px;
-}
-
-.featureGrid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.articleGrid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.feature,
-.articleCard,
-.panel,
-.loginBox,
-.emptyState {
+.account-chip {
+  min-width: 156px;
+  padding: 12px 14px;
+  border-radius: 18px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
+  text-align: left;
 }
+.account-chip span { display: block; color: var(--muted); font-size: .82rem; margin-bottom: 3px; }
+.account-chip strong { font-size: .98rem; }
+.account-chip.active { color: white; border-color: transparent; background: linear-gradient(135deg, var(--purple), var(--teal)); }
+.account-chip.active span { color: rgba(255,255,255,.78); }
 
-.lift {
-  transition: transform 180ms ease, box-shadow 180ms ease;
-}
-
-.lift:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 24px 60px rgba(25, 6, 72, 0.12);
-}
-
-.splitBand {
+.screen-grid {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(300px, 1.1fr);
-  gap: 34px;
-  align-items: center;
-  width: min(1180px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 76px 0;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, .74fr);
+  gap: 16px;
 }
+.screen-grid > :first-child { grid-column: 1 / -1; }
 
-.splitBand p {
-  color: var(--muted);
-  font-size: 1.08rem;
-  line-height: 1.7;
+.hero-card, .placezum-card {
+  min-height: 190px;
+  border-radius: 28px;
+  padding: 24px;
+  color: white;
+  background:
+    linear-gradient(135deg, rgba(63, 0, 216, .94), rgba(0, 140, 126, .92)),
+    url("/assets/logobanco.jpg") center/cover;
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
+.hero-card strong, .placezum-card strong { display: block; font-size: clamp(2.1rem, 8vw, 4.5rem); line-height: 1; margin: 12px 0; letter-spacing: 0; }
+.hero-card p, .hero-card span, .placezum-card p, .placezum-card span { margin: 0; color: rgba(255,255,255,.8); font-weight: 700; }
+.hero-topline { justify-content: space-between; }
+.market-hero { background: linear-gradient(135deg, #1b7f68, #34315f); }
+.tributos-hero { background: linear-gradient(135deg, #5c2a91, #b68116); }
+.admin-hero { background: linear-gradient(135deg, #22304b, #008c7e); }
 
-.phoneShowcase {
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.quick-grid button, .contact-grid button {
+  min-height: 74px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
   display: grid;
   place-items: center;
-}
-
-.ecosystemBand {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 80px minmax(0, 1fr);
-  gap: 18px;
-  align-items: center;
-  width: min(1180px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 16px 0 72px;
-}
-
-.ecosystemNode {
-  min-height: 260px;
-  padding: 24px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-}
-
-.ecosystemNode.parent {
-  color: white;
-  background:
-    linear-gradient(135deg, rgba(63, 0, 216, 0.98), rgba(23, 12, 42, 0.93)),
-    url("/logobanco.jpg");
-  background-size: cover;
-}
-
-.ecosystemNode.child {
-  background: white;
-}
-
-.ecosystemNode span {
-  color: var(--gold);
-  font-weight: 900;
-  text-transform: uppercase;
-}
-
-.ecosystemNode.parent p,
-.ecosystemNode.parent h2 {
-  color: white;
-}
-
-.ecosystemNode.child h2 {
-  color: var(--brand);
-}
-
-.ecosystemNode p {
-  color: var(--muted);
-  line-height: 1.65;
-}
-
-.ecosystemLine {
-  height: 5px;
-  background: linear-gradient(90deg, var(--brand), var(--mint));
-  border-radius: 999px;
-  position: relative;
-}
-
-.ecosystemLine::after {
-  content: "";
-  position: absolute;
-  right: -2px;
-  top: 50%;
-  width: 14px;
-  height: 14px;
-  border-top: 5px solid var(--mint);
-  border-right: 5px solid var(--mint);
-  transform: translateY(-50%) rotate(45deg);
-  border-radius: 2px;
-}
-
-.phoneChrome {
-  width: min(390px, 100%);
-  min-height: 650px;
-  padding: 22px;
-  color: white;
-  background:
-    linear-gradient(180deg, rgba(63, 0, 216, 0.96), rgba(23, 12, 42, 0.96)),
-    url("/logobanco.jpg");
-  background-size: cover;
-  border: 9px solid #12051f;
-  border-radius: 42px;
-  box-shadow: 0 36px 100px rgba(25, 6, 72, 0.28);
-}
-
-.phoneStatus,
-.phoneActions,
-.phoneRows {
-  display: flex;
-  gap: 8px;
-}
-
-.phoneStatus {
-  justify-content: space-between;
-  align-items: center;
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 0.9rem;
-  font-weight: 800;
-}
-
-.phoneStatus span {
-  width: 56px;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.32);
-  border-radius: 999px;
-}
-
-.phoneBalance {
-  margin: 48px 0 22px;
-}
-
-.phoneBalance small,
-.phoneCard small {
-  color: rgba(255, 255, 255, 0.68);
-}
-
-.phoneBalance strong {
-  display: block;
-  font-size: 3rem;
-}
-
-.phoneActions span {
-  flex: 1;
-  padding: 12px 8px;
-  text-align: center;
-  font-weight: 900;
-  background: rgba(255, 255, 255, 0.14);
-  border-radius: 14px;
-}
-
-.phoneCard {
-  margin-top: 20px;
-  padding: 18px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 18px;
-}
-
-.phoneCard b {
-  display: block;
-  margin-top: 34px;
-  font-size: 1.8rem;
-  letter-spacing: 0.08em;
-}
-
-.phoneRows {
-  display: grid;
-  margin-top: 22px;
-}
-
-.phoneRows i {
-  height: 48px;
-  background: rgba(255, 255, 255, 0.10);
-  border-radius: 16px;
-}
-
-.experienceGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  width: min(1180px, calc(100% - 32px));
-  margin: 0 auto;
-  padding-bottom: 72px;
-}
-
-.experienceGrid article {
-  min-height: 260px;
-  padding: 22px;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-.experienceGrid span {
-  color: var(--brand);
-  font-weight: 900;
-}
-
-.experienceGrid p {
-  color: var(--muted);
-  line-height: 1.65;
-}
-
-.journeyGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.journey {
-  min-height: 220px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: 20px;
-  color: white;
-  background:
-    linear-gradient(135deg, rgba(63, 0, 216, 0.95), rgba(23, 12, 42, 0.82)),
-    url("/logobanco.jpg");
-  background-size: cover;
-  border-radius: 8px;
-}
-
-.journey span {
-  color: #d9ceff;
-  font-weight: 900;
-}
-
-.journey p {
-  margin-bottom: 0;
-  color: rgba(255, 255, 255, 0.82);
-}
-
-.feature,
-.articleCard,
-.panel {
-  padding: 18px;
-}
-
-.feature strong,
-.articleCard h3 {
-  color: var(--brand);
-}
-
-.feature p,
-.articleCard p,
-.lead,
-.muted,
-.hint,
-.movement span,
-.accountTile span,
-.accountTile small,
-.bankCard small,
-.bankCard em,
-.statusLine {
-  color: var(--muted);
-}
-
-.articleCard span {
-  color: var(--gold);
-  font-size: 0.82rem;
+  gap: 6px;
   font-weight: 850;
 }
 
-.richArticles {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  background: var(--surface);
+  padding: 18px;
+  box-shadow: 0 12px 35px rgba(36, 28, 53, .08);
 }
+.section-title { gap: 8px; margin: 0 0 14px; font-size: 1rem; }
+.muted, .empty span, .field span, .holding-row span, .transaction-row span { color: var(--muted); }
 
-.imageArticle {
-  overflow: hidden;
-  padding: 0;
-}
-
-.imageArticle img,
-.articleHeroImage {
-  display: block;
+.field { display: grid; gap: 6px; margin-bottom: 12px; }
+.field span { font-size: .78rem; font-weight: 850; }
+.field input {
   width: 100%;
-  object-fit: cover;
+  min-height: 46px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #f8f5ec;
+  padding: 0 13px;
+  font-size: 1rem;
+  outline-color: var(--teal);
 }
-
-.imageArticle img {
-  height: 170px;
-}
-
-.imageArticle div {
-  padding: 16px;
-}
-
-.articleHeroImage {
-  height: min(420px, 45vw);
-  margin-bottom: 28px;
-  border-radius: 8px;
-}
-
-.articlePage {
-  max-width: 820px;
-}
-
-.articlePage h1 {
-  color: var(--brand);
-  font-size: clamp(2.4rem, 7vw, 5rem);
-}
-
-.articleBody {
-  font-size: 1.12rem;
-  line-height: 1.75;
-}
-
-.backLink {
-  display: inline-block;
-  margin-bottom: 22px;
-  color: var(--brand);
+.two-cols { display: grid; grid-template-columns: .52fr 1fr; gap: 10px; }
+.primary-button {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--purple), var(--teal));
+  color: white;
   font-weight: 900;
+  box-shadow: 0 12px 24px rgba(0, 140, 126, .22);
 }
 
-.closingCta {
+.cards-stack { display: grid; gap: 12px; }
+.bank-card {
+  min-height: 128px;
+  border-radius: 22px;
+  padding: 18px;
+  text-align: left;
+  color: white;
+  background: linear-gradient(145deg, #211735, #3f00d8 58%, #008c7e);
+}
+.bank-card strong { display: block; margin: 18px 0 6px; font-size: 1.4rem; letter-spacing: .08em; }
+.bank-card small { color: rgba(255,255,255,.75); }
+.bank-card.frozen { filter: grayscale(.9); opacity: .72; }
+
+.history-panel { grid-column: 1 / -1; }
+.transaction-row { gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.transaction-row:first-of-type { border-top: 0; }
+.transaction-row div:nth-child(2) { flex: 1; min-width: 0; }
+.transaction-row strong, .transaction-row span { display: block; overflow-wrap: anywhere; }
+.transaction-row b { white-space: nowrap; }
+.txn-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: rgba(63, 0, 216, .12);
+  color: var(--purple);
+}
+.txn-icon.income { background: rgba(24, 134, 87, .14); color: var(--green); }
+
+.placezum-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  width: min(1180px, calc(100% - 32px));
-  margin: 0 auto 80px;
-  padding: 28px;
-  color: white;
-  background: var(--brand);
-  border-radius: 8px;
+  background: linear-gradient(135deg, #26213d, #006f67);
 }
-
-.closingCta .eyebrow {
-  color: #d9ceff;
+.placezum-card strong { letter-spacing: .08em; }
+.contact-grid, .service-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
-
-.closingCta h2 {
-  margin-bottom: 0;
-}
-
-.closingCta .primaryButton {
-  background: white;
-  color: var(--brand);
-}
-
-.modalLayer,
-.loadingOverlay {
-  position: fixed;
-  inset: 0;
-  z-index: 80;
+.contact-grid button span {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
-  padding: 18px;
-  background: rgba(23, 12, 42, 0.52);
-  backdrop-filter: blur(16px);
-}
-
-.modalSheet {
-  width: min(560px, 100%);
-  padding: 24px;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.24);
-}
-
-.modalClose {
-  float: right;
-  padding: 9px 12px;
-  color: var(--brand);
-  background: var(--soft);
-}
-
-.loadingOverlay {
+  background: var(--purple);
   color: white;
-  text-align: center;
 }
-
-.loadingOverlay img,
-.loadingScreen img {
-  width: 120px;
-  height: 120px;
-  object-fit: contain;
+.contact-grid small { color: var(--muted); }
+.split-panel { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.split-panel div, .service-grid div {
+  min-height: 112px;
+  border-radius: 18px;
+  padding: 14px;
+  background: #f8f5ec;
+  display: grid;
+  align-content: start;
+  gap: 6px;
 }
+.split-panel span, .service-grid span, .promo-list span { color: var(--muted); font-size: .9rem; }
 
-.loadingOverlay strong,
-.loadingScreen strong {
-  display: block;
-  margin-top: 12px;
-  font-size: 1.15rem;
+.fund-list, .promo-list { display: grid; gap: 10px; }
+.fund-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 70px;
+  padding: 13px;
+  border-radius: 17px;
+  background: #f8f5ec;
+  text-align: left;
 }
+.fund-list span { display: block; color: var(--muted); margin-top: 3px; }
+.holding-row { justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.holding-row:first-of-type { border-top: 0; }
+.holding-row strong, .holding-row span { display: block; }
+.promo-list div {
+  border-left: 4px solid var(--teal);
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: #f8f5ec;
+}
+.promo-list strong, .promo-list span { display: block; }
 
-.loadingScreen {
-  min-height: calc(100vh - 65px);
+.empty {
+  min-height: 90px;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
   display: grid;
   place-content: center;
-  justify-items: center;
-  color: var(--brand);
-  background: white;
-}
-
-.loadingScreen span {
-  color: var(--muted);
-}
-
-.subPage {
-  width: min(1180px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 42px 0 80px;
-}
-
-.subHero {
-  min-height: 480px;
-  display: grid;
-  align-content: end;
-  padding: clamp(26px, 5vw, 56px);
-  color: white;
-  background:
-    linear-gradient(135deg, rgba(23, 12, 42, 0.82), rgba(63, 0, 216, 0.72)),
-    url("/logobanco.jpg");
-  background-size: cover;
-  border-radius: 8px;
-}
-
-.subHero h1 {
-  width: min(760px, 100%);
-  font-size: clamp(2.6rem, 7vw, 5.8rem);
-}
-
-.subHero p {
-  width: min(640px, 100%);
-  color: rgba(255, 255, 255, 0.84);
-  font-size: 1.12rem;
-}
-
-.subHero .eyebrow {
-  color: #d9ceff;
-}
-
-.subHero .primaryButton {
-  width: fit-content;
-}
-
-.companyHero {
-  background:
-    linear-gradient(135deg, rgba(23, 12, 42, 0.84), rgba(0, 184, 148, 0.42)),
-    url("/logobanco.jpg");
-}
-
-.securityHero {
-  background:
-    linear-gradient(135deg, rgba(23, 12, 42, 0.88), rgba(217, 56, 99, 0.44)),
-    url("/actu.jpg");
-  background-size: cover;
-}
-
-.subGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin-top: 18px;
-}
-
-.subGrid article {
-  padding: 20px;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-
-.subGrid span {
-  color: var(--brand);
-  font-weight: 900;
-}
-
-.webHeader {
-  display: grid;
-  grid-template-columns: 1fr minmax(280px, 410px);
-  gap: 18px;
-  align-items: end;
-  margin-bottom: 16px;
-}
-
-.appLikeHeader {
-  position: relative;
-  overflow: hidden;
-  padding: 28px;
-  color: white;
-  background:
-    linear-gradient(135deg, rgba(63, 0, 216, 0.96), rgba(23, 12, 42, 0.92)),
-    url("/logobanco.jpg");
-  background-size: cover;
-  border-radius: 8px;
-}
-
-.appLikeHeader .eyebrow,
-.appLikeHeader p,
-.appLikeHeader h1 {
-  color: white;
-}
-
-.webHeader h1 {
-  color: var(--brand);
-  font-size: clamp(2.6rem, 8vw, 5.8rem);
-}
-
-.loginBox {
-  padding: 16px;
-}
-
-.appLikeHeader .loginBox {
-  background: rgba(255, 255, 255, 0.92);
-}
-
-label {
-  display: grid;
-  gap: 7px;
-  color: var(--muted);
-  font-weight: 850;
-}
-
-input,
-select {
-  width: 100%;
-  min-width: 0;
-  color: var(--ink);
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 12px;
-  outline-color: var(--brand);
-}
-
-.statusLine {
-  padding: 12px 14px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-
-.emptyState {
-  display: flex;
-  gap: 18px;
-  align-items: center;
-  padding: 18px;
-}
-
-.emptyState img {
-  width: 92px;
-  height: 92px;
-  object-fit: contain;
-}
-
-.dashboardGrid {
-  grid-template-columns: 1.25fr 0.75fr;
-  align-items: start;
-}
-
-.clientShell {
-  align-items: start;
-}
-
-.clientTabs {
-  position: sticky;
-  top: 66px;
-  z-index: 12;
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 10px;
-  margin: -4px 0 2px;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  box-shadow: var(--shadow);
-  backdrop-filter: blur(18px);
-}
-
-.clientTabs button {
-  flex: 0 0 auto;
-  color: var(--brand);
-  background: var(--soft);
-  border-radius: 14px;
-  white-space: nowrap;
-}
-
-.clientTabs button.active {
-  color: white;
-  background: var(--brand);
-}
-
-.clientDashboard {
-  grid-template-columns: 1.15fr 0.85fr;
-}
-
-.heroPanel {
-  grid-row: span 2;
-  min-height: 360px;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  color: white;
-  background:
-    linear-gradient(135deg, rgba(63, 0, 216, 0.98), rgba(23, 12, 42, 0.90)),
-    url("/logobanco.jpg");
-  background-size: cover;
-}
-
-.heroPanel .kicker,
-.heroPanel p {
-  color: rgba(255, 255, 255, 0.76);
-}
-
-.heroPanel h2 {
-  color: white;
-  font-size: clamp(3rem, 9vw, 6rem);
-}
-
-.bigNumber {
-  display: block;
-  color: var(--brand);
-  font-size: clamp(2rem, 5vw, 3.2rem);
-  line-height: 1;
-}
-
-.limitBar {
-  height: 10px;
-  margin: 14px 0 8px;
-  overflow: hidden;
-  background: var(--soft-strong);
-  border-radius: 999px;
-}
-
-.limitBar span {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, var(--brand), var(--mint));
-  border-radius: inherit;
-}
-
-.feePreview,
-.countdownCard {
-  padding: 14px;
-  background: var(--soft);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-}
-
-.feePreview {
-  display: grid;
+  text-align: center;
   gap: 4px;
-}
-
-.feePreview span,
-.feePreview small {
-  color: var(--muted);
-}
-
-.feePreview strong {
-  color: var(--brand);
-  font-size: 1.6rem;
-}
-
-.investmentScreen {
-  width: min(840px, 100%);
-}
-
-.countdownCard {
-  margin-top: 14px;
-  text-align: center;
-}
-
-.countdownCard span {
-  display: grid;
-  width: 92px;
-  height: 92px;
-  place-items: center;
-  margin: 0 auto 10px;
-  color: white;
-  background: var(--brand);
-  border-radius: 999px;
-  font-size: 2rem;
-  font-weight: 900;
-}
-
-.legalFooter {
-  display: grid;
-  gap: 10px;
-  width: min(1180px, calc(100% - 32px));
-  margin: 0 auto 28px;
-  padding: 20px;
-  color: var(--muted);
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-
-.legalFooter strong {
-  color: var(--brand);
-}
-
-.legalFooter p {
-  margin-bottom: 0;
-  font-size: 0.92rem;
-}
-
-.legalFooter nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.legalFooter a {
-  color: var(--brand);
-  font-weight: 900;
-}
-
-.compactMovement {
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-
-.focusedScreen {
-  width: min(780px, 100%);
-}
-
-.mobileDock {
-  display: none;
-}
-
-.mobileAppSummary {
-  display: none;
-}
-
-.quickStrip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.quickStrip button {
-  min-width: 112px;
-  color: var(--brand);
-  background: var(--soft);
-}
-
-.focusPanel {
-  outline: 3px solid rgba(63, 0, 216, 0.16);
-}
-
-.large,
-.movements {
-  grid-column: span 1;
-}
-
-.panelHead {
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.pill {
-  padding: 7px 10px;
-  color: var(--brand);
-  background: var(--soft);
-  border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 900;
-}
-
-.accountGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.accountTile {
-  display: grid;
-  gap: 6px;
-  text-align: left;
-  color: var(--ink);
-  background: #fff;
-  border: 1px solid var(--line);
-  padding: 14px;
-  border-radius: 12px;
-  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
-}
-
-.accountTile:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 40px rgba(25, 6, 72, 0.10);
-}
-
-.accountTile.active {
-  border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(63, 0, 216, 0.12);
-}
-
-.accountTile b {
-  color: var(--brand);
-  font-size: 1.4rem;
-}
-
-.transferPanel,
-.cardList {
-  display: grid;
-  gap: 12px;
-}
-
-.split {
-  align-items: start;
-}
-
-.bankCard {
-  display: grid;
-  gap: 6px;
   padding: 16px;
-  color: white;
-  background:
-    linear-gradient(135deg, rgba(63, 0, 216, 0.96), rgba(23, 12, 42, 0.92)),
-    url("/logobanco.jpg");
-  background-size: cover;
-  border-radius: 8px;
-  box-shadow: 0 20px 50px rgba(25, 6, 72, 0.18);
 }
 
-.cardButton {
-  width: 100%;
-  text-align: left;
-}
-
-.cardModal {
-  width: min(620px, 100%);
-}
-
-.modalCardPreview {
-  margin-top: 16px;
-  border: 0;
-}
-
-.consoleHero {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  align-items: end;
-  min-height: 300px;
-  padding: 28px;
-  color: white;
-  background:
-    linear-gradient(135deg, rgba(63, 0, 216, 0.96), rgba(23, 12, 42, 0.9)),
-    url("/logobanco.jpg");
-  background-size: cover;
-  border-radius: 8px;
-}
-
-.consoleHero .eyebrow,
-.consoleHero p,
-.consoleHero h1 {
-  color: white;
-}
-
-.consoleHero h1 {
-  font-size: clamp(2.4rem, 6vw, 5rem);
-}
-
-.consoleHero button {
-  background: white;
-  color: var(--brand);
-}
-
-.consoleTabs {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 12px 0;
-}
-
-.consoleTabs button {
-  color: var(--brand);
-  background: white;
-  border: 1px solid var(--line);
-  white-space: nowrap;
-}
-
-.consoleTabs button.active {
-  color: white;
-  background: var(--brand);
-}
-
-.metricGrid,
-.consoleGrid,
-.accountAdminGrid,
-.configGrid {
+.bottom-nav {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  width: min(680px, calc(100% - 24px));
+  min-height: 70px;
   display: grid;
-  gap: 14px;
-}
-
-.metricGrid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.consoleGrid {
-  grid-template-columns: 1.5fr 0.8fr;
-}
-
-.span2 {
-  grid-column: span 1;
-}
-
-.metricCard {
-  padding: 18px;
-  background: white;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 18px 45px rgba(25, 6, 72, 0.07);
-}
-
-.metricCard span {
-  display: block;
-  color: var(--muted);
-  font-weight: 850;
-}
-
-.metricCard strong {
-  display: block;
-  margin-top: 10px;
-  color: var(--brand);
-  font-size: clamp(1.5rem, 3vw, 2.4rem);
-}
-
-.metricCard.ok strong {
-  color: var(--mint);
-}
-
-.metricCard.warn strong {
-  color: var(--danger);
-}
-
-.tableList,
-.configPanel,
-.adminCards {
-  display: grid;
-  gap: 10px;
-}
-
-.listRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px;
-  background: var(--soft);
-  border-radius: 8px;
-}
-
-.listRow span {
-  display: block;
-  color: var(--muted);
-}
-
-.accountAdminGrid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.adminTile {
-  background: var(--soft);
-}
-
-.configGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.bankCard span,
-.bankCard small,
-.bankCard em {
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.bankCard strong {
-  font-size: 1.55rem;
-  letter-spacing: 0.08em;
-}
-
-.movement {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line);
-  transition: background 160ms ease, padding 160ms ease;
-}
-
-.movement:hover {
-  padding-inline: 10px;
-  background: var(--soft);
-  border-radius: 10px;
-}
-
-.movement strong {
-  display: block;
-}
-
-.positive {
-  color: var(--mint);
-}
-
-.negative {
-  color: var(--danger);
-}
-
-@keyframes riseIn {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes floatCard {
-  0%, 100% {
-    transform: translateY(0) rotate(-1deg);
-  }
-  50% {
-    transform: translateY(-12px) rotate(1deg);
-  }
-}
-
-@keyframes softPulse {
-  0%, 100% {
-    box-shadow: 0 22px 70px rgba(63, 0, 216, 0.16);
-  }
-  50% {
-    box-shadow: 0 30px 90px rgba(63, 0, 216, 0.26);
-  }
-}
-
-@keyframes activePop {
-  from {
-    transform: scale(0.96);
-  }
-  to {
-    transform: scale(1);
-  }
-}
-
-@keyframes fillBar {
-  from {
-    width: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 1ms !important;
-    scroll-behavior: auto !important;
-    transition-duration: 1ms !important;
-  }
-}
-
-@media (max-width: 860px) {
-  .topbar,
-  .webHeader,
-  .emptyState,
-  .movement {
-    align-items: stretch;
-  }
-
-  .topbar,
-  .webHeader,
-  .emptyState {
-    flex-direction: column;
-  }
-
-  .webHeader,
-  .featureGrid,
-  .articleGrid,
-  .richArticles,
-  .dashboardGrid,
-  .accountGrid,
-  .clientDashboard,
-  .journeyGrid,
-  .splitBand,
-  .subGrid,
-  .experienceGrid,
-  .ecosystemBand,
-  .metricGrid,
-  .consoleGrid,
-  .accountAdminGrid,
-  .configGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .topbar,
-  .topbar nav,
-  .split {
-    flex-wrap: wrap;
-  }
-
-  .hero {
-    min-height: 82vh;
-  }
-
-  .heroDevice {
-    position: relative;
-    right: auto;
-    bottom: auto;
-    width: 100%;
-    margin-top: 22px;
-  }
-
-  .closingCta {
-    display: grid;
-  }
-
-  .topbar {
-    position: sticky;
-    display: grid;
-    gap: 10px;
-  }
-
-  .topbar nav {
-    overflow-x: auto;
-    padding-bottom: 3px;
-  }
-
-  .webApp {
-    width: 100%;
-    padding: 0 12px 96px;
-  }
-
-  .appLikeHeader {
-    min-height: 560px;
-    align-content: end;
-    margin-inline: -12px;
-    border-radius: 0 0 24px 24px;
-  }
-
-  .appLikeHeader h1 {
-    font-size: clamp(3rem, 14vw, 5.4rem);
-  }
-
-  .loginBox,
-  .panel,
-  .emptyState,
-  .statusLine {
-    border-radius: 18px;
-  }
-
-  .dashboardGrid {
-    gap: 12px;
-  }
-
-  .dashboardGrid > .large {
-    display: none;
-  }
-
-  .clientTabs {
-    top: 94px;
-    border-radius: 18px;
-  }
-
-  .clientTabs button {
-    padding: 10px 12px;
-    font-size: 0.86rem;
-  }
-
-  .clientDashboard {
-    gap: 12px;
-  }
-
-  .heroPanel {
-    min-height: 300px;
-    border-radius: 24px;
-  }
-
-  .mobileAppSummary {
-    display: grid;
-    gap: 12px;
-    margin-top: -54px;
-    position: relative;
-    z-index: 3;
-    animation: riseIn 450ms ease both;
-  }
-
-  .mobileWelcome,
-  .mobileActionGrid,
-  .mobileLastMovement,
-  .mobileBalanceCard {
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
-  }
-
-  .mobileWelcome {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    align-items: center;
-    padding: 12px;
-    background: white;
-    border-radius: 18px;
-  }
-
-  .mobileWelcome span {
-    font-weight: 900;
-  }
-
-  .mobileWelcome button {
-    padding: 9px 12px;
-    color: var(--brand);
-    background: var(--soft);
-    border-radius: 14px;
-  }
-
-  .mobileBalanceCard {
-    padding: 22px;
-    color: white;
-    background:
-      linear-gradient(135deg, rgba(63, 0, 216, 0.98), rgba(23, 12, 42, 0.92)),
-      url("/logobanco.jpg");
-    background-size: cover;
-    border-radius: 24px;
-    animation: softPulse 4s ease-in-out infinite;
-  }
-
-.mobileBalanceCard small,
-.mobileBalanceCard span,
-.mobileBalanceCard em {
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.mobileBalanceCard strong {
-    display: block;
-    margin: 4px 0 8px;
-    font-size: clamp(2.6rem, 14vw, 4.8rem);
-    line-height: 0.95;
-  }
-
-  .mobileActionGrid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    padding: 8px;
-    background: white;
-    border-radius: 20px;
-  }
-
-  .mobileActionGrid button {
-    min-width: 0;
-    padding: 13px 8px;
-    color: var(--brand);
-    background: var(--soft);
-    border-radius: 15px;
-  }
-
-  .mobileLastMovement {
-    display: grid;
-    gap: 4px;
-    padding: 14px;
-    background: white;
-    border-radius: 18px;
-  }
-
-  .mobileLastMovement span {
-    color: var(--muted);
-    font-size: 0.82rem;
-    font-weight: 850;
-  }
-
-  .mobileLastMovement strong {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .mobileLastMovement b {
-    color: var(--brand);
-  }
-
-  .accountTile {
-    border-radius: 18px;
-    padding: 16px;
-  }
-
-  .bankCard {
-    min-height: 190px;
-    align-content: end;
-    border-radius: 18px;
-  }
-
-  .mobileDock {
-    position: fixed;
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
-    z-index: 40;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    padding: 8px;
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid var(--line);
-    border-radius: 22px;
-    box-shadow: 0 20px 60px rgba(25, 6, 72, 0.2);
-    backdrop-filter: blur(18px);
-  }
-
-  .mobileDock button {
-    min-width: 0;
-    padding: 10px 6px;
-    color: var(--brand);
-    background: var(--soft);
-    border-radius: 16px;
-    font-size: 0.78rem;
-  }
-
-  .mobileDock button.active {
-    color: white;
-    background: var(--brand);
-  }
-
-  .consoleApp {
-    width: 100%;
-    padding: 0 12px 90px;
-  }
-
-  .consoleHero {
-    min-height: 430px;
-    margin-inline: -12px;
-    border-radius: 0 0 24px 24px;
-    align-items: end;
-  }
-
-  .consoleHero {
-    display: grid;
-  }
-
-  .consoleTabs {
-    position: sticky;
-    top: 92px;
-    z-index: 20;
-    background: rgba(251, 250, 255, 0.94);
-    backdrop-filter: blur(14px);
-  }
-
-  .phoneChrome {
-    min-height: 570px;
-  }
-
-  .brandRail {
-    justify-content: flex-start;
-    overflow-x: auto;
-  }
-
-  .experienceGrid {
-    padding-bottom: 46px;
-  }
-
-  .ecosystemBand {
-    padding-bottom: 46px;
-  }
-
-  .ecosystemLine {
-    width: 5px;
-    height: 58px;
-    justify-self: center;
-    background: linear-gradient(180deg, var(--brand), var(--mint));
-  }
-
-  .ecosystemLine::after {
-    right: auto;
-    left: 50%;
-    top: auto;
-    bottom: -2px;
-    transform: translateX(-50%) rotate(135deg);
-  }
-}
-
-/* Web app v2: shell multipantalla, más cercano a una app real en navegador. */
-.webAppV2 {
-  width: min(1440px, calc(100% - 28px));
-  padding: 18px 0 90px;
-}
-
-.webLoginPage {
-  min-height: calc(100vh - 126px);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 430px);
-  gap: 18px;
-  align-items: stretch;
-}
-
-.webLoginHero,
-.webLoginCard,
-.bankSidebar,
-.workspaceTop {
-  border-radius: 22px;
-}
-
-.webLoginHero {
-  display: flex;
-  min-height: 640px;
-  flex-direction: column;
-  justify-content: flex-end;
-  padding: clamp(24px, 5vw, 54px);
-  color: white;
-  overflow: hidden;
-  background:
-    linear-gradient(135deg, rgba(23, 12, 42, 0.90), rgba(63, 0, 216, 0.72)),
-    url("/logobanco.jpg");
-  background-size: cover;
-  background-position: center;
-}
-
-.webLoginHero .eyebrow,
-.webLoginHero h1,
-.webLoginHero p {
-  color: white;
-}
-
-.webLoginHero h1 {
-  max-width: 850px;
-  font-size: clamp(3rem, 8vw, 7rem);
-}
-
-.webLoginHero p {
-  max-width: 680px;
-  font-size: 1.12rem;
-  line-height: 1.65;
-}
-
-.loginHighlights {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 18px;
-}
-
-.loginHighlights span {
-  padding: 9px 12px;
-  color: white;
-  font-weight: 700;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 999px;
-}
-
-.webLoginCard {
-  align-self: center;
-  padding: 20px;
-}
-
-.webLoginCard h2 {
-  color: var(--brand);
-}
-
-.formStatus {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.92rem;
-}
-
-.bankShell {
-  display: grid;
-  grid-template-columns: 286px minmax(0, 1fr);
-  gap: 16px;
-  align-items: start;
-}
-
-.bankSidebar {
-  position: sticky;
-  top: 82px;
-  min-height: calc(100vh - 112px);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.86);
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+  padding: 8px;
+  border-radius: 24px;
+  background: rgba(255, 253, 248, .92);
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
   backdrop-filter: blur(18px);
+  z-index: 10;
 }
-
-.sidebarBrand,
-.workspaceTop,
-.workspaceActions,
-.sidebarLinks {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.sidebarBrand img {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-}
-
-.sidebarBrand strong,
-.sidebarBrand span,
-.sidebarBalance span,
-.sidebarBalance small {
-  display: block;
-}
-
-.sidebarBrand strong {
-  color: var(--brand);
-}
-
-.sidebarBrand span,
-.sidebarBalance span,
-.sidebarBalance small {
-  color: var(--muted);
-}
-
-.sidebarBalance {
-  padding: 16px;
-  color: white;
-  background:
-    linear-gradient(135deg, rgba(63, 0, 216, 0.98), rgba(23, 12, 42, 0.92)),
-    url("/logobanco.jpg");
-  background-size: cover;
-  border-radius: 18px;
-}
-
-.sidebarBalance span,
-.sidebarBalance small {
-  color: rgba(255, 255, 255, 0.72);
-}
-
-.sidebarBalance strong {
-  display: block;
-  margin: 5px 0;
-  font-family: OutfitBlack, Outfit, sans-serif;
-  font-size: 2rem;
-  line-height: 1;
-}
-
-.bankSidebar nav {
-  display: grid;
-  gap: 12px;
-}
-
-.navGroup {
-  display: grid;
-  gap: 6px;
-}
-
-.navGroup > span {
-  color: var(--muted);
-  font-size: 0.74rem;
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.navGroup button {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  width: 100%;
-  min-height: 42px;
-  padding: 9px 10px;
-  color: var(--ink);
-  background: transparent;
-  box-shadow: none;
-  text-align: left;
-}
-
-.navGroup button i,
-.mobileDock i {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  place-items: center;
-  color: var(--brand);
-  background: var(--soft);
-  border-radius: 10px;
-  font-style: normal;
-}
-
-.navGroup button.active {
-  color: var(--brand);
-  background: var(--soft);
-}
-
-.navGroup button.active i {
-  color: white;
-  background: var(--brand);
-}
-
-.sidebarLinks {
-  margin-top: auto;
-  flex-wrap: wrap;
-}
-
-.sidebarLinks a,
-.sidebarLinks button {
-  flex: 1;
-  min-width: 76px;
-  padding: 10px;
-  color: var(--brand);
-  background: var(--soft);
-  border-radius: 12px;
-  text-align: center;
-  font-weight: 700;
-}
-
-.bankWorkspace {
+.bottom-nav button {
   min-width: 0;
-  display: grid;
-  gap: 12px;
-}
-
-.workspaceTop {
-  justify-content: space-between;
-  padding: 18px;
-  background: white;
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
-}
-
-.workspaceTop h1 {
-  margin-bottom: 2px;
-  color: var(--brand);
-  font-size: clamp(2.2rem, 5vw, 4.6rem);
-}
-
-.workspaceTop span {
-  color: var(--muted);
-}
-
-.workspaceActions button {
-  min-width: 92px;
-}
-
-.screenGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
-  gap: 12px;
-  align-items: stretch;
-}
-
-.summaryScreen .balanceHero {
-  min-height: 390px;
-}
-
-.operationLayout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
-  gap: 12px;
-  align-items: start;
-}
-
-.transferAside {
-  position: sticky;
-  top: 90px;
-  display: grid;
-  gap: 12px;
-}
-
-.v2Accounts {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-
-.accountFocus {
-  min-height: 300px;
-}
-
-.webAppV2 .clientTabs {
-  top: 82px;
-  margin: 0;
-}
-
-.webAppV2 .statusLine {
-  width: 100%;
-  margin: 0;
-}
-
-.mobileDock i {
-  margin: 0 auto 3px;
-}
-
-.mobileDock span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-@media (max-width: 1100px) {
-  .bankShell {
-    grid-template-columns: 92px minmax(0, 1fr);
-  }
-
-  .bankSidebar {
-    padding: 10px;
-  }
-
-  .sidebarBrand div,
-  .sidebarBalance small,
-  .navGroup > span,
-  .navGroup button:not(.active),
-  .sidebarLinks a {
-    font-size: 0;
-  }
-
-  .navGroup button {
-    justify-content: center;
-  }
-
-  .navGroup button i {
-    margin: 0;
-  }
-
-  .sidebarBalance {
-    padding: 12px 8px;
-    text-align: center;
-  }
-
-  .sidebarBalance strong {
-    font-size: 1.1rem;
-  }
-
-  .v2Accounts {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 860px) {
-  .webAppV2 {
-    width: 100%;
-    padding: 0 12px 96px;
-  }
-
-  .webLoginPage,
-  .bankShell,
-  .screenGrid,
-  .operationLayout,
-  .v2Accounts {
-    grid-template-columns: 1fr;
-  }
-
-  .webLoginPage {
-    min-height: auto;
-    gap: 0;
-    margin-inline: -12px;
-  }
-
-  .webLoginHero {
-    min-height: 52vh;
-    padding: 26px 16px;
-    border-radius: 0 0 28px 28px;
-  }
-
-  .webLoginHero h1 {
-    font-size: clamp(3rem, 14vw, 5.2rem);
-  }
-
-  .webLoginCard {
-    width: calc(100% - 24px);
-    margin: -24px auto 0;
-    position: relative;
-    z-index: 2;
-  }
-
-  .bankSidebar {
-    display: none;
-  }
-
-  .workspaceTop {
-    position: sticky;
-    top: 66px;
-    z-index: 22;
-    margin-inline: -12px;
-    border-radius: 0 0 22px 22px;
-    padding: 14px 12px;
-  }
-
-  .workspaceTop h1 {
-    font-size: clamp(2rem, 10vw, 3rem);
-  }
-
-  .workspaceActions {
-    display: none;
-  }
-
-  .webAppV2 .clientTabs {
-    top: 144px;
-  }
-
-  .summaryScreen .balanceHero,
-  .heroPanel {
-    min-height: 300px;
-  }
-
-  .operationLayout .focusedScreen,
-  .investmentScreen {
-    width: 100%;
-  }
-
-  .transferAside {
-    position: static;
-  }
-
-  .mobileDock {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .mobileDock button {
-    display: block;
-    padding: 8px 4px;
-  }
-
-  .mobileDock i {
-    width: 26px;
-    height: 26px;
-  }
-}
-
-.mobileBalanceCard em {
-  display: block;
-  margin-top: 8px;
-  font-style: normal;
-  font-weight: 900;
-}
-
-/* Placeta app skin: compacta, móvil primero y con la misma marca que Android. */
-.topbar {
-  min-height: 66px;
-  background: rgba(255, 255, 255, 0.94);
-}
-
-.brand,
-.brand small,
-.eyebrow,
-.kicker,
-.primaryButton,
-.ghostButton,
-button,
-.pill,
-.legalFooter a {
-  font-weight: 700;
-}
-
-.brand > span:last-child {
-  font-family: OutfitBlack, Outfit, sans-serif;
-  letter-spacing: 0;
-}
-
-h1,
-h2,
-.bigNumber,
-.heroDevice b,
-.mobileBalanceCard strong,
-.heroPanel h2 {
-  font-family: OutfitBlack, Outfit, sans-serif;
-  letter-spacing: 0;
-}
-
-h1 {
-  line-height: 0.96;
-}
-
-h2 {
-  line-height: 1.04;
-}
-
-.topbar nav {
-  gap: 6px;
-}
-
-.topbar nav a {
-  padding: 9px 10px;
-  border-radius: 10px;
-  font-weight: 700;
-}
-
-.topbar nav a:hover {
-  background: var(--soft);
-}
-
-.hero.editorialHero {
-  min-height: min(760px, calc(100vh - 66px));
-  padding: clamp(22px, 5vw, 56px);
-  align-items: center;
-}
-
-.heroContent {
-  padding-bottom: 0;
-}
-
-.heroContent h1 {
-  max-width: 760px;
-  font-size: clamp(3rem, 8vw, 6.4rem);
-}
-
-.heroContent p {
-  max-width: 610px;
-}
-
-.heroDevice {
-  border-radius: 28px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08)),
-    rgba(255, 255, 255, 0.12);
-}
-
-.brandRail,
-.feature,
-.articleCard,
-.panel,
-.loginBox,
-.emptyState,
-.experienceGrid article,
-.ecosystemNode,
-.journey,
-.subGrid article,
-.legalFooter,
-.metricCard,
-.modalSheet {
   border-radius: 18px;
+  background: transparent;
+  display: grid;
+  place-items: center;
+  gap: 3px;
+  color: var(--muted);
+  font-weight: 850;
+  font-size: .7rem;
 }
+.bottom-nav button.active { color: white; background: linear-gradient(135deg, var(--purple), var(--teal)); }
 
-.closingCta,
-.subHero,
-.consoleHero,
-.appLikeHeader {
-  border-radius: 24px;
-}
-
-.featureGrid,
-.articleGrid,
-.journeyGrid,
-.experienceGrid {
-  gap: 12px;
-}
-
-.feature,
-.articleCard,
-.experienceGrid article,
-.panel {
-  box-shadow: 0 16px 42px rgba(25, 6, 72, 0.08);
-}
-
-.webApp {
-  padding-top: 24px;
-}
-
-.webHeader.appLikeHeader {
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 98px;
+  transform: translateX(-50%);
+  width: min(520px, calc(100% - 30px));
+  min-height: 48px;
+  padding: 12px 16px;
+  display: flex;
   align-items: center;
-  min-height: 360px;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 16px;
+  background: #1d1730;
+  color: white;
+  box-shadow: var(--shadow);
+  z-index: 20;
 }
 
-.appLikeHeader::after {
+.login-shell {
+  min-height: 100vh;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: #151124;
+}
+.login-bg { object-fit: cover; filter: saturate(1.1) brightness(.55); z-index: -2; }
+.login-shell::after {
   content: "";
   position: absolute;
-  right: -52px;
-  bottom: -80px;
-  width: 260px;
-  height: 260px;
-  background: rgba(255, 255, 255, 0.10);
-  border-radius: 999px;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(16, 12, 29, .92), rgba(16, 12, 29, .48));
+  z-index: -1;
 }
-
-.webHeader h1 {
-  color: white;
-  font-size: clamp(2.6rem, 6vw, 5rem);
-}
-
-.appLikeHeader > * {
-  position: relative;
-  z-index: 1;
-}
-
-.appLikeHeader .loginBox {
-  color: var(--ink);
-  border: 0;
-  box-shadow: 0 22px 70px rgba(8, 0, 35, 0.24);
-}
-
-.loginBox {
+.login-content {
+  min-height: 100vh;
+  width: min(960px, 100%);
+  padding: 36px 20px;
+  margin: 0 auto;
   display: grid;
-  gap: 10px;
+  align-content: center;
+  grid-template-columns: 1fr 370px;
+  gap: 42px;
 }
-
-.loginBox button {
-  width: 100%;
-}
-
-.statusLine {
-  width: fit-content;
-  max-width: 100%;
-  margin: 0 0 14px;
-  color: var(--brand);
-  background: var(--soft);
-  border-color: rgba(63, 0, 216, 0.22);
-}
-
-.clientShell {
-  gap: 12px;
-}
-
-.clientTabs {
-  top: 78px;
-  padding: 8px;
-  border-radius: 22px;
-}
-
-.clientTabs button {
-  padding: 11px 13px;
-  border-radius: 16px;
-}
-
-.appTabs {
-  justify-content: center;
-}
-
-.appTabs button {
-  min-width: 112px;
-}
-
-.heroPanel {
-  border: 0;
-  border-radius: 24px;
-}
-
-.quickStrip {
-  margin-top: 18px;
-}
-
-.quickStrip button {
-  min-height: 44px;
-  border-radius: 15px;
-}
-
-.accountTile,
-.bankCard,
-.feePreview,
-.countdownCard,
-.listRow {
-  border-radius: 18px;
-}
-
-.movement {
+.brand-lockup {
+  align-self: center;
+  color: white;
+  display: flex;
   align-items: center;
-  padding: 12px;
-  border: 1px solid transparent;
-  border-bottom-color: var(--line);
+  gap: 18px;
 }
-
-.movement:hover {
-  border-color: var(--line);
+.brand-lockup img { border-radius: 18px; }
+.brand-lockup p { margin: 0 0 8px; color: rgba(255,255,255,.75); max-width: 520px; }
+.brand-lockup h1 { margin: 0; font-size: clamp(2.7rem, 8vw, 5.2rem); line-height: .96; letter-spacing: 0; }
+.login-panel {
+  border-radius: 28px;
+  padding: 18px;
+  background: rgba(255, 253, 248, .94);
+  box-shadow: var(--shadow);
 }
-
-.movement .softButton {
-  white-space: nowrap;
-}
-
-.movement b {
-  min-width: 96px;
-  text-align: right;
-}
-
-.appActionBar {
+.segmented {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 22px;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 16px;
+  background: #eee8dc;
+  margin-bottom: 16px;
 }
-
-.appActionBar button {
-  display: grid;
-  justify-items: center;
-  gap: 7px;
-  min-height: 86px;
-  padding: 12px 8px;
-  color: white;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.20);
-  border-radius: 20px;
-  box-shadow: none;
-}
-
-.appActionBar button span {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  color: var(--brand);
-  background: white;
+.segmented button {
+  min-height: 40px;
   border-radius: 13px;
-  font-family: OutfitBlack, Outfit, sans-serif;
-  font-size: 1.1rem;
+  background: transparent;
+  font-weight: 900;
 }
+.segmented button.active { color: white; background: var(--ink); }
+.login-hint { text-align: center; margin: 12px 0; color: var(--muted); font-size: .85rem; }
+.form-error { color: var(--coral); font-weight: 850; margin: 0 0 12px; }
 
-.miniStatGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 14px;
-}
-
-.miniStatGrid span {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-  padding: 10px;
-  color: var(--muted);
-  background: var(--soft);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  font-size: 0.78rem;
-}
-
-.miniStatGrid b {
-  color: var(--brand);
-  font-size: 0.95rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.stackActions {
-  display: grid;
-  gap: 9px;
-}
-
-.appSystemPanel {
-  background:
-    linear-gradient(135deg, rgba(63, 0, 216, 0.07), rgba(255, 255, 255, 0.96)),
-    white;
-}
-
-.webCompatibilityNote {
-  display: grid;
-  gap: 4px;
-  padding: 13px;
-  color: var(--muted);
-  background: rgba(63, 0, 216, 0.06);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-}
-
-.webCompatibilityNote strong {
-  color: var(--brand);
-}
-
-button:disabled {
-  cursor: progress;
-  opacity: 0.62;
-  transform: none;
-  box-shadow: none;
-}
-
-.panel,
-.accountTile,
-.bankCard,
-.movement,
-.feePreview,
-.countdownCard {
-  animation: riseIn 360ms ease both;
-}
-
-.clientTabs button.active,
-.mobileDock button.active {
-  animation: activePop 220ms ease both;
-}
-
-.limitBar span {
-  animation: fillBar 720ms ease both;
-}
-
-.cardList {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.bankCard {
-  min-height: 210px;
-  align-content: end;
-}
-
-.bankCard strong {
-  font-family: OutfitBlack, Outfit, sans-serif;
-  letter-spacing: 0.05em;
-}
-
-.investmentScreen,
-.focusedScreen {
-  margin-inline: auto;
-}
-
-@media (max-width: 860px) {
-  body {
-    background: #fbfaff;
-  }
-
-  .topbar {
-    top: 0;
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding: 10px 12px;
-  }
-
-  .brand {
-    min-width: max-content;
-  }
-
-  .topbar nav {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    min-width: max-content;
-  }
-
-  .topbar nav a {
-    white-space: nowrap;
-    font-size: 0.84rem;
-  }
-
-  .hero.editorialHero {
-    min-height: calc(100vh - 66px);
-    align-items: end;
-    padding: 22px 16px 24px;
-  }
-
-  .heroContent h1 {
-    font-size: clamp(3.4rem, 15vw, 5.4rem);
-  }
-
-  .heroActions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .heroDevice {
-    display: none;
-  }
-
-  .brandRail {
-    margin-top: 12px;
-    border-radius: 18px;
-  }
-
-  .band,
-  .splitBand,
-  .experienceGrid,
-  .ecosystemBand {
-    padding-block: 40px;
-  }
-
-  .webHeader.appLikeHeader {
-    min-height: auto;
-    padding: 24px 14px 18px;
-    gap: 18px;
-    border-radius: 0 0 28px 28px;
-  }
-
-  .webHeader h1 {
-    font-size: clamp(2.7rem, 13vw, 4.5rem);
-  }
-
-  .appLikeHeader p {
-    font-size: 1rem;
-  }
-
-  .loginBox {
-    padding: 14px;
-  }
-
-  .clientTabs {
-    top: 66px;
-    margin-top: 10px;
-  }
-
-  .clientTabs button {
-    font-size: 0.82rem;
-  }
-
-  .mobileAppSummary {
-    margin-top: 12px;
-  }
-
-  .clientDashboard .panel {
-    min-width: 0;
-  }
-
-  .heroPanel h2,
-  .mobileBalanceCard strong {
-    font-size: clamp(2.7rem, 13vw, 4.3rem);
-  }
-
-  .cardList {
-    grid-template-columns: 1fr;
-  }
-
-  .movement {
-    display: grid;
-    grid-template-columns: 1fr auto;
-  }
-
-  .movement .softButton {
-    grid-column: 1;
-    width: fit-content;
-  }
-
-  .movement b {
-    grid-row: 1 / span 2;
-    grid-column: 2;
-  }
-
-  .appActionBar {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .miniStatGrid {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* Final precedence for the rebuilt web banking shell. */
-.webAppV2 {
-  width: min(1440px, calc(100% - 28px));
-  padding: 18px 0 90px;
-}
-
-.webAppV2 .focusedScreen,
-.webAppV2 .investmentScreen {
-  margin-inline: 0;
-}
-
-.webAppV2 .mobileDock {
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-}
-
-.webAppV2 .mobileDock button {
-  min-width: 0;
-}
-
-@media (max-width: 860px) {
-  .webAppV2 {
-    width: 100%;
-    padding: 0 12px 96px;
-  }
-
-  .webAppV2 .clientTabs {
-    top: 144px;
-    margin-top: 0;
-  }
-
-  .webAppV2 .workspaceTop {
-    position: sticky;
-    top: 66px;
-    z-index: 22;
-    margin-inline: -12px;
-    border-radius: 0 0 22px 22px;
-  }
-
-  .webAppV2 .focusedScreen,
-  .webAppV2 .investmentScreen {
-    width: 100%;
-  }
+@media (max-width: 760px) {
+  .app-shell { padding: 18px 12px 96px; }
+  .topbar { align-items: flex-start; }
+  .top-actions { flex-direction: column-reverse; align-items: flex-end; }
+  .screen-grid, .login-content { grid-template-columns: 1fr; }
+  .hero-card, .placezum-card { border-radius: 24px; padding: 20px; }
+  .placezum-card svg { width: 74px; height: 74px; }
+  .quick-grid, .contact-grid, .service-grid, .split-panel { grid-template-columns: 1fr; }
+  .two-cols { grid-template-columns: 1fr; }
+  .bottom-nav { grid-template-columns: repeat(6, 1fr); bottom: 8px; width: calc(100% - 12px); border-radius: 20px; }
+  .bottom-nav span { display: none; }
+  .brand-lockup { display: grid; align-content: end; min-height: 34vh; }
 }

@@ -36,6 +36,7 @@ export type UserProfile = {
   role?: string;
   pinHash?: string;
   birthDate?: string;
+  verifiedAge?: number;
   realAge?: number;
 };
 

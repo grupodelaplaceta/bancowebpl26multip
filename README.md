@@ -22,3 +22,15 @@ npm run dev
 - No hay PlaceZum/NFC en web.
 - Las tarjetas se muestran solo como datos. No pagan desde web.
 - Las Promo Cards se ven si ya existen, pero solo se registran desde Android.
+
+## Secciones
+
+- `/`: landing marketing con popups y artículos.
+- `/personas`: producto para usuarios particulares.
+- `/empresas`: producto para cuentas de empresa.
+- `/seguridad`: reglas de seguridad del canal web.
+- `/web`: banca web operativa conectada al backend.
+- `/admin`: consola demo con acceso total a cuentas, normativa, tarjetas, movimientos y transferencias AGLDP.
+- `/tributos`: consola fiscal demo con alertas, baremos y auditoría.
+
+En esta fase demo, Admin y Tributos están abiertos dentro de la web. Cuando pase a producción hay que añadir autenticación y roles antes de exponerlos públicamente.

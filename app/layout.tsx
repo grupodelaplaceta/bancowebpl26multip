@@ -17,8 +17,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <span>Banco de La Placeta</span>
           </Link>
           <nav>
+            <Link href="/personas">Personas</Link>
+            <Link href="/empresas">Empresas</Link>
+            <Link href="/seguridad">Seguridad</Link>
             <Link href="/#articulos">Artículos</Link>
             <Link href="/web">Banca web</Link>
+            <Link href="/admin">Admin</Link>
+            <Link href="/tributos">Tributos</Link>
           </nav>
         </header>
         {children}

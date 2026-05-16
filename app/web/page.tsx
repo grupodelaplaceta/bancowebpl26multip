@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useMemo, useState } from "react";
-import { channelLabel, formatDate, formatPz, isWebIban } from "../../lib/format";
+import { channelLabel, formatDate, formatPz } from "../../lib/format";
 import type { Account, DigitalCard, LedgerTransaction, TreasuryConfig, UserProfile } from "../../lib/types";
 
 type Session = {
@@ -22,6 +22,8 @@ export default function WebBankPage() {
   const [concept, setConcept] = useState("Transferencia web");
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const [cardModal, setCardModal] = useState<DigitalCard | null>(null);
+  const [transferOpen, setTransferOpen] = useState(false);
 
   const selectedAccount = useMemo(() => {
     if (!session) return null;
@@ -80,11 +82,17 @@ export default function WebBankPage() {
 
   return (
     <main className="webApp">
-      <section className="webHeader">
+      {loading && (
+        <div className="loadingOverlay">
+          <img src="/loading.gif" alt="" />
+          <strong>{session ? "Sincronizando operación" : "Preparando tu banca web"}</strong>
+        </div>
+      )}
+      <section className="webHeader appLikeHeader">
         <div>
           <p className="eyebrow">Banca Web</p>
-          <h1>Panel GDLP-W</h1>
-          <p>Operaciones por código. Sin NFC, sin PlaceZum y sin pagos por tarjeta desde navegador.</p>
+          <h1>Tu panel GDLP-W</h1>
+          <p>Todo lo importante del banco en navegador, sin las funciones físicas que pertenecen al móvil.</p>
         </div>
         <form className="loginBox" onSubmit={loadSession}>
           <label>
@@ -117,6 +125,12 @@ export default function WebBankPage() {
               </div>
               <span className="pill">Comisión puente {session.treasuryConfig.webBridgeCommissionPercent ?? 3}%</span>
             </div>
+            <div className="quickStrip">
+              <button onClick={() => setTransferOpen(true)}>Enviar</button>
+              <button onClick={() => document.getElementById("webCards")?.scrollIntoView({ behavior: "smooth" })}>Tarjetas</button>
+              <button onClick={() => document.getElementById("webMovements")?.scrollIntoView({ behavior: "smooth" })}>Movimientos</button>
+              <button onClick={() => location.assign("/admin")}>Demo admin</button>
+            </div>
             <div className="accountGrid">
               {session.accounts.map((account) => (
                 <button
@@ -133,7 +147,7 @@ export default function WebBankPage() {
             </div>
           </div>
 
-          <form className="panel transferPanel" onSubmit={transfer}>
+          <form className={`panel transferPanel ${transferOpen ? "focusPanel" : ""}`} onSubmit={transfer}>
             <span className="kicker">Operar</span>
             <h2>Transferencia por código</h2>
             <label>
@@ -159,29 +173,29 @@ export default function WebBankPage() {
               </label>
             </div>
             <button disabled={loading || !destination || !selectedAccount}>Enviar desde web</button>
-            <p className="hint">Si cruza GDLP-W con GDLP-AP se aplica comisión puente. Las tarjetas no inician pagos web.</p>
+            <p className="hint">Si cruza web y app se aplica comisión puente. Las tarjetas no pagan desde navegador.</p>
           </form>
 
-          <div className="panel">
+          <div className="panel" id="webCards">
             <span className="kicker">Tarjetas</span>
-            <h2>Solo consulta</h2>
+            <h2>Consulta segura</h2>
             <div className="cardList">
               {session.cards.length === 0 && <p className="muted">No hay tarjetas registradas.</p>}
               {session.cards.map((card) => {
                 const account = session.accounts.find((item) => item.id === card.accountId);
                 return (
-                  <article className="bankCard" key={card.id}>
+                  <button className="bankCard cardButton" key={card.id} onClick={() => setCardModal(card)}>
                     <span>{card.promoPhysical ? "Promo Card registrada" : "Tarjeta virtual"}</span>
                     <strong>{card.cardNumber || "******"}</strong>
                     <small>PIN {card.pin || "****"} · {account?.displayName || "Cuenta"}</small>
                     <em>{card.promoPhysical ? "Alta solo desde app Android" : "No paga desde web"}</em>
-                  </article>
+                  </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="panel movements">
+          <div className="panel movements" id="webMovements">
             <span className="kicker">Movimientos</span>
             <h2>Última actividad</h2>
             {session.transactions.map((transaction) => {
@@ -198,6 +212,29 @@ export default function WebBankPage() {
             })}
           </div>
         </section>
+      )}
+      {cardModal && (
+        <div className="modalLayer" role="dialog" aria-modal="true" onClick={() => setCardModal(null)}>
+          <div className="modalSheet cardModal" onClick={(event) => event.stopPropagation()}>
+            <button className="modalClose" onClick={() => setCardModal(null)}>Cerrar</button>
+            <p className="eyebrow">{cardModal.promoPhysical ? "Promo Card" : "Tarjeta virtual"}</p>
+            <h2>{cardModal.alias || cardModal.label || cardModal.tier || "Tarjeta GDLP"}</h2>
+            <div className="bankCard modalCardPreview">
+              <span>{cardModal.promoPhysical ? "Registrada desde Android" : "Consulta web"}</span>
+              <strong>{cardModal.cardNumber || "******"}</strong>
+              <small>PIN {cardModal.pin || "****"}</small>
+              <em>{cardModal.promoPhysical ? "Para pagar, acerca la tarjeta física al lector." : "Para pagar, usa la app móvil."}</em>
+            </div>
+          </div>
+        </div>
+      )}
+      {session && (
+        <nav className="mobileDock">
+          <button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>Inicio</button>
+          <button onClick={() => setTransferOpen(true)}>Enviar</button>
+          <button onClick={() => document.getElementById("webCards")?.scrollIntoView({ behavior: "smooth" })}>Tarjetas</button>
+          <button onClick={() => document.getElementById("webMovements")?.scrollIntoView({ behavior: "smooth" })}>Actividad</button>
+        </nav>
       )}
     </main>
   );

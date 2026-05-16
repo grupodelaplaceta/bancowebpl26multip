@@ -70,6 +70,7 @@ export type DigitalCard = {
   id: string;
   accountId: string;
   label?: string;
+  alias?: string;
   tier?: string;
   cardNumber?: string;
   pin?: string;
@@ -77,11 +78,33 @@ export type DigitalCard = {
   released?: boolean;
 };
 
+export type ComplianceFlag = {
+  id: string;
+  accountId: string;
+  reason: string;
+  amountPz: number;
+  status?: string;
+  createdAt?: string;
+};
+
 export type TreasuryConfig = {
   operationalTransferTaxPercent?: number;
   webBridgeCommissionPercent?: number;
+  weeklyTaxPercent?: number;
   payrollWorkerTaxPercent?: number;
   payrollEmployerTaxPercent?: number;
+  contactlessLimitPz?: number;
+  placezumWeeklyLimitPz?: number;
+  cardIssueFeePz?: number;
+  businessRegistrationFeePz?: number;
+  personalDeclarationThresholdPz?: number;
+  institutionalDeclarationThresholdPz?: number;
+  savingsInterestAnnualPercent?: number;
+  juniorSavingsInterestAnnualPercent?: number;
+  investmentProfitTaxPercent?: number;
+  investmentGainCommissionPercent?: number;
+  maxInvestmentAmountPz?: number;
+  dailyInvestmentLimit?: number;
   minSupportedVersionCode?: number;
 };
 
@@ -90,6 +113,7 @@ export type BankState = {
   accounts?: Account[];
   transactions?: LedgerTransaction[];
   digitalCards?: DigitalCard[];
+  complianceFlags?: ComplianceFlag[];
   treasuryConfig?: TreasuryConfig;
   updatedAt?: string | null;
 };

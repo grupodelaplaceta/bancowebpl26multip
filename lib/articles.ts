@@ -2,34 +2,53 @@ export const articles = [
   {
     slug: "banca-web-gdlp",
     title: "La banca web de Banco de La Placeta",
-    excerpt: "Una forma cómoda de consultar cuentas, tarjetas y operaciones GDLP desde navegador.",
+    excerpt: "Tu dinero, tus movimientos y tus tarjetas visibles desde cualquier navegador.",
     date: "2026-05-16",
+    image: "/logobanco.jpg",
+    category: "Producto",
     body: [
-      "La banca web usa el mismo backend operativo que la app Android para mantener una única fuente de verdad.",
-      "Las cuentas creadas desde web usan IBAN con formato GDLP-WXXX-XXXX. Las cuentas de la app mantienen su formato GDLP-APXX-XXX.",
-      "Las operaciones entre ambos canales pueden aplicar comisión puente, configurable desde la normativa técnica del sistema."
+      "La banca web nace para consultar, enviar y organizar dinero sin depender del móvil en cada momento.",
+      "Las cuentas web tienen identidad propia, pero conviven con las cuentas de la app para que todo siga formando parte del mismo banco.",
+      "La experiencia está pensada para ser rápida: entrar con DIP, ver el resumen y operar por código o IBAN."
     ]
   },
   {
     slug: "seguridad-sin-nfc",
-    title: "Seguridad web: sin NFC ni PlaceZum",
-    excerpt: "La web limita pagos físicos: no inicia pagos por tarjeta ni NFC.",
+    title: "Seguridad clara en navegador",
+    excerpt: "La web evita lo físico: nada de NFC, nada de pagos por tarjeta desde navegador.",
     date: "2026-05-16",
+    image: "/actu.jpg",
+    category: "Seguridad",
     body: [
-      "PlaceZum y el pago NFC pertenecen a la app Android y a lectores físicos.",
-      "En web las tarjetas solo muestran datos informativos. No pueden usarse para pagar.",
-      "Las Promo Cards ya registradas se pueden consultar, pero su alta se mantiene exclusivamente desde la app."
+      "El navegador es perfecto para consultar y ordenar, pero no para sustituir una tarjeta física.",
+      "Por eso la web no inicia pagos NFC ni emula tarjetas. Las tarjetas se muestran para que puedas revisarlas, no para pagar con ellas.",
+      "Las Promo Cards se registran desde Android acercándolas al móvil. En web aparecen ya vinculadas como parte de tu cartera."
     ]
   },
   {
     slug: "ibans-web-y-comisiones",
     title: "IBAN web y comisión entre canales",
-    excerpt: "El canal web separa cuentas GDLP-W de las cuentas Android GDLP-AP.",
+    excerpt: "Las cuentas web tienen su propio formato para separar canales sin separar el banco.",
     date: "2026-05-16",
+    image: "/app-icon.png",
+    category: "Cuentas",
     body: [
-      "La separación de IBAN permite saber desde qué canal opera cada cuenta.",
-      "Cuando una operación cruza entre web y app Android, el sistema calcula una comisión de puente y la registra como ingreso de Tributos GDLP.",
-      "Este diseño permite evolucionar ambos productos sin duplicar saldos ni estados."
+      "El formato GDLP-WXXX-XXXX identifica cuentas nacidas en web. El formato GDLP-APXX-XXX identifica cuentas operadas desde Android.",
+      "Cuando una operación cruza de un canal al otro, el sistema puede aplicar una comisión puente visible antes de confirmar.",
+      "Así se puede crecer en web y móvil a la vez, manteniendo reglas claras para cada sitio."
+    ]
+  },
+  {
+    slug: "empresas-en-la-placeta",
+    title: "Empresas con nóminas, cuentas y fondos",
+    excerpt: "La web también prepara un espacio más cómodo para consultar actividad de empresa.",
+    date: "2026-05-16",
+    image: "/logobanco.jpg",
+    category: "Empresas",
+    body: [
+      "Las empresas necesitan ver liquidez, nóminas, inversión y movimientos sin perderse entre pantallas.",
+      "La web organiza esa información en bloques más amplios, ideales para escritorio.",
+      "Las acciones delicadas siguen protegidas por las reglas del banco y la normativa de Tributos."
     ]
   }
 ];

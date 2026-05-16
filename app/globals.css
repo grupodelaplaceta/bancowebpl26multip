@@ -1,4 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;650;700;800;900&display=swap");
+
 :root {
+  font-synthesis: none;
   --brand: #3f00d8;
   --ink: #170c2a;
   --muted: #6c5878;
@@ -39,7 +42,7 @@ select {
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -79,6 +82,10 @@ select {
   font-weight: 750;
 }
 
+.cleanButton {
+  font: inherit;
+}
+
 .hero {
   position: relative;
   min-height: calc(100vh - 65px);
@@ -86,6 +93,10 @@ select {
   display: grid;
   align-items: end;
   padding: clamp(26px, 6vw, 78px);
+}
+
+.editorialHero {
+  min-height: calc(100vh - 65px);
 }
 
 .heroImage {
@@ -103,6 +114,62 @@ select {
   width: min(720px, 100%);
   color: white;
   padding-bottom: 8vh;
+}
+
+.wideHero {
+  width: min(860px, 100%);
+}
+
+.heroDevice {
+  position: absolute;
+  right: clamp(18px, 7vw, 96px);
+  bottom: clamp(18px, 8vh, 90px);
+  width: min(340px, 34vw);
+  min-width: 260px;
+  padding: 20px;
+  color: white;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 28px;
+  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.26);
+  backdrop-filter: blur(22px);
+}
+
+.deviceTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.deviceTop span {
+  width: 34px;
+  height: 34px;
+  background: var(--mint);
+  border-radius: 10px;
+}
+
+.heroDevice b {
+  display: block;
+  font-size: clamp(2rem, 5vw, 3.7rem);
+  line-height: 1;
+}
+
+.heroDevice small {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.deviceRows {
+  display: grid;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.deviceRows span {
+  height: 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
 }
 
 .eyebrow,
@@ -162,6 +229,7 @@ button {
 
 .ghostButton {
   color: white;
+  background: transparent;
   padding: 12px 17px;
   border: 1px solid rgba(255, 255, 255, 0.55);
 }
@@ -172,6 +240,16 @@ button {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
   padding: 72px 0;
+}
+
+.consoleApp {
+  width: min(1280px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 34px 0 90px;
+}
+
+.introBand {
+  padding-top: 90px;
 }
 
 .soft {
@@ -212,6 +290,86 @@ button {
   box-shadow: 0 18px 45px rgba(25, 6, 72, 0.07);
 }
 
+.lift {
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 60px rgba(25, 6, 72, 0.12);
+}
+
+.splitBand {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(300px, 1.1fr);
+  gap: 34px;
+  align-items: center;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 76px 0;
+}
+
+.splitBand p {
+  color: var(--muted);
+  font-size: 1.08rem;
+  line-height: 1.7;
+}
+
+.stackedPreview {
+  display: grid;
+  gap: 14px;
+}
+
+.stackedPreview article {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 18px 45px rgba(25, 6, 72, 0.08);
+}
+
+.stackedPreview span {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.stackedPreview strong {
+  color: var(--brand);
+}
+
+.journeyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.journey {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 20px;
+  color: white;
+  background:
+    linear-gradient(135deg, rgba(63, 0, 216, 0.95), rgba(23, 12, 42, 0.82)),
+    url("/logobanco.jpg");
+  background-size: cover;
+  border-radius: 8px;
+}
+
+.journey span {
+  color: #d9ceff;
+  font-weight: 900;
+}
+
+.journey p {
+  margin-bottom: 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+
 .feature,
 .articleCard,
 .panel {
@@ -243,6 +401,36 @@ button {
   font-weight: 850;
 }
 
+.richArticles {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.imageArticle {
+  overflow: hidden;
+  padding: 0;
+}
+
+.imageArticle img,
+.articleHeroImage {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+}
+
+.imageArticle img {
+  height: 170px;
+}
+
+.imageArticle div {
+  padding: 16px;
+}
+
+.articleHeroImage {
+  height: min(420px, 45vw);
+  margin-bottom: 28px;
+  border-radius: 8px;
+}
+
 .articlePage {
   max-width: 820px;
 }
@@ -264,12 +452,186 @@ button {
   font-weight: 900;
 }
 
+.closingCta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto 80px;
+  padding: 28px;
+  color: white;
+  background: var(--brand);
+  border-radius: 8px;
+}
+
+.closingCta .eyebrow {
+  color: #d9ceff;
+}
+
+.closingCta h2 {
+  margin-bottom: 0;
+}
+
+.closingCta .primaryButton {
+  background: white;
+  color: var(--brand);
+}
+
+.modalLayer,
+.loadingOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(23, 12, 42, 0.52);
+  backdrop-filter: blur(16px);
+}
+
+.modalSheet {
+  width: min(560px, 100%);
+  padding: 24px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.24);
+}
+
+.modalClose {
+  float: right;
+  padding: 9px 12px;
+  color: var(--brand);
+  background: var(--soft);
+}
+
+.loadingOverlay {
+  color: white;
+  text-align: center;
+}
+
+.loadingOverlay img,
+.loadingScreen img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+}
+
+.loadingOverlay strong,
+.loadingScreen strong {
+  display: block;
+  margin-top: 12px;
+  font-size: 1.15rem;
+}
+
+.loadingScreen {
+  min-height: calc(100vh - 65px);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  color: var(--brand);
+  background: white;
+}
+
+.loadingScreen span {
+  color: var(--muted);
+}
+
+.subPage {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 42px 0 80px;
+}
+
+.subHero {
+  min-height: 480px;
+  display: grid;
+  align-content: end;
+  padding: clamp(26px, 5vw, 56px);
+  color: white;
+  background:
+    linear-gradient(135deg, rgba(23, 12, 42, 0.82), rgba(63, 0, 216, 0.72)),
+    url("/logobanco.jpg");
+  background-size: cover;
+  border-radius: 8px;
+}
+
+.subHero h1 {
+  width: min(760px, 100%);
+  font-size: clamp(2.6rem, 7vw, 5.8rem);
+}
+
+.subHero p {
+  width: min(640px, 100%);
+  color: rgba(255, 255, 255, 0.84);
+  font-size: 1.12rem;
+}
+
+.subHero .eyebrow {
+  color: #d9ceff;
+}
+
+.subHero .primaryButton {
+  width: fit-content;
+}
+
+.companyHero {
+  background:
+    linear-gradient(135deg, rgba(23, 12, 42, 0.84), rgba(0, 184, 148, 0.42)),
+    url("/logobanco.jpg");
+}
+
+.securityHero {
+  background:
+    linear-gradient(135deg, rgba(23, 12, 42, 0.88), rgba(217, 56, 99, 0.44)),
+    url("/actu.jpg");
+  background-size: cover;
+}
+
+.subGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.subGrid article {
+  padding: 20px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.subGrid span {
+  color: var(--brand);
+  font-weight: 900;
+}
+
 .webHeader {
   display: grid;
   grid-template-columns: 1fr minmax(280px, 410px);
   gap: 18px;
   align-items: end;
   margin-bottom: 16px;
+}
+
+.appLikeHeader {
+  position: relative;
+  overflow: hidden;
+  padding: 28px;
+  color: white;
+  background:
+    linear-gradient(135deg, rgba(63, 0, 216, 0.96), rgba(23, 12, 42, 0.92)),
+    url("/logobanco.jpg");
+  background-size: cover;
+  border-radius: 8px;
+}
+
+.appLikeHeader .eyebrow,
+.appLikeHeader p,
+.appLikeHeader h1 {
+  color: white;
 }
 
 .webHeader h1 {
@@ -279,6 +641,10 @@ button {
 
 .loginBox {
   padding: 16px;
+}
+
+.appLikeHeader .loginBox {
+  background: rgba(255, 255, 255, 0.92);
 }
 
 label {
@@ -323,6 +689,27 @@ select {
 .dashboardGrid {
   grid-template-columns: 1.25fr 0.75fr;
   align-items: start;
+}
+
+.mobileDock {
+  display: none;
+}
+
+.quickStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.quickStrip button {
+  min-width: 112px;
+  color: var(--brand);
+  background: var(--soft);
+}
+
+.focusPanel {
+  outline: 3px solid rgba(63, 0, 216, 0.16);
 }
 
 .large,
@@ -390,6 +777,151 @@ select {
   border-radius: 8px;
 }
 
+.cardButton {
+  width: 100%;
+  text-align: left;
+}
+
+.cardModal {
+  width: min(620px, 100%);
+}
+
+.modalCardPreview {
+  margin-top: 16px;
+  border: 0;
+}
+
+.consoleHero {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+  min-height: 300px;
+  padding: 28px;
+  color: white;
+  background:
+    linear-gradient(135deg, rgba(63, 0, 216, 0.96), rgba(23, 12, 42, 0.9)),
+    url("/logobanco.jpg");
+  background-size: cover;
+  border-radius: 8px;
+}
+
+.consoleHero .eyebrow,
+.consoleHero p,
+.consoleHero h1 {
+  color: white;
+}
+
+.consoleHero h1 {
+  font-size: clamp(2.4rem, 6vw, 5rem);
+}
+
+.consoleHero button {
+  background: white;
+  color: var(--brand);
+}
+
+.consoleTabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 0;
+}
+
+.consoleTabs button {
+  color: var(--brand);
+  background: white;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.consoleTabs button.active {
+  color: white;
+  background: var(--brand);
+}
+
+.metricGrid,
+.consoleGrid,
+.accountAdminGrid,
+.configGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.metricGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.consoleGrid {
+  grid-template-columns: 1.5fr 0.8fr;
+}
+
+.span2 {
+  grid-column: span 1;
+}
+
+.metricCard {
+  padding: 18px;
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 18px 45px rgba(25, 6, 72, 0.07);
+}
+
+.metricCard span {
+  display: block;
+  color: var(--muted);
+  font-weight: 850;
+}
+
+.metricCard strong {
+  display: block;
+  margin-top: 10px;
+  color: var(--brand);
+  font-size: clamp(1.5rem, 3vw, 2.4rem);
+}
+
+.metricCard.ok strong {
+  color: var(--mint);
+}
+
+.metricCard.warn strong {
+  color: var(--danger);
+}
+
+.tableList,
+.configPanel,
+.adminCards {
+  display: grid;
+  gap: 10px;
+}
+
+.listRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  background: var(--soft);
+  border-radius: 8px;
+}
+
+.listRow span {
+  display: block;
+  color: var(--muted);
+}
+
+.accountAdminGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.adminTile {
+  background: var(--soft);
+}
+
+.configGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .bankCard span,
 .bankCard small,
 .bankCard em {
@@ -438,8 +970,16 @@ select {
   .webHeader,
   .featureGrid,
   .articleGrid,
+  .richArticles,
   .dashboardGrid,
-  .accountGrid {
+  .accountGrid,
+  .journeyGrid,
+  .splitBand,
+  .subGrid,
+  .metricGrid,
+  .consoleGrid,
+  .accountAdminGrid,
+  .configGrid {
     grid-template-columns: 1fr;
   }
 
@@ -451,5 +991,116 @@ select {
 
   .hero {
     min-height: 82vh;
+  }
+
+  .heroDevice {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    margin-top: 22px;
+  }
+
+  .closingCta {
+    display: grid;
+  }
+
+  .topbar {
+    position: sticky;
+    display: grid;
+    gap: 10px;
+  }
+
+  .topbar nav {
+    overflow-x: auto;
+    padding-bottom: 3px;
+  }
+
+  .webApp {
+    width: 100%;
+    padding: 0 12px 96px;
+  }
+
+  .appLikeHeader {
+    min-height: calc(100vh - 150px);
+    align-content: end;
+    margin-inline: -12px;
+    border-radius: 0 0 24px 24px;
+  }
+
+  .appLikeHeader h1 {
+    font-size: clamp(3rem, 14vw, 5.4rem);
+  }
+
+  .loginBox,
+  .panel,
+  .emptyState,
+  .statusLine {
+    border-radius: 18px;
+  }
+
+  .dashboardGrid {
+    gap: 12px;
+  }
+
+  .accountTile {
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .bankCard {
+    min-height: 190px;
+    align-content: end;
+    border-radius: 18px;
+  }
+
+  .mobileDock {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: 0 20px 60px rgba(25, 6, 72, 0.2);
+    backdrop-filter: blur(18px);
+  }
+
+  .mobileDock button {
+    min-width: 0;
+    padding: 10px 6px;
+    color: var(--brand);
+    background: var(--soft);
+    border-radius: 16px;
+    font-size: 0.78rem;
+  }
+
+  .consoleApp {
+    width: 100%;
+    padding: 0 12px 90px;
+  }
+
+  .consoleHero {
+    min-height: 430px;
+    margin-inline: -12px;
+    border-radius: 0 0 24px 24px;
+    align-items: end;
+  }
+
+  .consoleHero {
+    display: grid;
+  }
+
+  .consoleTabs {
+    position: sticky;
+    top: 92px;
+    z-index: 20;
+    background: rgba(251, 250, 255, 0.94);
+    backdrop-filter: blur(14px);
   }
 }

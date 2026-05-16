@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { articles, getArticle } from "../../../lib/articles";
 
@@ -14,6 +15,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   return (
     <main className="articlePage">
       <Link href="/#articulos" className="backLink">Volver a artículos</Link>
+      <Image className="articleHeroImage" src={article.image} alt="" width={1180} height={520} priority />
       <p className="eyebrow">{new Intl.DateTimeFormat("es-ES").format(new Date(article.date))}</p>
       <h1>{article.title}</h1>
       <p className="lead">{article.excerpt}</p>

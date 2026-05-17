@@ -1,13 +1,18 @@
 import Image from "next/image";
 import { gdlpNews } from "../../lib/gdlp-content";
 import { BANK_SITE_URL, gdlpUrl } from "../../lib/site";
+import type { GdlpSharedNewsItem } from "../../lib/bank";
 
 export const dynamic = "force-dynamic";
 
-async function loadNews() {
+type NewsApiResponse = {
+  news?: GdlpSharedNewsItem[];
+};
+
+async function loadNews(): Promise<GdlpSharedNewsItem[]> {
   try {
     const response = await fetch(`${BANK_SITE_URL}/api/gdlp-news`, { cache: "no-store" });
-    const payload = await response.json();
+    const payload = (await response.json()) as NewsApiResponse;
     return Array.isArray(payload.news) && payload.news.length ? payload.news : gdlpNews;
   } catch {
     return gdlpNews;

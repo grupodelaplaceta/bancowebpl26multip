@@ -661,7 +661,7 @@ function BancoPlacetaClient() {
     return remote;
   }
 
-  async function persist(next: BankState, message: string, baseUpdatedAt: string | null = stateRef.current.updatedAt || null) {
+  const persist = useCallback(async (next: BankState, message: string, baseUpdatedAt: string | null = stateRef.current.updatedAt || null) => {
     if (persistInFlightRef.current) {
       setToast("Hay una operación guardándose. Espera un momento.");
       return false;
@@ -702,7 +702,7 @@ function BancoPlacetaClient() {
       persistInFlightRef.current = false;
       setBusyMessage("");
     }
-  }
+  }, [silentRemoteRefresh]);
 
   async function runOperation(operation: (fresh: BankState) => BankState, message: string) {
     if (operationInFlightRef.current) {
@@ -776,7 +776,7 @@ function BancoPlacetaClient() {
         setPlacetaIdLoading(false);
       }
     })();
-  }, [hydrated, sync]);
+  }, [hydrated, sync, persist]);
 
   if (placetaIdLoading) {
     return <PlacetaIdLoadingScreen sync={sync} />;

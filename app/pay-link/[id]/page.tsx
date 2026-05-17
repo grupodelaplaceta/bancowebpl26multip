@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, CreditCard, Landmark, Loader2, LockKeyhole, ShieldCheck, Smartphone } from "lucide-react";
 import { formatPz, isOfficialIban, PaymentLink } from "../../../lib/bank";
@@ -99,7 +100,9 @@ export default function PaymentLinkPage({ params }: { params: { id: string } }) 
     <main className="pay-link-page">
       <section className="pay-link-card pay-link-card-upgraded">
         <div className="pay-link-brand">
-          <img src="/logo.png" alt="Banco de La Placeta" />
+          <span className="pay-link-brand-logo">
+            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="56px" priority />
+          </span>
           <div>
             <span>{link?.kind === "Send" ? "Envío de Placetas" : "Pago seguro"}</span>
             <strong>Banco de La Placeta</strong>

@@ -4797,10 +4797,22 @@ button:focus-visible, input:focus-visible {
   align-items: center;
   gap: 12px;
 }
+.pay-link-brand-logo {
+  position: relative;
+  flex: 0 0 auto;
+  width: 74px;
+  height: 74px;
+  display: block;
+}
 .pay-link-card img {
   width: 74px;
   height: 74px;
   object-fit: contain;
+}
+.pay-link-brand .pay-link-brand-logo {
+  color: inherit;
+  text-transform: none;
+  font-size: 0;
 }
 .pay-link-brand span {
   display: block;

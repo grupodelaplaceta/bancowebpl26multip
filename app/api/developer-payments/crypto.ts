@@ -1,7 +1,8 @@
 import crypto from "node:crypto";
 import { BankState, captureDeveloperPayment, createDeveloperPayment, DeveloperPayment, normalizeState } from "../../../lib/bank";
+import { BANK_API_URL } from "../../../lib/site";
 
-const baseUrl = () => (process.env.PLACETA_API_BASE_URL || "https://apisbanco.vercel.app").replace(/\/$/, "");
+const baseUrl = () => (process.env.PLACETA_API_BASE_URL || BANK_API_URL).replace(/\/$/, "");
 const appId = () => process.env.PLACETA_API_APP_ID || process.env.PLACETA_APP_ID || "org.laplaceta.banco";
 const appSecret = () => process.env.PLACETA_API_SECRET || process.env.PLACETA_APP_SECRET || "dev-secret-change-me";
 const developerSecret = () => process.env.PLACETA_DEVELOPER_SECRET || appSecret();

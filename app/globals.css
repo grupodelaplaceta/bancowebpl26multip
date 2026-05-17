@@ -6495,3 +6495,862 @@ body {
     display: block;
   }
 }
+
+/* Banco Placeta Android redesign */
+:root {
+  --android-bg: #FAF8FF;
+  --android-surface: #FFFFFF;
+  --android-surface-2: #F4EEFF;
+  --android-ink: #24104F;
+  --android-muted: #6C5878;
+  --android-accent: #3F00D8;
+  --android-accent-dark: #2D0A83;
+  --android-soft: #8F63FF;
+  --android-mint: #03DAC6;
+  --android-gold: #FFD36E;
+  --android-line: rgba(63, 0, 216, .14);
+  --android-shadow: 0 16px 40px rgba(36, 16, 79, .09);
+  --android-shadow-soft: 0 8px 24px rgba(36, 16, 79, .06);
+}
+
+html,
+body {
+  background: var(--android-bg);
+  color: var(--android-ink);
+}
+
+.lp4-shell,
+.landing-page,
+.login-page {
+  background:
+    linear-gradient(180deg, rgba(63, 0, 216, .06), transparent 280px),
+    var(--android-bg);
+  color: var(--android-ink);
+  padding-inline: clamp(10px, 2.6vw, 22px);
+}
+
+.lp4-nav,
+.info-nav {
+  width: min(1160px, 100%);
+  min-height: 68px;
+  margin-inline: auto;
+  padding: 7px 10px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  border-radius: 0 0 18px 18px;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: var(--android-shadow-soft);
+  backdrop-filter: blur(18px);
+}
+
+.lp4-brand {
+  color: var(--android-ink);
+  gap: 10px;
+}
+
+.lp4-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.lp4-brand strong {
+  color: var(--android-ink);
+  font-size: .98rem;
+}
+
+.lp4-brand small {
+  color: var(--android-muted);
+}
+
+.lp4-links {
+  gap: 6px;
+}
+
+.lp4-links a,
+.info-nav nav a {
+  min-height: 36px;
+  padding: 8px 11px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--android-muted);
+  background: transparent;
+  font-size: .8rem;
+}
+
+.lp4-links a:hover,
+.info-nav nav a:hover {
+  color: var(--android-accent);
+  background: rgba(63, 0, 216, .07);
+  border-color: rgba(63, 0, 216, .12);
+}
+
+.lp4-links .lp4-link-cta,
+.info-nav nav a:last-child {
+  color: white;
+  background: var(--android-accent);
+  border-color: var(--android-accent);
+  box-shadow: 0 10px 22px rgba(63, 0, 216, .18);
+}
+
+.lp4-hero {
+  width: min(1160px, 100%);
+  min-height: 540px;
+  margin-top: 12px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, #ffffff 0%, #fbf9ff 46%, #f1eaff 100%);
+  box-shadow: var(--android-shadow);
+}
+
+.lp4-hero > img {
+  object-fit: cover;
+  object-position: 72% center;
+  opacity: .18;
+  filter: saturate(1.04) contrast(1.02);
+}
+
+.lp4-hero-shade {
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.96) 0%, rgba(255,255,255,.9) 48%, rgba(244,238,255,.58) 100%),
+    linear-gradient(180deg, rgba(3,218,198,.08), rgba(255,211,110,.08));
+}
+
+.lp4-hero-inner,
+.lp4-hero-inner.landing-only {
+  min-height: 540px;
+  padding: clamp(22px, 4vw, 44px);
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
+  gap: clamp(16px, 3vw, 28px);
+}
+
+.lp4-hero-copy {
+  color: var(--android-ink);
+}
+
+.lp4-hero-copy > span,
+.lp4-section-head > span,
+.lp4-flow > span,
+.lp4-login-head span,
+.lp4-final-cta span,
+.lp4-carousel-panel span,
+.developer-code > span,
+.developer-endpoints article span {
+  color: var(--android-accent);
+  letter-spacing: .08em;
+  font-size: .72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.lp4-hero-copy h1 {
+  max-width: 700px;
+  margin: 10px 0 13px;
+  color: var(--android-ink);
+  font-size: clamp(2.3rem, 6vw, 4.8rem);
+  line-height: .94;
+}
+
+.lp4-hero-copy p {
+  max-width: 620px;
+  color: var(--android-muted);
+  font-size: clamp(.98rem, 1.7vw, 1.13rem);
+  font-weight: 650;
+}
+
+.lp4-hero-actions {
+  margin-top: 22px;
+}
+
+.lp4-hero-actions a,
+.lp4-final-cta a,
+.lp4-carousel-panel a,
+.primary-button,
+.placetaid-button {
+  border-radius: 16px;
+}
+
+.lp4-hero-actions a {
+  min-height: 46px;
+  color: white;
+  background: var(--android-accent);
+  box-shadow: 0 12px 26px rgba(63, 0, 216, .20);
+}
+
+.lp4-hero-actions a + a {
+  color: var(--android-accent);
+  background: white;
+  border: 1px solid var(--android-line);
+  box-shadow: none;
+}
+
+.lp4-hero-badges span {
+  min-height: 32px;
+  color: var(--android-accent-dark);
+  background: rgba(63, 0, 216, .07);
+  border-color: rgba(63, 0, 216, .12);
+  border-radius: 12px;
+}
+
+.lp4-carousel-controls {
+  width: min(620px, 100%);
+  margin-top: 20px;
+}
+
+.lp4-carousel-controls button {
+  min-height: 62px;
+  border: 1px solid var(--android-line);
+  border-radius: 14px;
+  color: var(--android-ink);
+  background: rgba(255, 255, 255, .78);
+  box-shadow: none;
+}
+
+.lp4-carousel-controls button.active {
+  color: white;
+  background: linear-gradient(135deg, var(--android-accent), var(--android-soft));
+  border-color: transparent;
+  box-shadow: 0 12px 24px rgba(63, 0, 216, .20);
+}
+
+.lp4-carousel-controls small {
+  color: currentColor;
+  opacity: .64;
+}
+
+.lp4-carousel-panel,
+.lp4-login {
+  border: 1px solid rgba(63, 0, 216, .12);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .94);
+  color: var(--android-ink);
+  box-shadow: var(--android-shadow);
+}
+
+.lp4-carousel-panel strong,
+.lp4-login-head h2 {
+  color: var(--android-ink);
+}
+
+.lp4-carousel-panel p {
+  color: var(--android-muted);
+}
+
+.lp4-carousel-panel a {
+  color: white;
+  background: var(--android-accent);
+}
+
+.lp4-login {
+  gap: 11px;
+}
+
+.placetaid-button {
+  background: linear-gradient(135deg, var(--android-accent), var(--android-soft));
+  box-shadow: 0 14px 28px rgba(63, 0, 216, .24);
+}
+
+.segmented {
+  padding: 4px;
+  border-radius: 14px;
+  background: var(--android-surface-2);
+  border: 1px solid rgba(63, 0, 216, .08);
+}
+
+.segmented button {
+  border-radius: 10px;
+}
+
+.segmented button.active {
+  color: white;
+  background: var(--android-accent);
+}
+
+.field,
+.field input,
+.lp4-login input:not([type="checkbox"]) {
+  border-radius: 14px;
+}
+
+.lp4-strip,
+.lp4-product,
+.lp4-help,
+.lp4-showcase,
+.lp4-channels,
+.lp4-developers,
+.lp4-final-cta,
+.lp4-footer {
+  width: min(1160px, 100%);
+  margin-top: 12px;
+}
+
+.lp4-strip {
+  gap: 10px;
+}
+
+.lp4-strip article,
+.lp4-product,
+.lp4-help,
+.lp4-showcase,
+.lp4-channels,
+.lp4-developers,
+.lp4-final-cta,
+.lp4-footer,
+.hero-card,
+.metric-card,
+.account-card,
+.card-item,
+.panel-card,
+.support-card,
+.developer-code,
+.developer-endpoints article {
+  border: 1px solid rgba(63, 0, 216, .11);
+  background: rgba(255, 255, 255, .96);
+  box-shadow: var(--android-shadow-soft);
+}
+
+.lp4-strip article {
+  min-height: 102px;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(63, 0, 216, .07), rgba(3, 218, 198, .05)),
+    white;
+}
+
+.lp4-strip strong {
+  color: var(--android-accent);
+}
+
+.lp4-strip span,
+.lp4-service-grid strong,
+.lp4-post-grid strong,
+.lp4-channel-grid strong,
+.lp4-flow strong,
+.developer-endpoints strong {
+  color: var(--android-ink);
+}
+
+.lp4-strip p,
+.lp4-section-head p,
+.lp4-service-grid p,
+.lp4-post-grid p,
+.lp4-channel-grid p,
+.lp4-flow p,
+.developer-code p,
+.developer-endpoints p {
+  color: var(--android-muted);
+}
+
+.lp4-product,
+.lp4-help,
+.lp4-channels,
+.lp4-developers,
+.lp4-footer {
+  padding: clamp(16px, 2.5vw, 26px);
+  border-radius: 22px;
+}
+
+.lp4-section-head {
+  margin-bottom: 14px;
+}
+
+.lp4-section-head h2,
+.lp4-flow h2 {
+  color: var(--android-ink);
+  font-size: clamp(1.55rem, 3vw, 2.45rem);
+  line-height: 1.04;
+}
+
+.lp4-service-grid,
+.lp4-post-grid,
+.lp4-channel-grid,
+.developer-endpoints {
+  gap: 10px;
+}
+
+.lp4-service-grid a,
+.lp4-post-grid a,
+.lp4-channel-grid a,
+.developer-endpoints article {
+  border: 1px solid rgba(63, 0, 216, .10);
+  border-radius: 18px;
+  background: #FFFEFF;
+  box-shadow: none;
+}
+
+.lp4-service-grid a:hover,
+.lp4-post-grid a:hover,
+.lp4-channel-grid a:hover {
+  transform: translateY(-2px);
+  border-color: rgba(63, 0, 216, .22);
+  box-shadow: var(--android-shadow-soft);
+}
+
+.lp4-info-image,
+.lp4-card-visual,
+.lp4-card-caption {
+  border-radius: 16px;
+}
+
+.lp4-info-image {
+  background: linear-gradient(135deg, rgba(63, 0, 216, .08), rgba(3, 218, 198, .08));
+}
+
+.lp4-service-grid svg,
+.lp4-channel-grid svg,
+.lp4-trust-grid svg {
+  color: var(--android-accent);
+}
+
+.lp4-showcase {
+  padding: clamp(16px, 2.8vw, 28px);
+  border-radius: 22px;
+  display: grid;
+  grid-template-columns: minmax(260px, .9fr) minmax(0, 1.1fr);
+  gap: 18px;
+}
+
+.lp4-card-visual {
+  min-height: 360px;
+  background: var(--android-accent-dark);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.12);
+}
+
+.lp4-card-visual img {
+  opacity: .9;
+  filter: saturate(1.06);
+}
+
+.lp4-card-caption {
+  inset: auto 14px 14px;
+  background: rgba(255,255,255,.92);
+  border: 1px solid rgba(63,0,216,.12);
+  color: var(--android-ink);
+}
+
+.lp4-card-caption span {
+  color: var(--android-accent);
+}
+
+.lp4-flow article {
+  border: 1px solid rgba(63, 0, 216, .10);
+  border-radius: 16px;
+  background: white;
+}
+
+.lp4-flow b {
+  color: var(--android-accent-dark);
+  background: var(--android-gold);
+}
+
+.developer-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, .9fr);
+  gap: 12px;
+}
+
+.developer-code {
+  border-radius: 18px;
+  padding: 16px;
+  background: var(--android-accent-dark);
+  color: white;
+}
+
+.developer-code pre {
+  margin: 10px 0;
+  padding: 14px;
+  overflow: auto;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .10);
+  border: 1px solid rgba(255,255,255,.14);
+}
+
+.developer-code code {
+  color: white;
+}
+
+.developer-code p {
+  color: rgba(255,255,255,.76);
+}
+
+.developer-code > span,
+.developer-code .lp4-inline-link {
+  color: var(--android-gold);
+}
+
+.developer-endpoints {
+  display: grid;
+}
+
+.developer-endpoints article {
+  min-height: auto;
+  padding: 14px;
+}
+
+.developer-endpoints code {
+  display: block;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  color: var(--android-accent);
+  background: rgba(63, 0, 216, .07);
+  overflow-wrap: anywhere;
+}
+
+.lp4-final-cta {
+  padding: clamp(18px, 3vw, 30px);
+  border-color: transparent;
+  border-radius: 22px;
+  color: white;
+  background: linear-gradient(135deg, var(--android-accent-dark), var(--android-accent) 68%, #5b2cff);
+}
+
+.lp4-final-cta h2,
+.lp4-final-cta p,
+.lp4-final-cta span {
+  color: white;
+}
+
+.lp4-final-cta p {
+  opacity: .76;
+}
+
+.lp4-final-cta a {
+  color: var(--android-accent);
+  background: white;
+}
+
+.lp4-footer {
+  background: #fff;
+}
+
+.lp4-footer a:hover {
+  color: var(--android-accent);
+}
+
+.app-shell {
+  max-width: 1180px;
+  background:
+    linear-gradient(180deg, rgba(63,0,216,.06), transparent 260px),
+    var(--android-bg);
+}
+
+.topbar {
+  min-height: 76px;
+  background: linear-gradient(135deg, var(--android-accent), var(--android-soft));
+  box-shadow: 0 14px 30px rgba(63, 0, 216, .18);
+}
+
+.brand-logo {
+  width: 62px;
+  height: 62px;
+}
+
+.app-nav {
+  border-color: rgba(63,0,216,.10);
+  background: rgba(255,255,255,.94);
+  border-radius: 18px;
+  box-shadow: var(--android-shadow-soft);
+}
+
+.app-nav button {
+  border-radius: 13px;
+}
+
+.app-nav button.active,
+.bottom-nav button.active {
+  background: linear-gradient(135deg, var(--android-accent), var(--android-soft));
+}
+
+.account-strip,
+.screen-grid,
+.detail-grid,
+.hub-grid,
+.admin-grid {
+  gap: 12px;
+}
+
+.hero-card,
+.placezum-card {
+  border-radius: 24px;
+  background: linear-gradient(135deg, #ffffff, #fbf9ff 48%, #f4eeff);
+  color: var(--android-ink);
+}
+
+.hero-card::before,
+.placezum-card::before {
+  background: linear-gradient(135deg, rgba(63, 0, 216, .10), rgba(3, 218, 198, .08));
+}
+
+.hero-card::after,
+.market-hero::after,
+.tributos-hero::after,
+.admin-hero::after,
+.hub-hero::after {
+  background: linear-gradient(135deg, rgba(63, 0, 216, .06), rgba(255, 211, 110, .08));
+}
+
+.hero-card strong,
+.placezum-card strong {
+  color: var(--android-accent);
+}
+
+.hero-card p,
+.hero-card span,
+.placezum-card p,
+.placezum-card span {
+  color: var(--android-muted);
+}
+
+.bottom-nav {
+  width: min(620px, calc(100% - 18px));
+  border-radius: 22px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  background: rgba(255,255,255,.94);
+  box-shadow: var(--android-shadow);
+}
+
+.bottom-nav button {
+  border-radius: 16px;
+}
+
+.toast,
+.action-progress {
+  border: 1px solid rgba(63,0,216,.12);
+  border-radius: 18px;
+  box-shadow: var(--android-shadow);
+}
+
+.info-hero,
+.content-hero,
+.legal-hero {
+  width: min(1160px, 100%);
+  border: 1px solid rgba(63, 0, 216, .12);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.96), rgba(244,238,255,.88)),
+    var(--android-surface);
+  box-shadow: var(--android-shadow);
+  color: var(--android-ink);
+}
+
+.info-hero > img {
+  opacity: .16;
+  filter: saturate(1.08);
+}
+
+.info-hero::after,
+.content-hero::after,
+.legal-hero::after {
+  background: linear-gradient(90deg, rgba(255,255,255,.96), rgba(255,255,255,.82));
+}
+
+.info-hero span,
+.content-hero span,
+.legal-hero span {
+  color: var(--android-accent);
+}
+
+.info-hero h1,
+.content-hero h1,
+.legal-hero h1 {
+  color: var(--android-ink);
+}
+
+.info-hero p,
+.content-hero p,
+.legal-hero p {
+  color: var(--android-muted);
+}
+
+.info-card,
+.legal-card,
+.content-card,
+.news-card,
+.plan-card,
+.detail-card,
+.share-panel {
+  border: 1px solid rgba(63, 0, 216, .11);
+  border-radius: 18px;
+  background: rgba(255,255,255,.96);
+  box-shadow: var(--android-shadow-soft);
+}
+
+.info-card svg,
+.content-card svg,
+.news-card svg,
+.plan-card svg,
+.detail-card svg {
+  color: var(--android-accent);
+}
+
+.pay-link-page {
+  background:
+    linear-gradient(180deg, rgba(63,0,216,.08), transparent 320px),
+    var(--android-bg);
+}
+
+.pay-link-card {
+  border: 1px solid rgba(63, 0, 216, .12);
+  border-radius: 24px;
+  background: rgba(255,255,255,.96);
+  box-shadow: var(--android-shadow);
+}
+
+.pay-link-card h1,
+.pay-link-breakdown strong {
+  color: var(--android-ink);
+}
+
+.pay-link-card p,
+.pay-link-breakdown span,
+.pay-link-card small {
+  color: var(--android-muted);
+}
+
+.pay-link-status-orb,
+.pay-link-card button {
+  background: linear-gradient(135deg, var(--android-accent), var(--android-soft));
+}
+
+.pay-link-input-wrap,
+.pay-link-verification {
+  border-color: rgba(63,0,216,.12);
+  border-radius: 16px;
+  background: var(--android-surface-2);
+}
+
+@media (max-width: 900px) {
+  .lp4-hero-inner,
+  .lp4-hero-inner.landing-only,
+  .lp4-showcase,
+  .developer-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .lp4-hero,
+  .lp4-hero-inner,
+  .lp4-hero-inner.landing-only {
+    min-height: auto;
+  }
+
+  .lp4-carousel-panel {
+    max-width: 520px;
+  }
+
+  .lp4-service-grid,
+  .lp4-post-grid,
+  .lp4-info-grid,
+  .lp4-article-grid,
+  .lp4-channel-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .lp4-shell,
+  .landing-page,
+  .login-page {
+    padding-inline: 9px;
+  }
+
+  .lp4-nav {
+    min-height: 60px;
+    border-radius: 0 0 16px 16px;
+  }
+
+  .lp4-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .lp4-brand strong {
+    max-width: 46vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .lp4-hero {
+    border-radius: 20px;
+  }
+
+  .lp4-hero-inner,
+  .lp4-hero-inner.landing-only {
+    padding: 18px;
+  }
+
+  .lp4-hero-copy h1 {
+    font-size: clamp(2rem, 14vw, 3.35rem);
+  }
+
+  .lp4-hero-badges {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .lp4-carousel-controls {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 3px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .lp4-carousel-controls button {
+    min-width: 180px;
+    scroll-snap-align: start;
+  }
+
+  .lp4-strip,
+  .lp4-service-grid,
+  .lp4-post-grid,
+  .lp4-info-grid,
+  .lp4-article-grid,
+  .lp4-channel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lp4-product,
+  .lp4-help,
+  .lp4-showcase,
+  .lp4-channels,
+  .lp4-developers,
+  .lp4-final-cta,
+  .lp4-footer {
+    border-radius: 18px;
+    padding: 15px;
+  }
+
+  .developer-code pre {
+    font-size: .78rem;
+  }
+
+  .app-shell {
+    padding-inline: 10px;
+  }
+
+  .topbar {
+    border-radius: 0 0 18px 18px;
+  }
+}
+
+@media (max-width: 420px) {
+  .lp4-links .lp4-link-cta {
+    padding-inline: 10px;
+  }
+
+  .lp4-links a:not(.lp4-link-cta) {
+    display: none;
+  }
+
+  .lp4-hero-actions {
+    display: grid;
+  }
+
+  .lp4-hero-actions a {
+    width: 100%;
+    text-align: center;
+  }
+}

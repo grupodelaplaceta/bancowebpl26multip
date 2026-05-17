@@ -76,7 +76,7 @@ import {
 } from "../lib/bank";
 import { gdlpNews, planProjects } from "../lib/gdlp-content";
 import { generateBankPdf } from "../lib/pdf";
-import { BANK_SITE_URL, GDLP_SITE_URL, GDLP_SITE_URL_NO_WWW } from "../lib/site";
+import { BANK_API_URL, BANK_SITE_URL, GDLP_SITE_URL, GDLP_SITE_URL_NO_WWW } from "../lib/site";
 import type { WebDocumentKind } from "../lib/pdf";
 
 type Tab = "home" | "placezum" | "market" | "hub" | "tributos" | "admin";
@@ -131,12 +131,12 @@ const landingWorkflow = [
 ];
 
 const developerApiCards = [
-  { title: "Crear pago", method: "POST", path: "/api/developer-payments", text: "Genera un pago firmado con importe neto, IVA y total a cobrar." },
-  { title: "Consultar pago", method: "GET", path: "/api/developer-payments/{id}?token=...", text: "Valida el token y recupera la ficha del pago para checkout externo." },
-  { title: "Capturar pago", method: "POST", path: "/api/developer-payments/{id}/capture", text: "Carga la cuenta pagadora, abona al comercio y separa el IVA hacia TGLP." }
+  { title: "Crear pago", method: "POST", path: `${BANK_API_URL}/api/developer-payments`, text: "Genera un pago firmado con importe neto, IVA y total a cobrar." },
+  { title: "Consultar pago", method: "GET", path: `${BANK_API_URL}/api/developer-payments/{id}?token=...`, text: "Valida el token y recupera la ficha del pago para checkout externo." },
+  { title: "Capturar pago", method: "POST", path: `${BANK_API_URL}/api/developer-payments/{id}/capture`, text: "Carga la cuenta pagadora, abona al comercio y separa el IVA hacia TGLP." }
 ];
 
-const developerSnippet = `await fetch("/api/developer-payments", {
+const developerSnippet = `await fetch("${BANK_API_URL}/api/developer-payments", {
   method: "POST",
   headers: { "content-type": "application/json", "x-api-key": "TU_API_KEY" },
   body: JSON.stringify({
@@ -147,7 +147,7 @@ const developerSnippet = `await fetch("/api/developer-payments", {
 });`;
 
 const developerImplementationPack = {
-  create: `const createResponse = await fetch("${BANK_SITE_URL}/api/developer-payments", {
+  create: `const createResponse = await fetch("${BANK_API_URL}/api/developer-payments", {
   method: "POST",
   headers: {
     "content-type": "application/json",
@@ -161,7 +161,7 @@ const developerImplementationPack = {
 });
 
 const { payment, token, checkoutUrl } = await createResponse.json();`,
-  captureIban: `const captureResponse = await fetch(\`${BANK_SITE_URL}/api/developer-payments/\${payment.id}/capture\`, {
+  captureIban: `const captureResponse = await fetch(\`${BANK_API_URL}/api/developer-payments/\${payment.id}/capture\`, {
   method: "POST",
   headers: { "content-type": "application/json" },
   body: JSON.stringify({
@@ -172,7 +172,7 @@ const { payment, token, checkoutUrl } = await createResponse.json();`,
 });
 
 const confirmation = await captureResponse.json();`,
-  captureCard: `const cardCapture = await fetch(\`${BANK_SITE_URL}/api/developer-payments/\${payment.id}/capture\`, {
+  captureCard: `const cardCapture = await fetch(\`${BANK_API_URL}/api/developer-payments/\${payment.id}/capture\`, {
   method: "POST",
   headers: { "content-type": "application/json" },
   body: JSON.stringify({

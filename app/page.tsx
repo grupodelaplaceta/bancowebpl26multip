@@ -208,7 +208,7 @@ const helpPosts = [
   { id: "ticket-soporte", title: "Cómo abrir un ticket útil", tag: "Soporte", image: "/assets/logobanco.jpg", text: "Incluye cuenta, tarjeta o movimiento relacionado para que la revisión sea más rápida y clara." }
 ];
 
-const PLACETAID_BASE_URL = "https://plid26.vercel.app";
+const PLACETAID_BASE_URL = "https://id.laplaceta.org";
 const PLACETAID_SERVICE_NAME = "BancodeLaPlacetaDev";
 
 type PlacetaIdUserPayload = {
@@ -338,7 +338,7 @@ export default function BancoPlacetaWeb() {
   return <BancoPlacetaClient />;
 }
 
-export function BancoPlacetaClient() {
+function BancoPlacetaClient() {
   const pathname = usePathname();
   const [state, setState] = useState<BankState>(() => normalizeState(null));
   const [activeUser, setActiveUser] = useState<UserProfile | null>(null);

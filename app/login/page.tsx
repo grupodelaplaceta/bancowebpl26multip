@@ -1,7 +1,7 @@
 "use client";
 
-import { BancoPlacetaClient } from "../page";
+import BancoPlacetaPage from "../page";
 
 export default function LoginPage() {
-  return <BancoPlacetaClient />;
+  return <BancoPlacetaPage />;
 }

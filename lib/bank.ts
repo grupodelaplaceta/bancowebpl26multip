@@ -285,7 +285,7 @@ export const treasuryDefaults: TreasuryConfig = {
   investmentGainCommissionPercent: 4,
   maxInvestmentAmountPz: 1200,
   dailyInvestmentLimit: 15,
-  minSupportedVersionCode: 1,
+  minSupportedVersionCode: 4,
   lastSavingsInterestDate: null
 };
 
@@ -318,7 +318,7 @@ export function normalizeTreasuryConfig(config: Partial<TreasuryConfig> = {}): T
     investmentGainCommissionPercent: clamp(next.investmentGainCommissionPercent, 0, 100),
     maxInvestmentAmountPz: clamp(next.maxInvestmentAmountPz, 1, 1200),
     dailyInvestmentLimit: clamp(next.dailyInvestmentLimit, 1, 250),
-    minSupportedVersionCode: Math.max(1, Math.floor(next.minSupportedVersionCode || 1))
+    minSupportedVersionCode: Math.max(4, Math.floor(next.minSupportedVersionCode || 4))
   };
 }
 

@@ -1082,6 +1082,7 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
   const [pin, setPin] = useState("1234");
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
+  const [showPin, setShowPin] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
@@ -1144,11 +1145,21 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
     }
   }
 
+  function fillDemo() {
+    setMode("login");
+    setDip("DIP-A001");
+    setPin("1234");
+    setName("");
+    setConsent(false);
+    setError("");
+  }
+
   const loginForm = (
     <form id="acceso" className="lp4-login" onSubmit={submit}>
       <div className="lp4-login-head">
-        <span>{sync === "online" ? "Servicio conectado" : sync === "offline" ? "Modo sin conexión" : "Sincronizando datos"}</span>
-        <h2>{mode === "login" ? "Acceso DIP" : "Crear acceso"}</h2>
+        <span className={`login-status ${sync}`}>{sync === "online" ? "Servicio conectado" : sync === "offline" ? "Modo sin conexión" : "Sincronizando datos"}</span>
+        <h2>{mode === "login" ? "Entrar al banco" : "Crear acceso DIP"}</h2>
+        <p>{mode === "login" ? "Accede con tu identidad GDLP o con tu DIP local." : "Crea un acceso local para operar solo con tus cuentas vinculadas."}</p>
       </div>
       <button type="button" className="placetaid-button" onClick={startPlacetaId}>
         <ShieldCheck size={19} />
@@ -1164,7 +1175,15 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
       </div>
       {mode === "register" && <Field label="Nombre" value={name} onChange={setName} placeholder="Tu nombre" />}
       <Field label="DIP oficial" value={dip} onChange={setDip} placeholder="DIP-XXXX" />
-      <Field label="PIN" value={pin} onChange={setPin} placeholder="1234" type="password" />
+      <label className="field pin-field">
+        <span>PIN</span>
+        <span className="pin-input-wrap">
+          <input value={pin} onChange={(event) => setPin(event.target.value)} placeholder="1234" type={showPin ? "text" : "password"} inputMode="numeric" autoComplete={mode === "login" ? "current-password" : "new-password"} />
+          <button type="button" aria-label={showPin ? "Ocultar PIN" : "Mostrar PIN"} onClick={() => setShowPin((value) => !value)}>
+            {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </span>
+      </label>
       {mode === "register" && (
         <label className="legal-consent">
           <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
@@ -1174,8 +1193,13 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
         </label>
       )}
       {error && <p className="form-error">{error}</p>}
-      <button className="primary-button" type="submit" disabled={submitting}>{submitting ? "Creando acceso..." : mode === "login" ? "Abrir banco" : "Crear DIP"}</button>
-      <p className="login-hint">Demo: DIP-A001 / PIN 1234</p>
+      <button className="primary-button login-submit" type="submit" disabled={submitting}>{submitting ? "Validando..." : mode === "login" ? "Abrir banco" : "Crear DIP"}</button>
+      {mode === "login" && (
+        <button type="button" className="demo-login-button" onClick={fillDemo}>
+          <Lock size={16} />
+          Usar demo DIP-A001
+        </button>
+      )}
     </form>
   );
 
@@ -1183,12 +1207,19 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
     return (
       <main className="lp4-shell login-page login-only-page" id="acceso">
         <section className="login-only-card" aria-label="Acceso Banco de La Placeta">
-          <a className="login-only-brand" href="/" aria-label="Volver al Banco de La Placeta">
-            <span>
-              <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="76px" priority />
-            </span>
-            <strong>Banco de La Placeta</strong>
-          </a>
+          <div className="login-only-side">
+            <a className="login-only-brand" href="/" aria-label="Volver al Banco de La Placeta">
+              <span>
+                <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="76px" priority />
+              </span>
+              <strong>Banco de La Placeta</strong>
+            </a>
+            <div>
+              <span>Acceso seguro</span>
+              <h1>Tu banco GDLP</h1>
+              <p>Entra con PlacetaID o con tu DIP local. La web valida propiedad antes de mostrar u operar cuentas.</p>
+            </div>
+          </div>
           {loginForm}
         </section>
       </main>

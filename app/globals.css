@@ -16,8 +16,8 @@
   --brand-purple-dark: #260083;
   --gold: #b77912;
   --red: #3F00D8;
-  --green: #168255;
-  --blue: #1f6f9f;
+  --green: #3F00D8;
+  --blue: #3F00D8;
   --shadow-sm: 0 6px 16px rgba(23, 19, 34, 0.05);
   --shadow: 0 14px 34px rgba(23, 19, 34, 0.08);
   --radius: 14px;
@@ -304,8 +304,8 @@ button:focus-visible, input:focus-visible {
   font-weight: 900;
 }
 .placetaid-loading-steps span.done {
-  color: #168255;
-  background: rgba(22, 130, 85, .09);
+  color: #3F00D8;
+  background: rgba(63, 0, 216, .09);
 }
 .placetaid-loading-steps span.active {
   color: #3F00D8;
@@ -616,7 +616,7 @@ button:focus-visible, input:focus-visible {
   overflow-wrap: anywhere;
 }
 .metric-card.purple { background: #3F00D8; }
-.metric-card.green { background: #168255; }
+.metric-card.green { background: #3F00D8; }
 .metric-card.gold { background: #b77912; }
 .metric-card.red { background: #3F00D8; }
 .action-grid {
@@ -1078,7 +1078,7 @@ button:focus-visible, input:focus-visible {
   color: var(--brand);
 }
 .txn-icon.income {
-  background: rgba(22, 130, 85, .12);
+  background: rgba(63, 0, 216, .12);
   color: var(--green);
 }
 
@@ -1261,8 +1261,8 @@ button:focus-visible, input:focus-visible {
 }
 .contact-resolver.resolved {
   border-style: solid;
-  border-color: rgba(22, 130, 85, .28);
-  background: rgba(22, 130, 85, .1);
+  border-color: rgba(63, 0, 216, .28);
+  background: rgba(63, 0, 216, .1);
 }
 .contact-resolver div {
   min-width: 0;
@@ -1632,8 +1632,8 @@ button:focus-visible, input:focus-visible {
 .risk-badge.risk-2,
 .risk-bar span.risk-1,
 .risk-bar span.risk-2 {
-  --risk-color: #168255;
-  --risk-bg: rgba(22, 130, 85, .12);
+  --risk-color: #3F00D8;
+  --risk-bg: rgba(63, 0, 216, .12);
 }
 .risk-badge.risk-3,
 .risk-badge.risk-4,
@@ -4858,7 +4858,7 @@ button:focus-visible, input:focus-visible {
 .pay-link-status-orb.loading svg,
 .pay-link-form button svg:first-child { animation: spin .75s linear infinite; }
 .pay-link-status-orb.paid {
-  background: #168255;
+  background: #3F00D8;
   animation: none;
 }
 .pay-link-status-orb.paid svg { animation: payPop .42s ease; }
@@ -4963,7 +4963,7 @@ button:focus-visible, input:focus-visible {
   background: rgba(22,130,85,.055);
   box-shadow: 0 0 0 4px rgba(22,130,85,.07);
 }
-.pay-link-input-wrap.card svg { color: #168255; }
+.pay-link-input-wrap.card svg { color: #3F00D8; }
 .pay-link-slide-in { animation: paySlide .22s ease; }
 @keyframes paySlide {
   from { opacity: 0; transform: translateY(-4px); }
@@ -6535,7 +6535,7 @@ body {
   --android-accent: #3F00D8;
   --android-accent-dark: #2D0A83;
   --android-soft: #8F63FF;
-  --android-mint: #03DAC6;
+  --android-mint: #3F00D8;
   --android-gold: #FFD36E;
   --android-line: rgba(63, 0, 216, .14);
   --android-shadow: 0 16px 40px rgba(36, 16, 79, .09);
@@ -6644,7 +6644,7 @@ body {
 .lp4-hero-shade {
   background:
     linear-gradient(90deg, rgba(255,255,255,.96) 0%, rgba(255,255,255,.9) 48%, rgba(244,238,255,.58) 100%),
-    linear-gradient(180deg, rgba(3,218,198,.08), rgba(255,211,110,.08));
+    linear-gradient(180deg, rgba(63,0,216,.08), rgba(255,211,110,.08));
 }
 
 .lp4-hero-inner,
@@ -7583,7 +7583,7 @@ body {
   --android-accent: #3F00D8;
   --android-accent-2: #5A22FF;
   --android-soft: #7C4DFF;
-  --android-cyan: #03DAC6;
+  --android-cyan: #3F00D8;
   --android-cyan-ink: #2A006E;
   --android-ink: #171322;
   --android-muted: #6b637b;
@@ -8175,7 +8175,7 @@ select {
   --android-accent: #3F00D8;
   --android-accent-2: #3F00D8;
   --android-soft: #3F00D8;
-  --android-cyan: #03DAC6;
+  --android-cyan: #3F00D8;
   --android-cyan-ink: #2A006E;
   --android-bg: #f7f5ff;
   --android-surface: #ffffff;
@@ -8294,8 +8294,8 @@ a:active svg,
 .hero-actions a:first-child,
 .lp4-hero-actions a:first-child {
   color: var(--android-cyan-ink);
-  background: #03DAC6;
-  border-color: #03DAC6;
+  background: #3F00D8;
+  border-color: #3F00D8;
   box-shadow: none;
 }
 
@@ -8711,6 +8711,20 @@ select:focus {
 .landing-page .bank-simple-carousel {
   min-height: clamp(420px, 72vh, 760px);
 }
+.landing-page .bank-simple-carousel > img {
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  object-position: center;
+  opacity: 1 !important;
+  filter: saturate(1.04) contrast(1.02) brightness(.9) !important;
+}
+.landing-page .bank-simple-carousel .lp4-hero-shade {
+  background:
+    linear-gradient(90deg, rgba(11, 5, 32, .78) 0%, rgba(11, 5, 32, .48) 47%, rgba(11, 5, 32, .18) 100%),
+    linear-gradient(180deg, rgba(0, 0, 0, .08), rgba(0, 0, 0, .42));
+}
 .landing-page .bank-simple-carousel .lp4-hero-inner,
 .landing-page .bank-simple-carousel .lp4-hero-inner.landing-only {
   display: flex;
@@ -8722,6 +8736,12 @@ select:focus {
 }
 .landing-page .bank-simple-carousel .lp4-hero-copy {
   max-width: 720px;
+}
+.landing-page .bank-simple-carousel .lp4-hero-copy > span,
+.landing-page .bank-simple-carousel .lp4-hero-copy h1,
+.landing-page .bank-simple-carousel .lp4-hero-copy p {
+  color: white;
+  text-shadow: 0 12px 34px rgba(0, 0, 0, .34);
 }
 .landing-page .bank-simple-carousel .lp4-hero-copy h1 {
   margin-bottom: 12px;

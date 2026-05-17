@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { BANK_API_URL } from "../../lib/site";
+import { BANK_API_URL } from "../../../lib/site";
 
 const infoPages = [
   {

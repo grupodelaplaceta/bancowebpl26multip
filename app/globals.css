@@ -1231,6 +1231,23 @@ button:focus-visible, input:focus-visible {
   gap: 10px;
   margin-bottom: 12px;
 }
+.direct-pay-box {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  margin: 4px 0 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  background: rgba(63, 0, 216, .04);
+}
+.modal-subtitle {
+  margin: 4px 0 10px;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 920;
+  text-transform: uppercase;
+}
+
 .contact-resolver {
   min-height: 72px;
   padding: 12px;
@@ -8688,4 +8705,27 @@ select:focus {
   .product-type-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
+
+/* Banco landing carousel: image + text only. */
+.landing-page .bank-simple-carousel {
+  min-height: clamp(420px, 72vh, 760px);
+}
+.landing-page .bank-simple-carousel .lp4-hero-inner,
+.landing-page .bank-simple-carousel .lp4-hero-inner.landing-only {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  max-width: 1180px;
+  min-height: inherit;
+  padding-bottom: clamp(40px, 8vw, 82px);
+}
+.landing-page .bank-simple-carousel .lp4-hero-copy {
+  max-width: 720px;
+}
+.landing-page .bank-simple-carousel .lp4-hero-copy h1 {
+  margin-bottom: 12px;
+}
+.landing-page .bank-simple-carousel .lp4-hero-copy p {
+  max-width: 620px;
 }

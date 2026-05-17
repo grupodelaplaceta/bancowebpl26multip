@@ -97,25 +97,19 @@ const landingSlides = [
     title: "Banco de La Placeta",
     kicker: "Banca digital",
     subtitle: "Cuentas, pagos y tarjetas virtuales en una interfaz clara.",
-    image: "/assets/promos/promo1.png",
-    action: "Abrir cuenta",
-    metric: "Operativa diaria"
+    image: "/assets/promos/promo1.png"
   },
   {
     title: "Pagos rápidos",
     kicker: "Placezum",
     subtitle: "Envía, recibe y revisa movimientos sin perderte entre pantallas.",
-    image: "/assets/promos/promo2.png",
-    action: "Ver demo",
-    metric: "Pagos y actividad"
+    image: "/assets/promos/promo2.png"
   },
   {
     title: "Gestión completa",
     kicker: "Empresas",
     subtitle: "Nóminas, documentos, soporte y administración en módulos separados.",
-    image: "/assets/promos/mercado-default.png",
-    action: "Conocer funciones",
-    metric: "Empresa y soporte"
+    image: "/assets/promos/mercado-default.png"
   }
 ];
 
@@ -214,6 +208,7 @@ const helpPosts = [
 
 const PLACETAID_BASE_URL = "https://id.laplaceta.org";
 const PLACETAID_SERVICE_NAME = "BancodeLaPlacetaDev";
+const BANK_STATE_POLL_MS = 5000;
 
 type PlacetaIdUserPayload = {
   dip?: string;
@@ -241,6 +236,19 @@ function hasPlacetaIdCallback() {
   if (typeof window === "undefined") return false;
   const params = new URLSearchParams(window.location.search);
   return Boolean((params.get("placetaid_token") || params.get("token")) && params.get("user"));
+}
+
+function bankStateFingerprint(state: BankState) {
+  return JSON.stringify({
+    updatedAt: state.updatedAt || "",
+    accounts: state.accounts.map((account) => [account.id, account.balancePz, account.iban, account.displayName, account.complianceStatus || ""]),
+    transactions: state.transactions.map((transaction) => [transaction.id, transaction.status, transaction.amountPz, transaction.createdAt]),
+    users: state.users.map((user) => [user.dip, user.displayName, user.primaryAccountId]),
+    cards: state.digitalCards.map((card) => [card.id, card.accountId, card.frozen, card.released]),
+    contacts: state.savedContacts.map((contact) => [contact.ownerPlacetaId, contact.accountId]),
+    tickets: (state.supportTickets || []).map((ticket) => [ticket.id, ticket.status, ticket.updatedAt]),
+    links: (state.paymentLinks || []).map((link) => [link.id, link.status, link.usedAt || "", link.totalPz])
+  });
 }
 
 function placetaIdFromDip(dip: string) {
@@ -434,6 +442,7 @@ function BancoPlacetaClient() {
   const notificationsReadyRef = useRef(false);
   const notificationUserRef = useRef("");
   const placetaIdCallbackHandledRef = useRef(false);
+  const lastRemoteFingerprintRef = useRef("");
 
   useEffect(() => {
     const cached = localStorage.getItem("placeta-web-state");
@@ -444,10 +453,11 @@ function BancoPlacetaClient() {
       setState(cachedState);
       setHydrated(true);
     }
-    fetch("/api/bank-state", { cache: "no-store" })
+    fetch(`/api/bank-state?ts=${Date.now()}`, { cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Servicio no disponible");
         const remote = normalizeState(await response.json());
+        lastRemoteFingerprintRef.current = bankStateFingerprint(remote);
         setState(remote);
         setHydrated(true);
         localStorage.setItem("placeta-web-state", JSON.stringify(remote));
@@ -475,6 +485,7 @@ function BancoPlacetaClient() {
 
   useEffect(() => {
     stateRef.current = state;
+    lastRemoteFingerprintRef.current = bankStateFingerprint(state);
   }, [state]);
 
   useEffect(() => {
@@ -529,7 +540,7 @@ function BancoPlacetaClient() {
     if (persistInFlightRef.current || operationInFlightRef.current || remoteRefreshInFlightRef.current) return;
     remoteRefreshInFlightRef.current = true;
     try {
-      const response = await fetch("/api/bank-state", { cache: "no-store" });
+      const response = await fetch(`/api/bank-state?ts=${Date.now()}`, { cache: "no-store" });
       if (!response.ok) throw new Error("Servicio no disponible");
       const remote = normalizeState(await response.json());
       const current = stateRef.current;
@@ -537,7 +548,10 @@ function BancoPlacetaClient() {
       const currentTime = Date.parse(current.updatedAt || "");
       const canCompareDates = Number.isFinite(remoteTime) && Number.isFinite(currentTime);
       const remoteIsNewer = canCompareDates ? remoteTime > currentTime : remote.updatedAt !== current.updatedAt;
-      if (remoteIsNewer) {
+      const remoteFingerprint = bankStateFingerprint(remote);
+      const contentChanged = remoteFingerprint !== lastRemoteFingerprintRef.current;
+      if (remoteIsNewer || contentChanged) {
+        lastRemoteFingerprintRef.current = remoteFingerprint;
         setState(remote);
         localStorage.setItem("placeta-web-state", JSON.stringify(remote));
       }
@@ -551,10 +565,20 @@ function BancoPlacetaClient() {
 
   useEffect(() => {
     if (!hydrated) return;
+    void silentRemoteRefresh();
     const timer = window.setInterval(() => {
       void silentRemoteRefresh();
-    }, 5000);
-    return () => window.clearInterval(timer);
+    }, BANK_STATE_POLL_MS);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void silentRemoteRefresh();
+    };
+    window.addEventListener("focus", refreshWhenVisible);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener("focus", refreshWhenVisible);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
   }, [hydrated, silentRemoteRefresh]);
 
   useEffect(() => {
@@ -652,7 +676,7 @@ function BancoPlacetaClient() {
   }
 
   async function fetchFreshState(applyToUi = true) {
-    const response = await fetch("/api/bank-state", { cache: "no-store" });
+    const response = await fetch(`/api/bank-state?ts=${Date.now()}`, { cache: "no-store" });
     if (!response.ok) throw new Error("No se pudo leer el estado remoto");
     const remote = normalizeState(await response.json());
     if (applyToUi) {
@@ -1143,7 +1167,7 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
         </nav>
       </header>
 
-      <section className="lp4-hero">
+      <section className="lp4-hero bank-simple-carousel">
         <Image src={activeSlide.image} alt={activeSlide.title} fill priority sizes="100vw" />
         <div className="lp4-hero-shade" />
         <div className="lp4-hero-inner landing-only">
@@ -1151,33 +1175,7 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
             <span>{activeSlide.kicker}</span>
             <h1>{activeSlide.title}</h1>
             <p>{activeSlide.subtitle}</p>
-            <div className="lp4-hero-actions">
-              <a href="/login">Entrar al banco</a>
-              <a href="#modulos">Ver módulos</a>
-            </div>
-            <div className="lp4-carousel-controls" aria-label="Carrusel Banco de La Placeta">
-              {landingSlides.map((slide, index) => (
-                <button
-                  key={slide.title}
-                  type="button"
-                  className={index === slideIndex ? "active" : ""}
-                  onClick={() => setSlideIndex(index)}
-                  aria-label={`Ver ${slide.title}`}
-                >
-                  <span>{String(index + 1).padStart(2, "0")}</span>
-                  <strong>{slide.kicker}</strong>
-                  <small>{slide.metric}</small>
-                </button>
-              ))}
-            </div>
           </div>
-
-          <aside className="lp4-carousel-panel" aria-label="Resumen del carrusel">
-            <span>{String(slideIndex + 1).padStart(2, "0")} / {String(landingSlides.length).padStart(2, "0")}</span>
-            <strong>{activeSlide.metric}</strong>
-            <p>{activeSlide.action}</p>
-            <a href="/login">Ir al acceso seguro</a>
-          </aside>
         </div>
       </section>
 
@@ -1504,16 +1502,30 @@ function AccountCreationForm({ parentAccount, onCreate }: { parentAccount: Accou
 
 function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay, onAddContact, onRemoveContact }: { user: UserProfile; account: Account; accounts: Account[]; contacts: { accountId: string }[]; limit: number; spent: number; onPay: (targetId: string, amount: number) => void; onAddContact: (accountId: string) => void; onRemoveContact: (accountId: string) => void }) {
   const [amount, setAmount] = useState(12);
+  const [payTargetQuery, setPayTargetQuery] = useState("");
   const [contactQuery, setContactQuery] = useState("");
   const [activeModal, setActiveModal] = useState<"pay" | "contacts" | "receive" | null>(null);
-  const [tick, setTick] = useState(0);
-  const codeWindow = Math.floor(tick / 120);
+  const [, setTick] = useState(0);
+  const nowMs = Date.now();
+  const codeWindow = Math.floor(nowMs / 120000);
   const code = useMemo(() => generatePlacezumCode(account, new Date(codeWindow * 120000)), [account, codeWindow]);
-  const secondsLeft = 120 - (tick % 120);
+  const secondsLeft = 120 - (Math.floor(nowMs / 1000) % 120);
   const remaining = Math.max(0, limit - spent);
   const usagePercent = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
   const safeAmount = Math.max(0, Math.min(amount, remaining));
   const quickAmounts = remaining > 0 ? [5, 12, 25, 50, 100].filter((value) => value <= Math.max(remaining, 5)) : [];
+  const normalizedPayTarget = payTargetQuery.trim().toUpperCase();
+  const payCodeCandidate = normalizedPayTarget.replace(/\D/g, "");
+  const payTarget = normalizedPayTarget
+    ? accounts.find((candidate) =>
+      candidate.id !== account.id && (
+        candidate.iban.toUpperCase() === normalizedPayTarget ||
+        candidate.placetaId?.toUpperCase() === normalizedPayTarget ||
+        candidate.displayName.toUpperCase().includes(normalizedPayTarget) ||
+        (payCodeCandidate.length === 5 && [0, 120000].some((offset) => generatePlacezumCode(candidate, new Date(Date.now() - offset)) === payCodeCandidate))
+      )
+    )
+    : undefined;
   const normalizedQuery = contactQuery.trim().toUpperCase();
   const resolvedContact = normalizedQuery
     ? accounts.find((candidate) =>
@@ -1556,14 +1568,14 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
       <article className="panel action-summary">
         <SectionTitle icon={ScanLine} title="Placezum" />
         <div className="placezum-actions">
-          <button onClick={() => setActiveModal("pay")}><CircleDollarSign size={22} /><strong>Pagar</strong><span>A contacto guardado</span></button>
-          <button onClick={() => setActiveModal("contacts")}><ShieldCheck size={22} /><strong>Contactos</strong><span>Añadir o quitar</span></button>
+          <button onClick={() => setActiveModal("pay")}><CircleDollarSign size={22} /><strong>Pagar</strong><span>Código, IBAN o favorito</span></button>
+          <button onClick={() => setActiveModal("contacts")}><ShieldCheck size={22} /><strong>Favoritos</strong><span>Opcional, para repetir</span></button>
           <button onClick={() => setActiveModal("receive")}><QrCode size={22} /><strong>Recibir</strong><span>Código temporal</span></button>
         </div>
       </article>
       <article className="panel split-panel">
         <div><ShieldCheck size={23} /><strong>Límite semanal</strong><span>{formatPz(spent)} de {formatPz(limit)} Pz por Placezum</span><i className="placezum-progress"><b style={{ width: `${usagePercent}%` }} /></i></div>
-        <div><Lock size={23} /><strong>Operación segura</strong><span>Valida IBAN, contacto y cupo antes de enviar</span></div>
+        <div><Lock size={23} /><strong>Operación simple</strong><span>Los contactos son favoritos; también puedes pagar con código, IBAN o Placeta ID</span></div>
       </article>
 
       <Modal title="Pagar con Placezum" open={activeModal === "pay"} onClose={() => setActiveModal(null)}>
@@ -1573,7 +1585,24 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
             <button key={value} className={safeAmount === value ? "active" : ""} onClick={() => setAmount(value)}>{formatPz(value)}</button>
           ))}
         </div>
+        <div className="direct-pay-box">
+          <Field label="Código Placezum, IBAN, Placeta ID o nombre" value={payTargetQuery} onChange={setPayTargetQuery} placeholder="12345 o GDLP-APXX-XXX" />
+          <div className={`contact-resolver ${payTarget ? "resolved" : ""}`}>
+            <div>
+              <strong>{payTarget?.displayName || "Busca a quien recibe"}</strong>
+              <span>{payTarget ? `${payTarget.iban} · código ${generatePlacezumCode(payTarget)}` : "Escribe el código temporal o busca una cuenta; guardar contacto es opcional"}</span>
+            </div>
+            <button className="mini-action" disabled={!payTarget || safeAmount <= 0} onClick={() => {
+              if (!payTarget) return;
+              onPay(payTarget.id, safeAmount);
+              setPayTargetQuery("");
+              setActiveModal(null);
+            }}>Pagar</button>
+          </div>
+        </div>
         {favoriteAccounts.length ? (
+          <>
+          <div className="modal-subtitle">Favoritos guardados</div>
           <div className="contact-list">
             {favoriteAccounts.map((target) => (
               <div key={target.id} className="contact-item">
@@ -1589,16 +1618,17 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
               </div>
             ))}
           </div>
-        ) : <Empty title="Sin contactos" text="Añade un IBAN o Placeta ID para pagar por Placezum." />}
+          </>
+        ) : <Empty title="Sin favoritos" text="Puedes pagar arriba por código, IBAN, Placeta ID o nombre sin guardar contacto." />}
       </Modal>
 
-      <Modal title="Contactos Placezum" open={activeModal === "contacts"} onClose={() => setActiveModal(null)}>
+      <Modal title="Favoritos Placezum" open={activeModal === "contacts"} onClose={() => setActiveModal(null)}>
         <div className="contact-add">
-          <Field label="Añadir por IBAN, Placeta ID o nombre" value={contactQuery} onChange={setContactQuery} placeholder="GDLP-APXX-XXX" />
+          <Field label="Guardar favorito por IBAN, Placeta ID o nombre" value={contactQuery} onChange={setContactQuery} placeholder="GDLP-APXX-XXX" />
           <div className={`contact-resolver ${resolvedContact ? "resolved" : ""}`}>
             <div>
-              <strong>{resolvedContact?.displayName || "Introduce un contacto de la app"}</strong>
-              <span>{resolvedContact ? `${resolvedContact.iban} · código ${generatePlacezumCode(resolvedContact)}` : "Se resolverá nombre, IBAN y Placezum automáticamente"}</span>
+              <strong>{resolvedContact?.displayName || "Introduce una cuenta de la app"}</strong>
+              <span>{resolvedContact ? `${resolvedContact.iban} · código ${generatePlacezumCode(resolvedContact)}` : "Guardar es opcional: solo sirve para repetir pagos más rápido"}</span>
             </div>
             <button className="mini-action" disabled={!resolvedContact} onClick={() => {
               if (!resolvedContact) return;
@@ -1612,7 +1642,7 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
             {favoriteAccounts.map((target) => (
               <div key={target.id} className="contact-item">
                 <button className="contact-pay" onClick={() => {
-                  setContactQuery(target.iban);
+                  setPayTargetQuery(target.iban);
                   setActiveModal("pay");
                 }}>
                   <span>{target.displayName.slice(0, 1).toUpperCase()}</span>
@@ -1623,7 +1653,7 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
               </div>
             ))}
           </div>
-        ) : <Empty title="Sin contactos" text="Añade un IBAN real de la app para guardarlo aquí." />}
+        ) : <Empty title="Sin favoritos" text="Guarda solo los destinatarios que uses a menudo." />}
       </Modal>
 
       <Modal title="Recibir con Placezum" open={activeModal === "receive"} onClose={() => setActiveModal(null)}>

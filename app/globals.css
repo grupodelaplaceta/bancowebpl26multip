@@ -7548,3 +7548,531 @@ body {
 .login-only-card {
   border-radius: 30px;
 }
+
+/* Android app parity redesign */
+:root {
+  --android-accent: #3F00D8;
+  --android-accent-2: #5A22FF;
+  --android-soft: #7C4DFF;
+  --android-cyan: #03DAC6;
+  --android-cyan-ink: #2A006E;
+  --android-ink: #171322;
+  --android-muted: #6b637b;
+  --android-bg: #f6f3ff;
+  --android-surface: #ffffff;
+  --android-surface-2: #f4f0ff;
+  --android-line: rgba(63, 0, 216, .13);
+  --android-shadow: 0 24px 60px rgba(43, 20, 91, .14);
+  --android-shadow-soft: 0 10px 28px rgba(43, 20, 91, .08);
+  --radius: 18px;
+  --radius-lg: 24px;
+}
+
+html,
+body {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(3, 218, 198, .18), transparent 28%),
+    radial-gradient(circle at 92% 0%, rgba(63, 0, 216, .14), transparent 34%),
+    linear-gradient(180deg, #fbf9ff 0%, var(--android-bg) 42%, #ffffff 100%);
+}
+
+.app-shell {
+  width: min(1160px, 100%);
+  padding: 10px 12px calc(var(--nav-h) + 22px);
+  background: transparent;
+}
+
+.topbar {
+  min-height: 78px;
+  margin: -10px -12px 12px;
+  padding: 8px clamp(10px, 2vw, 18px);
+  border-radius: 0 0 22px 22px;
+  color: white;
+  background: linear-gradient(90deg, var(--android-accent), var(--android-accent-2) 58%, var(--android-soft)) !important;
+  border-bottom: 1px solid rgba(255,255,255,.18);
+  box-shadow: 0 20px 46px rgba(63, 0, 216, .24);
+}
+
+.top-brand {
+  gap: 10px;
+}
+
+.brand-logo {
+  width: 58px;
+  height: 58px;
+  border-radius: 0;
+}
+
+.topbar .eyebrow,
+.topbar h1,
+.top-user,
+.topbar .top-user {
+  color: white;
+}
+
+.topbar .eyebrow {
+  margin-bottom: 2px;
+  font-size: .68rem;
+  letter-spacing: .06em;
+  opacity: .82;
+}
+
+.topbar h1 {
+  font-size: clamp(1.18rem, 2.2vw, 1.42rem);
+  line-height: 1;
+}
+
+.top-user {
+  margin-top: 3px;
+  color: #E8D9FF;
+  font-size: .82rem;
+}
+
+.status-pill,
+.icon-button {
+  color: white;
+  background: rgba(255,255,255,.16);
+  border: 1px solid rgba(255,255,255,.28);
+  box-shadow: none;
+}
+
+.icon-button,
+.status-pill {
+  border-radius: 14px;
+}
+
+.icon-button.notify-on,
+.topbar .primary,
+.topbar .lp4-link-cta {
+  color: var(--android-cyan-ink);
+  background: var(--android-cyan);
+  border-color: var(--android-cyan);
+}
+
+.app-nav,
+.account-strip,
+.bottom-nav {
+  border: 1px solid var(--android-line);
+  background: rgba(255,255,255,.92);
+  box-shadow: var(--android-shadow-soft);
+  backdrop-filter: blur(18px);
+}
+
+.app-nav {
+  position: sticky;
+  top: 88px;
+  z-index: 7;
+  margin-bottom: 10px;
+  padding: 5px;
+  border-radius: 18px;
+}
+
+.app-nav button {
+  min-height: 40px;
+  border-radius: 14px;
+  color: var(--android-muted);
+}
+
+.app-nav button.active,
+.bottom-nav button.active,
+.account-chip.active {
+  color: white;
+  background: linear-gradient(90deg, var(--android-accent), var(--android-accent-2), var(--android-soft));
+  box-shadow: 0 12px 24px rgba(63, 0, 216, .20);
+}
+
+.account-strip {
+  padding: 7px;
+  border-radius: 18px;
+}
+
+.account-chip {
+  flex-basis: 172px;
+  min-height: 60px;
+  border-radius: 15px;
+  background: var(--android-surface);
+  border-color: var(--android-line);
+}
+
+.screen-grid,
+.hub-grid,
+.admin-grid,
+.detail-grid {
+  gap: 10px;
+}
+
+.hero-card,
+.placezum-card,
+.market-hero,
+.tributos-hero,
+.admin-hero,
+.hub-hero {
+  min-height: 178px;
+  padding: 16px;
+  border: 0;
+  border-radius: 22px;
+  color: white;
+  background: linear-gradient(90deg, var(--android-accent), var(--android-accent-2) 58%, var(--android-soft));
+  box-shadow: 0 22px 52px rgba(63, 0, 216, .26);
+}
+
+.hero-card::before,
+.placezum-card::before {
+  background:
+    radial-gradient(circle at 20% 0%, rgba(3, 218, 198, .26), transparent 30%),
+    url("/assets/logobanco.jpg") center/cover;
+  opacity: .18;
+}
+
+.hero-card::after,
+.placezum-card::after,
+.market-hero::after,
+.tributos-hero::after,
+.admin-hero::after,
+.hub-hero::after {
+  background: linear-gradient(90deg, rgba(63,0,216,.82), rgba(90,34,255,.72) 58%, rgba(124,77,255,.78));
+}
+
+.hero-card strong,
+.placezum-card strong {
+  color: white;
+  text-shadow: 0 12px 30px rgba(42,0,110,.28);
+}
+
+.hero-card p,
+.hero-card span,
+.placezum-card p,
+.placezum-card span {
+  color: #E8D9FF;
+}
+
+.quick-grid button,
+.contact-grid button,
+.service-grid button,
+.admin-action-grid button,
+.hub-action-grid button,
+.action-grid button,
+.fund-list .fund-card,
+.panel,
+.admin-panel,
+.hub-panel,
+.payroll-panel,
+.market-funds-panel,
+.history-panel,
+.split-panel,
+.market-ticket,
+.investment-analysis,
+.modal-panel,
+.login-panel {
+  border: 1px solid var(--android-line);
+  border-radius: 20px;
+  background: rgba(255,255,255,.96);
+  box-shadow: var(--android-shadow-soft);
+}
+
+.panel,
+.admin-panel,
+.hub-panel,
+.payroll-panel,
+.market-funds-panel,
+.history-panel,
+.split-panel,
+.market-ticket,
+.investment-analysis {
+  padding: 15px;
+}
+
+.section-title svg,
+.quick-grid svg,
+.service-grid svg,
+.hub-action-grid svg,
+.admin-action-grid svg,
+.info-card svg,
+.content-card svg,
+.news-card svg,
+.plan-card svg,
+.detail-card svg {
+  color: var(--android-accent);
+}
+
+.quick-grid button,
+.contact-grid button,
+.service-grid button {
+  min-height: 66px;
+  border-radius: 16px;
+}
+
+.primary-button,
+.secondary-button,
+.ghost-button,
+.placetaid-button,
+.pay-link-card button,
+.hero-actions a,
+.lp4-hero-actions a,
+.lp4-final-cta a,
+.section-link,
+.card-link {
+  border-radius: 14px;
+}
+
+.primary-button,
+.placetaid-button,
+.pay-link-card button,
+.hero-actions a:first-child,
+.lp4-hero-actions a:first-child,
+.section-link {
+  color: var(--android-cyan-ink);
+  background: var(--android-cyan);
+  border-color: var(--android-cyan);
+  box-shadow: 0 14px 28px rgba(3, 218, 198, .22);
+}
+
+.secondary-button,
+.ghost-button,
+.lp4-hero-actions a + a {
+  color: var(--android-accent);
+  background: rgba(63,0,216,.08);
+  border: 1px solid rgba(63,0,216,.16);
+}
+
+.metric-card {
+  border-radius: 20px;
+  background: linear-gradient(90deg, var(--android-accent), var(--android-accent-2), var(--android-soft)) !important;
+  box-shadow: 0 18px 38px rgba(63,0,216,.20);
+}
+
+.bank-card {
+  border-radius: 20px;
+  box-shadow: 0 22px 46px rgba(63,0,216,.18);
+}
+
+.field input,
+.field select,
+.lp4-login input:not([type="checkbox"]),
+.pay-link-card input,
+textarea,
+select {
+  border-radius: 14px;
+  border: 1px solid var(--android-line);
+  background: var(--android-surface-2);
+}
+
+.toast,
+.action-progress {
+  z-index: 120;
+  border-radius: 18px;
+  border: 1px solid var(--android-line);
+  color: var(--android-ink);
+  background: rgba(255,255,255,.96);
+  box-shadow: var(--android-shadow);
+}
+
+.action-progress span {
+  border-top-color: var(--android-accent);
+}
+
+.bottom-nav {
+  width: min(620px, calc(100% - 18px));
+  border-radius: 24px;
+  padding: 7px;
+}
+
+.bottom-nav button {
+  border-radius: 17px;
+}
+
+.login-only-page,
+.placetaid-loading-shell,
+.pay-link-page,
+.lp4-shell,
+.info-page,
+.content-page,
+.legal-page {
+  background:
+    radial-gradient(circle at 8% 0%, rgba(3, 218, 198, .18), transparent 28%),
+    radial-gradient(circle at 92% 0%, rgba(63, 0, 216, .14), transparent 34%),
+    linear-gradient(180deg, #fbf9ff 0%, var(--android-bg) 42%, #ffffff 100%);
+}
+
+.login-only-card,
+.placetaid-loading-card,
+.lp4-login,
+.pay-link-card,
+.info-card,
+.legal-card,
+.content-card,
+.news-card,
+.plan-card,
+.detail-card,
+.share-panel {
+  border: 1px solid var(--android-line);
+  border-radius: 24px;
+  background: rgba(255,255,255,.96);
+  box-shadow: var(--android-shadow);
+}
+
+.lp4-nav,
+.info-nav,
+.content-page .info-nav,
+.legal-page .info-nav {
+  color: white;
+  background: linear-gradient(90deg, var(--android-accent), var(--android-accent-2) 58%, var(--android-soft)) !important;
+  border-radius: 0 0 22px 22px;
+  box-shadow: 0 20px 46px rgba(63, 0, 216, .24);
+}
+
+.lp4-hero,
+.info-hero,
+.content-hero,
+.legal-hero {
+  border-radius: 24px;
+  border: 0;
+  color: white;
+  background: linear-gradient(90deg, var(--android-accent), var(--android-accent-2) 58%, var(--android-soft));
+  box-shadow: 0 22px 52px rgba(63,0,216,.24);
+}
+
+.landing-page .lp4-hero::before,
+.info-hero::after,
+.content-hero::after,
+.legal-hero::after {
+  background: linear-gradient(90deg, rgba(63,0,216,.78), rgba(90,34,255,.66), rgba(124,77,255,.68));
+}
+
+.lp4-hero-copy h1,
+.lp4-hero-copy p,
+.lp4-hero-copy > span,
+.info-hero h1,
+.info-hero p,
+.info-hero span,
+.content-hero h1,
+.content-hero p,
+.legal-hero h1,
+.legal-hero p {
+  color: white;
+}
+
+.lp4-carousel-panel,
+.lp4-product,
+.lp4-help,
+.lp4-showcase,
+.lp4-channels,
+.lp4-developers,
+.lp4-final-cta,
+.lp4-footer,
+.lp4-strip article,
+.lp4-service-grid a,
+.lp4-post-grid a,
+.lp4-channel-grid a {
+  border: 1px solid var(--android-line);
+  border-radius: 22px;
+  background: rgba(255,255,255,.96);
+  box-shadow: var(--android-shadow-soft);
+}
+
+.lp4-final-cta {
+  color: white;
+  background: linear-gradient(90deg, var(--android-accent), var(--android-accent-2), var(--android-soft));
+}
+
+.lp4-final-cta h2,
+.lp4-final-cta p,
+.lp4-final-cta span {
+  color: white;
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding-inline: 9px;
+  }
+
+  .topbar {
+    min-height: 66px;
+    margin-inline: -9px;
+    padding: 6px 9px;
+  }
+
+  .brand-logo {
+    width: 50px;
+    height: 50px;
+  }
+
+  .topbar .eyebrow {
+    display: none;
+  }
+
+  .topbar h1 {
+    max-width: 42vw;
+  }
+
+  .top-user {
+    max-width: 42vw;
+  }
+
+  .status-pill {
+    display: none;
+  }
+
+  .icon-button {
+    width: 38px;
+    height: 38px;
+  }
+
+  .app-nav {
+    display: none;
+  }
+
+  .account-strip {
+    margin-top: 8px;
+  }
+
+  .screen-grid,
+  .hub-grid,
+  .admin-grid,
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .hero-card,
+  .placezum-card {
+    min-height: 148px;
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .hero-card strong,
+  .placezum-card strong {
+    font-size: clamp(1.75rem, 10vw, 2.55rem);
+  }
+
+  .quick-grid,
+  .admin-action-grid,
+  .hub-action-grid,
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .panel,
+  .admin-panel,
+  .hub-panel,
+  .payroll-panel,
+  .market-funds-panel,
+  .history-panel,
+  .split-panel,
+  .market-ticket,
+  .investment-analysis {
+    padding: 13px;
+    border-radius: 18px;
+  }
+
+  .bottom-nav {
+    bottom: 9px;
+    width: min(100% - 14px, 520px);
+    border-radius: 22px;
+  }
+
+  .bottom-nav button span {
+    font-size: .64rem;
+  }
+}

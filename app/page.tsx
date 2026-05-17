@@ -815,7 +815,7 @@ function BancoPlacetaClient() {
           </span>
           <div>
             <p className="eyebrow">Banco de La Placeta</p>
-            <h1>Panel web</h1>
+            <h1>Banco Placeta</h1>
             <span className="top-user">{activeUser.displayName}</span>
           </div>
         </div>

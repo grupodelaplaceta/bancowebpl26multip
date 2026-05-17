@@ -7987,6 +7987,67 @@ select {
   background: linear-gradient(90deg, var(--android-accent), var(--android-accent-2), var(--android-soft));
 }
 
+/* Compact public bank carousel */
+.landing-page .lp4-hero {
+  min-height: 430px;
+}
+
+.landing-page .lp4-hero-inner,
+.landing-page .lp4-hero-inner.landing-only {
+  min-height: 430px;
+  padding: clamp(18px, 3.4vw, 34px);
+}
+
+.landing-page .lp4-hero-copy h1 {
+  max-width: 620px;
+  margin-bottom: 8px;
+  font-size: clamp(2rem, 5vw, 4.1rem);
+}
+
+.landing-page .lp4-hero-copy p {
+  max-width: 500px;
+  font-size: clamp(.95rem, 1.5vw, 1.06rem);
+}
+
+.landing-page .lp4-carousel-controls {
+  margin-top: 16px;
+  gap: 8px;
+}
+
+.landing-page .lp4-carousel-controls button {
+  min-height: 52px;
+  padding: 9px 11px;
+}
+
+.landing-page .lp4-carousel-controls small {
+  display: none;
+}
+
+.landing-page .lp4-carousel-panel {
+  align-self: end;
+  min-height: 0;
+  padding: 18px;
+}
+
+.landing-page .lp4-carousel-panel p {
+  margin: 4px 0 12px;
+}
+
+@media (max-width: 780px) {
+  .landing-page .lp4-hero {
+    min-height: auto;
+  }
+
+  .landing-page .lp4-hero-inner,
+  .landing-page .lp4-hero-inner.landing-only {
+    min-height: auto;
+  }
+
+  .landing-page .lp4-carousel-panel {
+    display: none;
+  }
+}
+
 .lp4-final-cta h2,
 .lp4-final-cta p,
 .lp4-final-cta span {

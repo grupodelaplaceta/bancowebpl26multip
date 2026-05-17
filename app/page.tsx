@@ -96,26 +96,26 @@ const landingSlides = [
   {
     title: "Banco de La Placeta",
     kicker: "Banca digital",
-    subtitle: "Gestiona pagos, tarjetas, cuentas y documentos desde una plataforma clara para móvil y escritorio.",
+    subtitle: "Cuentas, pagos y tarjetas virtuales en una interfaz clara.",
     image: "/assets/promos/promo1.png",
     action: "Abrir cuenta",
-    metric: "Cuentas, pagos y tarjetas"
+    metric: "Operativa diaria"
   },
   {
-    title: "Operativa con contexto",
-    kicker: "Pagos y actividad",
-    subtitle: "Consulta saldos, movimientos, límites y operaciones recientes con una experiencia pensada para entender qué ocurre.",
+    title: "Pagos rápidos",
+    kicker: "Placezum",
+    subtitle: "Envía, recibe y revisa movimientos sin perderte entre pantallas.",
     image: "/assets/promos/promo2.png",
     action: "Ver demo",
-    metric: "Actividad trazable"
+    metric: "Pagos y actividad"
   },
   {
-    title: "Gestión institucional",
-    kicker: "Empresas y administración",
-    subtitle: "Herramientas para nóminas, soporte, documentos y revisión administrativa sin ruido visual ni promesas exageradas.",
+    title: "Gestión completa",
+    kicker: "Empresas",
+    subtitle: "Nóminas, documentos, soporte y administración en módulos separados.",
     image: "/assets/promos/mercado-default.png",
     action: "Conocer funciones",
-    metric: "Empresa, tributos y soporte"
+    metric: "Empresa y soporte"
   }
 ];
 
@@ -1155,11 +1155,6 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
               <a href="/login">Entrar al banco</a>
               <a href="#modulos">Ver módulos</a>
             </div>
-            <div className="lp4-hero-badges" aria-label="Puntos destacados">
-              <span>{activeSlide.metric}</span>
-              <span>Identidad GDLP</span>
-              <span>Diseño responsive</span>
-            </div>
             <div className="lp4-carousel-controls" aria-label="Carrusel Banco de La Placeta">
               {landingSlides.map((slide, index) => (
                 <button
@@ -1178,9 +1173,9 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
           </div>
 
           <aside className="lp4-carousel-panel" aria-label="Resumen del carrusel">
-            <span>{activeSlide.action}</span>
+            <span>{String(slideIndex + 1).padStart(2, "0")} / {String(landingSlides.length).padStart(2, "0")}</span>
             <strong>{activeSlide.metric}</strong>
-            <p>La entrada DIP vive ahora en una página separada para mantener la landing limpia y comercial.</p>
+            <p>{activeSlide.action}</p>
             <a href="/login">Ir al acceso seguro</a>
           </aside>
         </div>

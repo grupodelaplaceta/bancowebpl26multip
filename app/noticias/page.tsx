@@ -1,6 +1,18 @@
 import Image from "next/image";
 import { gdlpNews } from "../../lib/gdlp-content";
-import { gdlpUrl } from "../../lib/site";
+import { BANK_SITE_URL, gdlpUrl } from "../../lib/site";
+
+export const dynamic = "force-dynamic";
+
+async function loadNews() {
+  try {
+    const response = await fetch(`${BANK_SITE_URL}/api/gdlp-news`, { cache: "no-store" });
+    const payload = await response.json();
+    return Array.isArray(payload.news) && payload.news.length ? payload.news : gdlpNews;
+  } catch {
+    return gdlpNews;
+  }
+}
 
 export const metadata = {
   title: "Noticias | Grupo de La Placeta",
@@ -16,8 +28,9 @@ export const metadata = {
   }
 };
 
-export default function NewsIndexPage() {
-  const [featured, ...rest] = gdlpNews;
+export default async function NewsIndexPage() {
+  const news = await loadNews();
+  const [featured, ...rest] = news;
 
   return (
     <main className="content-page">

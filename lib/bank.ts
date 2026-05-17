@@ -200,6 +200,22 @@ export type PaymentLink = {
   transactionId?: string | null;
 };
 
+export type GdlpSharedNewsItem = {
+  slug: string;
+  title: string;
+  tag: string;
+  summary: string;
+  date: string;
+  image: string;
+  images?: string[];
+  body: string[];
+  html?: string;
+  videoUrl?: string;
+  videos?: string[];
+  source?: string;
+  updatedAt?: string;
+};
+
 export type TreasuryConfig = {
   operationalTransferTaxPercent: number;
   webBridgeCommissionPercent: number;
@@ -247,6 +263,7 @@ export type BankState = {
   complianceFlags: ComplianceFlag[];
   supportTickets: SupportTicket[];
   paymentLinks: PaymentLink[];
+  gdlpSharedNews: GdlpSharedNewsItem[];
   schemaSeedVersion?: number;
   updatedAt?: string | null;
 };
@@ -433,6 +450,7 @@ export function demoSeed(): BankState {
     ],
     supportTickets: [],
     paymentLinks: [],
+    gdlpSharedNews: [],
     promoSlides: [
       { id: "promo-1", title: "BANCO PLACETA", subtitle: "Tu centro financiero seguro, claro y siempre a mano.", action: "Login", imageKey: "bank", assetPath: "promos/banco-default.png" },
       { id: "promo-2", title: "PLACEZUM", subtitle: "Pagos rápidos con IBAN GDLP-APXX-XXX y control total.", action: "Register", imageKey: "placezum", assetPath: "promos/placezum-default.png" },
@@ -482,6 +500,7 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
     complianceFlags: dedupeBy(input.complianceFlags || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     supportTickets: dedupeBy(input.supportTickets || [], "id").sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
     paymentLinks: dedupeBy(input.paymentLinks || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    gdlpSharedNews: dedupeBy(input.gdlpSharedNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
     treasuryConfig: normalizeTreasuryConfig(input.treasuryConfig || {}),
     promoSlides: dedupeBy(input.promoSlides?.length ? input.promoSlides : seed.promoSlides, "id"),
     updatedAt: input.updatedAt || seed.updatedAt

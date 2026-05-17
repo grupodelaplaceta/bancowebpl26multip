@@ -2,14 +2,27 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ShareButton } from "../../components/ShareButton";
 import { findNews, gdlpNews } from "../../../lib/gdlp-content";
-import { gdlpUrl } from "../../../lib/site";
+import { BANK_SITE_URL, gdlpUrl } from "../../../lib/site";
+
+export const dynamic = "force-dynamic";
+
+async function loadNews() {
+  try {
+    const response = await fetch(`${BANK_SITE_URL}/api/gdlp-news`, { cache: "no-store" });
+    const payload = await response.json();
+    return Array.isArray(payload.news) && payload.news.length ? payload.news : gdlpNews;
+  } catch {
+    return gdlpNews;
+  }
+}
 
 export function generateStaticParams() {
   return gdlpNews.map((item) => ({ slug: item.slug }));
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }) {
-  const item = findNews(params.slug);
+export async function generateMetadata({ params }: { params: { slug: string } }) {
+  const news = await loadNews();
+  const item = news.find((entry) => entry.slug === params.slug) || findNews(params.slug);
   if (!item) return {};
   return {
     title: `${item.title} | Noticias`,
@@ -28,10 +41,11 @@ export function generateMetadata({ params }: { params: { slug: string } }) {
   };
 }
 
-export default function NewsDetailPage({ params }: { params: { slug: string } }) {
-  const item = findNews(params.slug);
+export default async function NewsDetailPage({ params }: { params: { slug: string } }) {
+  const news = await loadNews();
+  const item = news.find((entry) => entry.slug === params.slug) || findNews(params.slug);
   if (!item) notFound();
-  const related = gdlpNews.filter((entry) => entry.slug !== item.slug).slice(0, 3);
+  const related = news.filter((entry) => entry.slug !== item.slug).slice(0, 3);
 
   return (
     <main className="content-page">
@@ -59,12 +73,17 @@ export default function NewsDetailPage({ params }: { params: { slug: string } })
             <ShareButton title={item.title} url={gdlpUrl(`/noticias/${item.slug}`)} />
             <a href="/noticias">Volver a noticias</a>
           </div>
-          {item.body.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+          {(item.body || [item.summary]).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
           {item.videoUrl && (
             <div className="video-frame">
               <iframe src={item.videoUrl} title={item.title} allowFullScreen loading="lazy" />
             </div>
           )}
+          {Array.isArray(item.videos) && item.videos.filter((video) => video !== item.videoUrl).map((video) => (
+            <div className="video-frame" key={video}>
+              <iframe src={video} title={item.title} allowFullScreen loading="lazy" />
+            </div>
+          ))}
         </div>
       </article>
 

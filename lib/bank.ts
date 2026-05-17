@@ -168,6 +168,36 @@ export type SupportTicket = {
   updatedAt: string;
 };
 
+export type DeveloperPayment = {
+  id: string;
+  merchantIban: string;
+  customerAccountId?: string | null;
+  amountPz: number;
+  ivaPz: number;
+  totalPz: number;
+  concept: string;
+  status: "Pending" | "Paid" | "Denied";
+  createdAt: string;
+  paidAt?: string | null;
+  transactionId?: string | null;
+};
+
+export type PaymentLink = {
+  id: string;
+  kind: "Payment" | "Send";
+  creatorAccountId: string;
+  targetIban?: string | null;
+  amountPz: number;
+  ivaPz: number;
+  totalPz: number;
+  concept: string;
+  status: "Pending" | "Paid" | "Cancelled";
+  createdAt: string;
+  usedAt?: string | null;
+  usedByAccountId?: string | null;
+  transactionId?: string | null;
+};
+
 export type TreasuryConfig = {
   operationalTransferTaxPercent: number;
   webBridgeCommissionPercent: number;
@@ -212,6 +242,7 @@ export type BankState = {
   treasuryConfig: TreasuryConfig;
   complianceFlags: ComplianceFlag[];
   supportTickets: SupportTicket[];
+  paymentLinks: PaymentLink[];
   schemaSeedVersion?: number;
   updatedAt?: string | null;
 };
@@ -254,6 +285,10 @@ export const treasuryDefaults: TreasuryConfig = {
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
+}
+
+function normalizeIban(value: string) {
+  return value.replace(/\s+/g, "").toUpperCase();
 }
 
 export function normalizeTreasuryConfig(config: Partial<TreasuryConfig> = {}): TreasuryConfig {
@@ -389,6 +424,7 @@ export function demoSeed(): BankState {
       { id: "contact-lia", ownerPlacetaId: "ALBA-001", accountId: "u-lia", createdAt: now }
     ],
     supportTickets: [],
+    paymentLinks: [],
     promoSlides: [
       { id: "promo-1", title: "BANCO PLACETA", subtitle: "Tu centro financiero seguro, claro y siempre a mano.", action: "Login", imageKey: "bank", assetPath: "promos/banco-default.png" },
       { id: "promo-2", title: "PLACEZUM", subtitle: "Pagos rápidos con IBAN GDLP-APXX-XXX y control total.", action: "Register", imageKey: "placezum", assetPath: "promos/placezum-default.png" },
@@ -437,6 +473,7 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
     savedContacts: dedupeByComposite(input.savedContacts || [], (contact) => `${contact.ownerPlacetaId}:${contact.accountId}`).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     complianceFlags: dedupeBy(input.complianceFlags || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     supportTickets: dedupeBy(input.supportTickets || [], "id").sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
+    paymentLinks: dedupeBy(input.paymentLinks || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     treasuryConfig: normalizeTreasuryConfig(input.treasuryConfig || {}),
     promoSlides: dedupeBy(input.promoSlides?.length ? input.promoSlides : seed.promoSlides, "id"),
     updatedAt: input.updatedAt || seed.updatedAt
@@ -649,6 +686,26 @@ export function updateTreasuryConfig(state: BankState, patch: Partial<TreasuryCo
   return finalizeState({ ...state, treasuryConfig: normalizeTreasuryConfig({ ...state.treasuryConfig, ...patch }) });
 }
 
+export function investmentRiskLimits(config: TreasuryConfig, riskLevel: number) {
+  const safeRisk = clamp(Math.round(riskLevel || 3), 1, 7);
+  const allowedPercent = clamp(100 - (safeRisk - 1) * 10, 40, 100);
+  return {
+    riskLevel: safeRisk,
+    allowedPercent,
+    maxAmountPz: Math.max(1, Math.floor((config.maxInvestmentAmountPz * allowedPercent) / 100)),
+    dailyLimit: Math.max(1, Math.floor((config.dailyInvestmentLimit * allowedPercent) / 100))
+  };
+}
+
+export function dailyInvestmentCountForCompany(state: BankState, investmentAccountId: string, marketAccountId: string, isoDate = new Date().toISOString().slice(0, 10)) {
+  return state.transactions.filter((transaction) =>
+    transaction.fromAccountId === investmentAccountId &&
+    transaction.toAccountId === marketAccountId &&
+    transaction.kind === "InvestmentBuy" &&
+    transaction.createdAt.slice(0, 10) === isoDate
+  ).length;
+}
+
 export function updateInvestmentFundRisk(state: BankState, accountId: string, level: number, listedInvestmentFund = true) {
   const safeLevel = clamp(Math.round(level), 1, 7);
   const account = state.accounts.find((item) => item.id === accountId);
@@ -704,14 +761,11 @@ export function startTimedInvestment(state: BankState, investmentAccountId: stri
   if (!market) throw new Error("Empresa GDLP no encontrada");
   if (!investor) throw new Error("Cuenta inversora no encontrada");
   if (investor.citizenshipTier !== "CiudadaniaPlena") throw new Error("Inversiones limitadas a +18 / Ciudadanía Plena");
-  if (amountPz > state.treasuryConfig.maxInvestmentAmountPz) throw new Error(`La inversión máxima es ${state.treasuryConfig.maxInvestmentAmountPz} Pz`);
+  const riskLimits = investmentRiskLimits(state.treasuryConfig, market.investmentRiskLevel || 3);
+  if (amountPz > riskLimits.maxAmountPz) throw new Error(`La inversión máxima para R${riskLimits.riskLevel} es ${riskLimits.maxAmountPz} Pz`);
   const today = new Date().toISOString().slice(0, 10);
-  const dailyInvestmentCount = state.transactions.filter((transaction) =>
-    transaction.fromAccountId === investmentAccountId &&
-    transaction.kind === "InvestmentBuy" &&
-    transaction.createdAt.slice(0, 10) === today
-  ).length;
-  if (dailyInvestmentCount >= state.treasuryConfig.dailyInvestmentLimit) throw new Error("Límite diario de inversiones alcanzado");
+  const dailyInvestmentCount = dailyInvestmentCountForCompany(state, investmentAccountId, marketAccountId, today);
+  if (dailyInvestmentCount >= riskLimits.dailyLimit) throw new Error(`Límite diario alcanzado para ${market.displayName}`);
   const next = transferByIban(state, investmentAccountId, market.iban, amountPz, `Inversión 60s iniciada: ${market.displayName}`, "InvestmentBuy");
   const buy = next.transactions.find((transaction) =>
     transaction.kind === "InvestmentBuy" &&
@@ -799,21 +853,17 @@ export function settleTimedInvestment(state: BankState, operationId: string, use
 }
 
 export function pendingInvestmentOperations(state: BankState, accountId?: string) {
-  const settledOperationIds = new Set(state.investmentOperations.filter((operation) => operation.settledAt).map((operation) => operation.id));
+  const settledBuyIds = settledInvestmentBuyIds(state);
+  const settledOperationIds = new Set([
+    ...state.investmentOperations.filter((operation) => operation.settledAt).map((operation) => operation.id),
+    ...Array.from(settledBuyIds).map((id) => `op-${id}`)
+  ]);
   const transactionBacked = state.transactions
     .filter((transaction) => transaction.kind === "InvestmentBuy")
-    .filter((buy) => !settledOperationIds.has(`op-${buy.id}`))
+    .filter((buy) => !settledBuyIds.has(buy.id) && !settledOperationIds.has(`op-${buy.id}`))
     .map((buy) => {
       const company = state.accounts.find((account) => account.id === buy.toAccountId);
       const assetName = company?.displayName || buy.note.replace("Inversión 60s iniciada: ", "") || "Inversión GDLP";
-      const settled = state.transactions.some((transaction) =>
-        transaction.kind === "InvestmentSell" &&
-        (
-          transaction.originalTransactionId === buy.id ||
-          transaction.note.includes(`op-${buy.id}`)
-        )
-      );
-      if (settled) return null;
       return {
         id: `op-${buy.id}`,
         accountId: buy.fromAccountId,
@@ -826,10 +876,42 @@ export function pendingInvestmentOperations(state: BankState, accountId?: string
       } satisfies InvestmentOperation;
     })
     .filter(Boolean) as InvestmentOperation[];
-  return [...state.investmentOperations.filter((operation) => !operation.settledAt), ...transactionBacked]
+  return [...state.investmentOperations.filter((operation) => !operation.settledAt && !settledOperationIds.has(operation.id)), ...transactionBacked]
     .filter((operation) => !accountId || operation.accountId === accountId)
     .filter((operation, index, all) => all.findIndex((candidate) => candidate.id === operation.id) === index)
     .sort((a, b) => Date.parse(a.readyAt) - Date.parse(b.readyAt));
+}
+
+function settlementOperationId(transaction: LedgerTransaction) {
+  if (transaction.originalTransactionId) return `op-${transaction.originalTransactionId}`;
+  const match = transaction.note.match(/\[(op-[^\]\s]+)\]/);
+  return match?.[1] || null;
+}
+
+function settledInvestmentBuyIds(state: BankState) {
+  const buyIds = new Set<string>();
+  const buys = state.transactions
+    .filter((transaction) => transaction.kind === "InvestmentBuy")
+    .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+  const sells = state.transactions
+    .filter((transaction) => transaction.kind === "InvestmentSell" && transaction.concept === "INVESTMENT_60S_RESULT")
+    .sort((a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+
+  for (const sell of sells) {
+    const exact = settlementOperationId(sell)?.replace(/^op-/, "");
+    if (exact) {
+      buyIds.add(exact);
+      continue;
+    }
+    const legacyMatch = [...buys].reverse().find((buy) =>
+      !buyIds.has(buy.id) &&
+      buy.fromAccountId === sell.toAccountId &&
+      buy.toAccountId === sell.fromAccountId &&
+      Date.parse(buy.createdAt) < Date.parse(sell.createdAt)
+    );
+    if (legacyMatch) buyIds.add(legacyMatch.id);
+  }
+  return buyIds;
 }
 
 export function investmentResultRows(state: BankState, accountId: string) {
@@ -880,6 +962,123 @@ export function payPlacezum(state: BankState, fromId: string, targetIban: string
     throw new Error(`Límite semanal PlaceZum superado: ${formatPz(spent)} de ${formatPz(state.treasuryConfig.placezumWeeklyLimitPz)} Pz`);
   }
   return transferByIban(state, fromId, targetIban, amountPz, note, "Placezum");
+}
+
+export function createDeveloperPayment(merchantIban: string, amountPz: number, concept = "Pago externo GDLP"): DeveloperPayment {
+  const safeAmount = Math.max(1, Math.round(amountPz));
+  const ivaPz = percentCeil(safeAmount, VAT_PERCENT);
+  return {
+    id: `pay_${makeId("dev").replace(/^dev-/, "")}`,
+    merchantIban: merchantIban.trim().toUpperCase(),
+    amountPz: safeAmount,
+    ivaPz,
+    totalPz: safeAmount + ivaPz,
+    concept: concept.trim().slice(0, 120) || "Pago externo GDLP",
+    status: "Pending",
+    createdAt: new Date().toISOString(),
+    paidAt: null,
+    transactionId: null
+  };
+}
+
+export function captureDeveloperPayment(state: BankState, payment: DeveloperPayment, customerAccountId: string) {
+  if (payment.status !== "Pending") throw new Error("El pago ya no está pendiente");
+  const alreadyPaid = state.transactions.some((transaction) =>
+    transaction.concept === "DEVELOPER_PAYMENT" &&
+    transaction.originalTransactionId === payment.id
+  );
+  if (alreadyPaid) throw new Error("El pago ya fue capturado");
+  const customer = state.accounts.find((account) => account.id === customerAccountId);
+  const merchant = state.accounts.find((account) => normalizeIban(account.iban) === normalizeIban(payment.merchantIban));
+  const tglp = state.accounts.find((account) => account.id === TGLP_ID);
+  if (!customer) throw new Error("Cuenta pagadora no encontrada");
+  if (!merchant) throw new Error("IBAN de comercio no encontrado");
+  if (!tglp) throw new Error("Cuenta TGLP no encontrada");
+  if (customer.balancePz < payment.totalPz) throw new Error("Saldo insuficiente para pago con IVA");
+  if (customer.balancePz - payment.totalPz < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Pago bloqueado por escudo de renta mínima");
+  const accounts = state.accounts.map((account) => ({ ...account }));
+  const nextCustomer = accounts.find((account) => account.id === customer.id)!;
+  const nextMerchant = accounts.find((account) => account.id === merchant.id)!;
+  const nextTglp = accounts.find((account) => account.id === TGLP_ID)!;
+  nextCustomer.balancePz -= payment.totalPz;
+  nextMerchant.balancePz += payment.amountPz;
+  nextTglp.balancePz += payment.ivaPz;
+  const transaction = makeTransaction("Consumption", nextCustomer, nextMerchant.id, payment.amountPz, payment.ivaPz, `Pago developer: ${payment.concept}`);
+  transaction.concept = "DEVELOPER_PAYMENT";
+  transaction.originalTransactionId = payment.id;
+  transaction.netAmount = payment.amountPz;
+  transaction.taxAmount = payment.ivaPz;
+  return {
+    state: finalizeState({ ...state, accounts, transactions: applyTransactions(state.transactions, [transaction]) }),
+    payment: { ...payment, status: "Paid" as const, customerAccountId, paidAt: transaction.createdAt, transactionId: transaction.id }
+  };
+}
+
+export function createPaymentLink(state: BankState, creatorAccountId: string, kind: "Payment" | "Send", amountPz: number, concept: string, targetIban?: string) {
+  const creator = state.accounts.find((account) => account.id === creatorAccountId);
+  if (!creator) throw new Error("Cuenta creadora no encontrada");
+  const safeAmount = Math.max(1, Math.round(amountPz));
+  const isBusinessPayment = kind === "Payment" && creator.type === "Business";
+  const ivaPz = isBusinessPayment ? percentCeil(safeAmount, VAT_PERCENT) : 0;
+  const link: PaymentLink = {
+    id: `plink-${makeId("lnk").replace(/^lnk-/, "")}`,
+    kind,
+    creatorAccountId,
+    targetIban: kind === "Payment" ? creator.iban : (targetIban || null),
+    amountPz: safeAmount,
+    ivaPz,
+    totalPz: safeAmount + ivaPz,
+    concept: concept.trim().slice(0, 120) || (kind === "Payment" ? "Pago Banco de La Placeta" : "Envío de Placetas"),
+    status: "Pending",
+    createdAt: new Date().toISOString(),
+    usedAt: null,
+    usedByAccountId: null,
+    transactionId: null
+  };
+  return finalizeState({ ...state, paymentLinks: [link, ...(state.paymentLinks || [])] });
+}
+
+export function capturePaymentLink(state: BankState, linkId: string, payerAccountId: string) {
+  const link = (state.paymentLinks || []).find((item) => item.id === linkId);
+  if (!link) throw new Error("Enlace no encontrado");
+  if (link.status !== "Pending") throw new Error("Enlace ya usado o cancelado");
+  if (state.transactions.some((transaction) => transaction.originalTransactionId === link.id)) throw new Error("Enlace ya usado");
+  const payer = state.accounts.find((account) => account.id === payerAccountId);
+  if (!payer) throw new Error("Cuenta pagadora no encontrada");
+  const target = link.kind === "Payment"
+    ? state.accounts.find((account) => normalizeIban(account.iban) === normalizeIban(link.targetIban || ""))
+    : state.accounts.find((account) => account.id === link.creatorAccountId);
+  if (!target) throw new Error("Destino del enlace no encontrado");
+  const tglp = state.accounts.find((account) => account.id === TGLP_ID);
+  if (link.ivaPz > 0 && !tglp) throw new Error("Cuenta TGLP no encontrada");
+  if (payer.id === target.id) throw new Error("No puedes pagarte el enlace con la misma cuenta");
+  if (payer.balancePz < link.totalPz) throw new Error("Saldo insuficiente");
+  if (payer.balancePz - link.totalPz < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada por escudo de renta mínima");
+  const accounts = state.accounts.map((account) => ({ ...account }));
+  const nextPayer = accounts.find((account) => account.id === payer.id)!;
+  const nextTarget = accounts.find((account) => account.id === target.id)!;
+  const nextTglp = accounts.find((account) => account.id === TGLP_ID);
+  nextPayer.balancePz -= link.totalPz;
+  nextTarget.balancePz += link.amountPz;
+  if (nextTglp && link.ivaPz > 0) nextTglp.balancePz += link.ivaPz;
+  const transaction = makeTransaction(link.kind === "Payment" ? "Consumption" : "Placezum", nextPayer, nextTarget.id, link.amountPz, link.ivaPz, `${link.kind === "Payment" ? "Pago enlace" : "Envío enlace"}: ${link.concept}`);
+  transaction.concept = link.kind === "Payment" ? "PAYMENT_LINK" : "PLACETA_SEND_LINK";
+  transaction.originalTransactionId = link.id;
+  transaction.netAmount = link.amountPz;
+  transaction.taxAmount = link.ivaPz;
+  const usedAt = transaction.createdAt;
+  return finalizeState({
+    ...state,
+    accounts,
+    transactions: applyTransactions(state.transactions, [transaction]),
+    paymentLinks: (state.paymentLinks || []).map((item) => item.id === link.id ? {
+      ...item,
+      status: "Paid",
+      usedAt,
+      usedByAccountId: payer.id,
+      transactionId: transaction.id
+    } : item)
+  });
 }
 
 export function makeTransaction(kind: TransactionKind, from: Account, toAccountId: string, amountPz: number, ivaPz: number, note: string): LedgerTransaction {

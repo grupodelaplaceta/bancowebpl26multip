@@ -754,6 +754,17 @@ button:focus-visible, input:focus-visible {
   color: var(--muted);
   font-size: .9rem;
 }
+.link-copy {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: rgba(63, 0, 216, .08);
+  color: #3F00D8;
+  font-size: .82rem;
+  font-weight: 900;
+  overflow-wrap: anywhere;
+}
 .mini-feed {
   display: grid;
   gap: 8px;
@@ -4003,6 +4014,7 @@ button:focus-visible, input:focus-visible {
 .lp4-showcase,
 .lp4-clients,
 .lp4-channels,
+.lp4-developers,
 .lp4-help,
 .lp4-trust,
 .lp4-faq,
@@ -4021,6 +4033,7 @@ button:focus-visible, input:focus-visible {
 .lp4-showcase,
 .lp4-clients,
 .lp4-channels,
+.lp4-developers,
 .lp4-help,
 .lp4-trust,
 .lp4-faq,
@@ -4060,6 +4073,7 @@ button:focus-visible, input:focus-visible {
 .lp4-product,
 .lp4-clients,
 .lp4-channels,
+.lp4-developers,
 .lp4-help,
 .lp4-trust,
 .lp4-faq,
@@ -4227,6 +4241,157 @@ button:focus-visible, input:focus-visible {
   padding: clamp(18px, 3vw, 30px);
   border-radius: 22px;
 }
+.lp4-developers {
+  padding: clamp(18px, 3vw, 30px);
+  border-radius: 22px;
+}
+.developer-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, .9fr);
+  gap: 14px;
+  align-items: stretch;
+}
+.developer-endpoints {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.developer-endpoints.compact {
+  grid-template-columns: 1fr;
+}
+.developer-endpoints article,
+.developer-code {
+  min-width: 0;
+  padding: 14px;
+  border-radius: 15px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  background: #fafafe;
+}
+.developer-endpoints article > span,
+.developer-code > span {
+  color: #3F00D8;
+  font-size: .74rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+.developer-endpoints strong {
+  display: block;
+  margin-top: 8px;
+  color: var(--ink);
+}
+.developer-endpoints code {
+  display: block;
+  margin-top: 8px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  background: rgba(63, 0, 216, .08);
+  color: #3F00D8;
+  font-size: .78rem;
+  overflow-wrap: anywhere;
+}
+.developer-endpoints p,
+.developer-code p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.35;
+}
+.developer-code {
+  background: #171322;
+  color: #fff;
+}
+.developer-code pre {
+  margin: 10px 0 0;
+  overflow-x: auto;
+  white-space: pre-wrap;
+}
+.developer-code code {
+  color: #fff;
+  font-size: .82rem;
+  line-height: 1.45;
+}
+.developer-code p {
+  color: rgba(255,255,255,.72);
+}
+.developer-modal {
+  display: grid;
+  gap: 12px;
+}
+
+.pay-link-page {
+  min-height: 100vh;
+  padding: 24px;
+  background: #f7f5fb;
+  display: grid;
+  place-items: center;
+}
+.pay-link-card {
+  width: min(460px, 100%);
+  padding: 22px;
+  border-radius: 22px;
+  border: 1px solid rgba(63,0,216,.14);
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(23,19,34,.14);
+  display: grid;
+  gap: 13px;
+}
+.pay-link-card img {
+  width: 82px;
+  height: 82px;
+  object-fit: contain;
+}
+.pay-link-card > span {
+  color: #3F00D8;
+  font-weight: 950;
+  text-transform: uppercase;
+  font-size: .78rem;
+}
+.pay-link-card h1 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 2.4rem;
+}
+.pay-link-card p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.pay-link-breakdown {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.pay-link-breakdown div {
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(63,0,216,.06);
+}
+.pay-link-breakdown span,
+.pay-link-breakdown strong,
+.pay-link-card label span {
+  display: block;
+}
+.pay-link-breakdown span,
+.pay-link-card label span,
+.pay-link-card small {
+  color: var(--muted);
+  font-size: .82rem;
+}
+.pay-link-card input {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+}
+.pay-link-card button {
+  min-height: 46px;
+  border-radius: 12px;
+  background: #3F00D8;
+  color: #fff;
+  font-weight: 950;
+}
 .lp4-channel-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -4368,13 +4533,15 @@ button:focus-visible, input:focus-visible {
   .lp4-hero-inner,
   .lp4-showcase,
   .lp4-trust,
+  .developer-layout,
   .lp4-final-cta {
     grid-template-columns: 1fr;
   }
   .lp4-strip,
   .lp4-service-grid,
   .lp4-post-grid,
-  .lp4-trust-grid {
+  .lp4-trust-grid,
+  .developer-endpoints {
     grid-template-columns: 1fr;
   }
   .lp4-channel-grid,

@@ -42,10 +42,13 @@ import {
   formatPz,
   forceVatRegularization,
   addSavedContact,
+  createPaymentLink,
+  dailyInvestmentCountForCompany,
   generatePlacezumCode,
   ibanGenerate,
   issueCard,
   issueOfficialFine,
+  investmentRiskLimits,
   LedgerTransaction,
   investmentResultRows,
   normalizeState,
@@ -56,6 +59,7 @@ import {
   settleTimedInvestment,
   sha256,
   startTimedInvestment,
+  PaymentLink,
   SupportTicket,
   TGLP_ID,
   toggleCard,
@@ -137,13 +141,30 @@ const landingFaq = [
   { question: "¿Dónde veo soporte o incidencias?", answer: "Dentro del Hub puedes abrir tickets con contexto de cuentas, tarjetas, inversiones o movimientos." }
 ];
 
+const developerApiCards = [
+  { title: "Crear pago", method: "POST", path: "/api/developer-payments", text: "Genera un pago firmado con importe neto, IVA y total a cobrar." },
+  { title: "Consultar pago", method: "GET", path: "/api/developer-payments/{id}?token=...", text: "Valida el token y recupera la ficha del pago para checkout externo." },
+  { title: "Capturar pago", method: "POST", path: "/api/developer-payments/{id}/capture", text: "Carga la cuenta pagadora, abona al comercio y separa el IVA hacia TGLP." }
+];
+
+const developerSnippet = `await fetch("/api/developer-payments", {
+  method: "POST",
+  headers: { "content-type": "application/json", "x-api-key": "TU_API_KEY" },
+  body: JSON.stringify({
+    merchantIban: "GDLP...",
+    amountPz: 250,
+    concept: "Pedido web #1042"
+  })
+});`;
+
 const commercialServices = [
   { title: "Cuenta digital", text: "Saldo, IBAN, actividad y documentos en una vista clara para operar con menos pasos.", icon: WalletCards },
   { title: "Pagos Placezum", text: "Pagos rápidos, contactos guardados y límites visibles antes de confirmar.", icon: QrCode },
   { title: "Tarjetas", text: "Tarjeta virtual y Promo Card con control de estado y acciones separadas.", icon: CreditCard },
   { title: "Empresa", text: "Nóminas, alta, actividad asociada y soporte operativo para cuentas empresariales.", icon: Building2 },
   { title: "Documentos", text: "Extractos, certificados y recibos descargables desde el Hub.", icon: Download },
-  { title: "Soporte", text: "Tickets con asunto, mensaje y contexto para acelerar la revisión.", icon: ShieldCheck }
+  { title: "Soporte", text: "Tickets con asunto, mensaje y contexto para acelerar la revisión.", icon: ShieldCheck },
+  { title: "API Developers", text: "Pagos externos con token firmado, captura segura e IVA separado automáticamente.", icon: Lock }
 ];
 
 const customerSegments = [
@@ -742,6 +763,7 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         <nav className="lp4-links" aria-label="Navegación landing">
           <a href="#cuentas">Cuentas</a>
           <a href="#servicios">Servicios</a>
+          <a href="#developers">Developers</a>
           <a href="#clientes">Clientes</a>
           <a href="#ayuda">Ayuda</a>
           <a href="#seguridad">Seguridad</a>
@@ -879,6 +901,31 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
               </article>
             );
           })}
+        </div>
+      </section>
+
+      <section className="lp4-developers" id="developers">
+        <div className="lp4-section-head">
+          <span>API para Developers</span>
+          <h2>Pagos externos seguros con IVA integrado.</h2>
+          <p>Implementa Banco de La Placeta en webs y apps externas con pagos firmados, captura contra cuenta GDLP y desglose fiscal automático.</p>
+        </div>
+        <div className="developer-layout">
+          <div className="developer-endpoints">
+            {developerApiCards.map((item) => (
+              <article key={item.path}>
+                <span>{item.method}</span>
+                <strong>{item.title}</strong>
+                <code>{item.path}</code>
+                <p>{item.text}</p>
+              </article>
+            ))}
+          </div>
+          <div className="developer-code">
+            <span>Ejemplo</span>
+            <pre><code>{developerSnippet}</code></pre>
+            <p>El importe enviado es neto. La API calcula IVA 12%, total, token firmado y al capturar mueve el IVA a TGLP.</p>
+          </div>
         </div>
       </section>
 
@@ -1157,7 +1204,7 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
   const companySettlementRows = companySettlements.map((settlement) => {
     const sourceBuy = companyBuys.find((buy) =>
       settlement.originalTransactionId === buy.id ||
-      settlement.note.includes(`op-${buy.id}`)
+      settlement.note.includes(`[op-${buy.id}]`)
     ) || [...companyBuys].reverse().find((buy) =>
       buy.fromAccountId === settlement.toAccountId &&
       Date.parse(buy.createdAt) < Date.parse(settlement.createdAt)
@@ -1174,12 +1221,9 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
   const companyInvestorWins = companySettlementRows.filter((row) => row.companyResultPz < 0).length;
   const companyInvestors = new Set(companyBuys.map((transaction) => transaction.fromAccountId)).size;
   const today = new Date().toISOString().slice(0, 10);
-  const dailyInvestmentCount = state.transactions.filter((transaction) =>
-    transaction.fromAccountId === account.id &&
-    transaction.kind === "InvestmentBuy" &&
-    transaction.createdAt.slice(0, 10) === today
-  ).length;
-  const remainingToday = Math.max(0, state.treasuryConfig.dailyInvestmentLimit - dailyInvestmentCount);
+  const companyDailyCounts = new Map(market.map((fund) => [fund.id, dailyInvestmentCountForCompany(state, account.id, fund.id, today)]));
+  const companyDailyLimits = new Map(market.map((fund) => [fund.id, investmentRiskLimits(state.treasuryConfig, fund.investmentRiskLevel || 3)]));
+  const remainingToday = Math.max(0, ...market.map((fund) => (companyDailyLimits.get(fund.id)?.dailyLimit || 1) - (companyDailyCounts.get(fund.id) || 0)));
   const pendingCapital = pending.reduce((sum, operation) => sum + operation.amountPz, 0);
   const maxAmount = state.treasuryConfig.maxInvestmentAmountPz;
   const safeAmount = Math.min(Math.max(0, amount), maxAmount);
@@ -1298,12 +1342,12 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
       <article className="hero-card market-hero">
         <span>Mercado GDLP · Cartera Plazet</span>
         <strong>{formatMoneyPz(account.balancePz)} Pz</strong>
-        <p>{pending.length} abiertas · {remainingToday} disponibles hoy · resultado reciente {totalNetResult >= 0 ? "+" : ""}{formatPz(totalNetResult)} Pz</p>
+        <p>{pending.length} abiertas · cupo por empresa según riesgo · resultado reciente {totalNetResult >= 0 ? "+" : ""}{formatPz(totalNetResult)} Pz</p>
       </article>
       <div className="metric-grid market-metrics">
         <MetricCard label="Disponible" value={`${formatPz(account.balancePz)} Pz`} tone="purple" />
         <MetricCard label="Pendiente 60s" value={`${formatPz(pendingCapital)} Pz`} tone="gold" />
-        <MetricCard label="Cupos hoy" value={`${remainingToday}/${state.treasuryConfig.dailyInvestmentLimit}`} tone="green" />
+        <MetricCard label="Mejor cupo hoy" value={`${remainingToday}`} tone="green" />
         <MetricCard label="Resultado" value={`${totalNetResult >= 0 ? "+" : ""}${formatPz(totalNetResult)} Pz`} tone={totalNetResult >= 0 ? "green" : "red"} />
       </div>
       <article className="panel investment-analysis">
@@ -1321,7 +1365,7 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
       </article>
       <article className="panel market-ticket">
         <SectionTitle icon={CircleDollarSign} title="Ticket de inversión" />
-        <Field label={`Importe Pz · máximo ${formatPz(maxAmount)}`} value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
+        <Field label={`Importe Pz · máximo base ${formatPz(maxAmount)}`} value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
         <div className="amount-chips">
           {quickAmounts.map((value) => (
             <button key={value} className={safeAmount === value ? "active" : ""} onClick={() => setAmount(value)}>
@@ -1331,23 +1375,27 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
         </div>
         <div className="investment-rules">
           <div><strong>{formatPz(safeAmount)} Pz</strong><span>importe preparado</span></div>
-          <div><strong>{remainingToday}</strong><span>operaciones restantes</span></div>
+          <div><strong>{remainingToday}</strong><span>mejor cupo restante</span></div>
         </div>
-        <p className="muted">Cada orden queda vinculada a su cuenta origen e IBAN. El backend valida saldo, origen y liquidación para evitar duplicados entre sesiones.</p>
+        <p className="muted">Cada empresa tiene su propio cupo diario. A mayor riesgo, menor importe máximo y menos operaciones disponibles para ese fondo.</p>
       </article>
       <article className="panel market-funds-panel">
         <SectionTitle icon={TrendingUp} title="Fondos GDLP" />
         <div className="fund-list">
           {market.map((fund) => {
             const risk = fund.investmentRiskLevel || 3;
+            const limits = companyDailyLimits.get(fund.id) || investmentRiskLimits(state.treasuryConfig, risk);
+            const usedToday = companyDailyCounts.get(fund.id) || 0;
+            const remainingForFund = Math.max(0, limits.dailyLimit - usedToday);
+            const canInvestFund = isInvestmentAccount && remainingForFund > 0 && safeAmount > 0 && safeAmount <= limits.maxAmountPz;
             return (
-              <button key={fund.id} className="fund-card" disabled={!isInvestmentAccount || remainingToday <= 0 || safeAmount <= 0} onClick={() => onStart(fund.id, safeAmount)}>
+              <button key={fund.id} className="fund-card" disabled={!canInvestFund} onClick={() => onStart(fund.id, safeAmount)}>
                 <div>
                   <strong>{fund.displayName} <RiskBadge level={risk} /></strong>
-                  <span>Liquidez {formatPz(fund.balancePz)} Pz · {riskDescription(risk)}</span>
+                  <span>Máx {formatPz(limits.maxAmountPz)} Pz · {remainingForFund}/{limits.dailyLimit} hoy · {limits.allowedPercent}% base</span>
                   <RiskIndicator level={risk} compact />
                 </div>
-                <b>{isInvestmentAccount ? "Invertir" : "Bloqueado"}</b>
+                <b>{canInvestFund ? "Invertir" : safeAmount > limits.maxAmountPz ? "Baja importe" : "Sin cupo"}</b>
               </button>
             );
           })}
@@ -1403,7 +1451,12 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
   const [ticketSubject, setTicketSubject] = useState("");
   const [ticketMessage, setTicketMessage] = useState("");
   const [ticketAttachments, setTicketAttachments] = useState<string[]>([]);
-  const [hubModal, setHubModal] = useState<"payroll" | "support" | "accounts" | "documents" | "activity" | "promos" | null>(null);
+  const [linkKind, setLinkKind] = useState<"Payment" | "Send">("Payment");
+  const [linkAmount, setLinkAmount] = useState(100);
+  const [linkConcept, setLinkConcept] = useState("Pago Banco de La Placeta");
+  const [linkTargetIban, setLinkTargetIban] = useState("");
+  const [lastLinkUrl, setLastLinkUrl] = useState("");
+  const [hubModal, setHubModal] = useState<"payroll" | "support" | "accounts" | "documents" | "activity" | "developers" | "links" | null>(null);
   const business = state.accounts.find((account) => account.id === businessId) || businessAccounts[0];
   const payrollTarget = state.accounts.find((account) => account.id === payrollTargetId) || payrollTargets[0];
   const workerTax = Math.ceil((payrollGross * state.treasuryConfig.payrollWorkerTaxPercent) / 100);
@@ -1416,6 +1469,7 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
     ...pendingInvestments.slice(0, 3).map((operation) => ({ id: `investment:${operation.id}`, label: `Inversión · ${operation.assetName}` })),
     ...recent.slice(0, 3).map((transaction) => ({ id: `txn:${transaction.id}`, label: `Movimiento · ${transaction.kind} ${formatPz(transaction.amountPz)} Pz` }))
   ];
+  const paymentLinks = ((state.paymentLinks || []) as PaymentLink[]).filter((link) => userAccounts.some((account) => account.id === link.creatorAccountId)).slice(0, 6);
   const primaryAccount = userAccounts.find((account) => account.id === user.primaryAccountId) || userAccounts[0];
   const documents: Array<{ title: string; detail: string; icon: LucideIcon; kind: WebDocumentKind; id: string }> = [
     { title: "Extracto mensual", detail: `${recent.length} movimientos recientes`, icon: Download, kind: "MonthlyStatement", id: "doc-month" },
@@ -1466,6 +1520,26 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
     setHubModal(null);
   }
 
+  function linkUrl(id: string) {
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://banco-web.vercel.app";
+    return `${origin}/pay-link/${id}`;
+  }
+
+  async function copyText(value: string) {
+    if (typeof navigator !== "undefined" && navigator.clipboard) await navigator.clipboard.writeText(value);
+  }
+
+  function submitPaymentLink() {
+    const source = linkKind === "Payment" ? (business || userAccounts.find((account) => account.type === "Business") || primaryAccount) : primaryAccount;
+    if (!source) return;
+    const next = createPaymentLink(state, source.id, linkKind, linkAmount, linkConcept, linkTargetIban || undefined);
+    const created = next.paymentLinks[0];
+    const url = linkUrl(created.id);
+    setLastLinkUrl(url);
+    void copyText(url);
+    onPersist(next, `${linkKind === "Payment" ? "Enlace de pago" : "Enlace de envío"} creado`);
+  }
+
   const openTickets = tickets.filter((ticket) => ticket.status !== "Closed").length;
   const activeCards = cards.filter((card) => !card.frozen).length;
   const hubActions = [
@@ -1474,7 +1548,8 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
     { id: "accounts" as const, title: "Cuentas", detail: `${userAccounts.length} cuentas vinculadas`, icon: Landmark },
     { id: "documents" as const, title: "Documentos", detail: "Extractos y certificados", icon: Download },
     { id: "activity" as const, title: "Actividad", detail: `${recent.length} movimientos recientes`, icon: Sparkles },
-    { id: "promos" as const, title: "Promos", detail: `${state.promoSlides.length} campañas activas`, icon: CreditCard }
+    { id: "links" as const, title: "Enlaces", detail: "Pagos y envíos", icon: QrCode },
+    { id: "developers" as const, title: "Developers", detail: "API pagos + IVA", icon: Lock }
   ];
 
   return (
@@ -1589,18 +1664,58 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
         </div>
       </Modal>
 
-      <Modal title="Promos activas" open={hubModal === "promos"} onClose={() => setHubModal(null)}>
-        <SectionTitle icon={Sparkles} title="Promos activas" />
-        <div className="promo-list">
-          {state.promoSlides.map((slide) => (
-            <div key={slide.id}>
-              <Image src={assetUrl(slide.assetPath, slide.imageKey)} alt="" width={58} height={58} />
-              <span>
-                <strong>{slide.title}</strong>
-                <small>{slide.subtitle}</small>
-              </span>
+      <Modal title="API para Developers" open={hubModal === "developers"} onClose={() => setHubModal(null)}>
+        <SectionTitle icon={Lock} title="API para Developers" />
+        <div className="developer-modal">
+          <p className="muted">Integra pagos en webs y apps externas. El comercio crea un pago neto, la API calcula IVA 12%, firma el token y captura contra una cuenta GDLP pagadora.</p>
+          <div className="developer-endpoints compact">
+            {developerApiCards.map((item) => (
+              <article key={item.path}>
+                <span>{item.method}</span>
+                <strong>{item.title}</strong>
+                <code>{item.path}</code>
+                <p>{item.text}</p>
+              </article>
+            ))}
+          </div>
+          <div className="developer-code">
+            <span>Crear pago</span>
+            <pre><code>{developerSnippet}</code></pre>
+          </div>
+          <div className="payroll-summary">
+            <div><span>IVA</span><strong>12%</strong></div>
+            <div><span>Auth</span><strong>x-api-key</strong></div>
+            <div><span>Firma</span><strong>HMAC</strong></div>
+            <div><span>Estado</span><strong>Pending/Paid</strong></div>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal title="Enlaces de pago y envío" open={hubModal === "links"} onClose={() => setHubModal(null)}>
+        <SectionTitle icon={QrCode} title="Enlaces de pago y envío" />
+        <div className="segmented">
+          <button className={linkKind === "Payment" ? "active" : ""} onClick={() => setLinkKind("Payment")}>Cobrar</button>
+          <button className={linkKind === "Send" ? "active" : ""} onClick={() => setLinkKind("Send")}>Recibir Placetas</button>
+        </div>
+        <Field label="Importe Pz" value={String(linkAmount)} onChange={(value) => setLinkAmount(Number(value) || 0)} type="number" />
+        <Field label="Concepto" value={linkConcept} onChange={setLinkConcept} placeholder="Pedido, reserva o envío" />
+        {linkKind === "Send" && <Field label="IBAN destino opcional" value={linkTargetIban} onChange={setLinkTargetIban} placeholder="GDLP-..." />}
+        <div className="payroll-summary">
+          <div><span>IVA empresa</span><strong>{linkKind === "Payment" ? "12%" : "0%"}</strong></div>
+          <div><span>Uso</span><strong>Único</strong></div>
+          <div><span>Apertura</span><strong>Web/App</strong></div>
+          <div><span>Normativa</span><strong>Activa</strong></div>
+        </div>
+        <button className="primary-button" disabled={linkAmount <= 0} onClick={submitPaymentLink}>Crear y copiar enlace</button>
+        {lastLinkUrl && <button className="link-copy" onClick={() => copyText(lastLinkUrl)}>{lastLinkUrl}</button>}
+        <div className="support-thread">
+          {paymentLinks.map((link) => (
+            <div key={link.id}>
+              <strong>{link.kind === "Payment" ? "Pago" : "Envío"} · {formatPz(link.totalPz)} Pz · {link.status}</strong>
+              <span>{link.concept} · {linkUrl(link.id)}</span>
             </div>
           ))}
+          {!paymentLinks.length && <div><strong>Sin enlaces</strong><span>Crea un enlace para cobrar o recibir Placetas.</span></div>}
         </div>
       </Modal>
 
@@ -1773,7 +1888,7 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
       <div className="metric-grid">
         <MetricCard label="Masa monetaria" value={`${formatPz(totalMoney)} Pz`} tone="purple" />
         <MetricCard label="Empresas" value={String(businessCount)} tone="green" />
-        <MetricCard label="Promos" value={String(state.promoSlides.length)} tone="gold" />
+        <MetricCard label="Developers" value="API" tone="gold" />
         <MetricCard label="Solicitudes" value={String(pendingRequests)} tone="red" />
       </div>
 

@@ -251,6 +251,33 @@ function bankStateFingerprint(state: BankState) {
   });
 }
 
+function isAdminUser(user: UserProfile | null) {
+  return user?.dip === "DIP-A001";
+}
+
+function accountBelongsTo(user: UserProfile, account: Account | undefined | null) {
+  return Boolean(account && (account.placetaId === user.placetaId || account.id === user.primaryAccountId));
+}
+
+function accountsForUser(state: BankState, user: UserProfile) {
+  return state.accounts
+    .filter((account) => accountBelongsTo(user, account))
+    .sort((left, right) => left.type.localeCompare(right.type) || left.displayName.localeCompare(right.displayName));
+}
+
+function requireOwnedAccount(state: BankState, user: UserProfile, accountId: string) {
+  const account = state.accounts.find((item) => item.id === accountId);
+  if (!accountBelongsTo(user, account)) throw new Error("No puedes operar con una cuenta que no es tuya");
+  return account!;
+}
+
+function requireOwnedCard(state: BankState, user: UserProfile, cardId: string) {
+  const card = state.digitalCards.find((item) => item.id === cardId);
+  if (!card) throw new Error("Tarjeta no encontrada");
+  requireOwnedAccount(state, user, card.accountId);
+  return card;
+}
+
 function placetaIdFromDip(dip: string) {
   const compact = dip.toUpperCase().replace(/^DIP-/, "").replace(/[^A-Z0-9-]/g, "");
   return compact.slice(0, 18) || `PLID-${Date.now().toString().slice(-6)}`;
@@ -512,10 +539,21 @@ function BancoPlacetaClient() {
   const accountsById = useMemo(() => new Map(state.accounts.map((account) => [account.id, account])), [state.accounts]);
   const userAccounts = useMemo(() => {
     if (!activeUser) return [];
-    return state.accounts.filter((account) => account.placetaId === activeUser.placetaId || account.id === activeUser.primaryAccountId);
+    return accountsForUser(state, activeUser);
   }, [activeUser, state.accounts]);
-  const selectedAccount = accountsById.get(selectedAccountId) || userAccounts[0] || state.accounts.find((item) => item.id === "u-alba")!;
-  const visibleTabs = activeUser?.dip === "DIP-A001" ? tabs : tabs.filter((item) => !["tributos", "admin"].includes(item.id));
+  const selectedAccount = userAccounts.find((account) => account.id === selectedAccountId) || userAccounts.find((account) => account.id === activeUser?.primaryAccountId) || userAccounts[0];
+  const visibleTabs = isAdminUser(activeUser) ? tabs : tabs.filter((item) => !["tributos", "admin"].includes(item.id));
+
+  useEffect(() => {
+    if (!activeUser || !userAccounts.length) return;
+    if (!selectedAccount || selectedAccount.id !== selectedAccountId) {
+      setSelectedAccountId(selectedAccount?.id || userAccounts[0].id);
+    }
+  }, [activeUser, selectedAccount, selectedAccountId, userAccounts]);
+
+  useEffect(() => {
+    if (!visibleTabs.some((item) => item.id === tab)) setTab("home");
+  }, [tab, visibleTabs]);
 
   const saveSeenNotifications = useCallback(() => {
     if (typeof window === "undefined") return;
@@ -731,6 +769,7 @@ function BancoPlacetaClient() {
   }, [silentRemoteRefresh]);
 
   async function runOperation(operation: (fresh: BankState) => BankState, message: string) {
+    if (!activeUser) return;
     if (operationInFlightRef.current) {
       setToast("Hay una operación en curso. Espera la confirmación antes de repetir.");
       return;
@@ -758,7 +797,8 @@ function BancoPlacetaClient() {
     setBusyMessage("Creando cuenta");
     try {
       const fresh = await fetchFreshState(false);
-      const created = createBankAccount(fresh, activeUser.placetaId, displayName, type, parentAccountId || selectedAccount.id, cardTier);
+      const parent = requireOwnedAccount(fresh, activeUser, parentAccountId || selectedAccount?.id || activeUser.primaryAccountId);
+      const created = createBankAccount(fresh, activeUser.placetaId, displayName, type, parent.id, cardTier);
       const saved = await persist(created.state, `Cuenta ${accountTypeLabel(type)} creada`, fresh.updatedAt || null);
       if (saved) setSelectedAccountId(created.account.id);
     } catch (error) {
@@ -916,10 +956,13 @@ function BancoPlacetaClient() {
           accounts={state.accounts}
           transactions={state.transactions}
           cards={state.digitalCards.filter((card) => card.accountId === selectedAccount.id)}
-          onTransfer={(iban, amount, note) => runOperation((fresh) => transferByIban(fresh, selectedAccount.id, iban, amount, note, "Consumption"), "Transferencia GDLP ejecutada")}
-          onRbu={() => runOperation((fresh) => claimRbu(fresh, selectedAccount.id), "RBU abonada")}
-          onIssueCard={() => runOperation((fresh) => issueCard(fresh, selectedAccount.id), "Tarjeta digital emitida")}
-          onToggleCard={(cardId) => runOperation((fresh) => toggleCard(fresh, cardId), "Estado de tarjeta actualizado")}
+          onTransfer={(iban, amount, note) => runOperation((fresh) => transferByIban(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id, iban, amount, note, "Consumption"), "Transferencia GDLP ejecutada")}
+          onRbu={() => runOperation((fresh) => claimRbu(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id), "RBU abonada")}
+          onIssueCard={() => runOperation((fresh) => issueCard(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id), "Tarjeta digital emitida")}
+          onToggleCard={(cardId) => runOperation((fresh) => {
+            requireOwnedCard(fresh, activeUser, cardId);
+            return toggleCard(fresh, cardId);
+          }, "Estado de tarjeta actualizado")}
           onCreateAccount={(type, displayName, parentAccountId, cardTier) => void handleCreateAccount(type, displayName, parentAccountId, cardTier)}
         />
       )}
@@ -936,7 +979,7 @@ function BancoPlacetaClient() {
           onRemoveContact={(accountId) => runOperation((fresh) => removeSavedContact(fresh, activeUser.placetaId, accountId), "Contacto eliminado")}
           onPay={(targetId, amount) => {
             const target = accountsById.get(targetId);
-            if (target) runOperation((fresh) => payPlacezum(fresh, selectedAccount.id, target.iban, amount, `Placezum a ${target.displayName}`), "Pago Placezum confirmado");
+            if (target) runOperation((fresh) => payPlacezum(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id, target.iban, amount, `Placezum a ${target.displayName}`), "Pago Placezum confirmado");
           }}
         />
       )}
@@ -945,8 +988,12 @@ function BancoPlacetaClient() {
         <MarketScreen
           state={state}
           account={selectedAccount}
-          onStart={(marketId, amount) => runOperation((fresh) => startTimedInvestment(fresh, selectedAccount.id, marketId, amount), "Inversión 60s iniciada")}
-          onUpdateRisk={(accountId, level, listed) => runOperation((fresh) => updateInvestmentFundRisk(fresh, accountId, level, listed), "Riesgo del fondo actualizado")}
+          onStart={(marketId, amount) => runOperation((fresh) => startTimedInvestment(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id, marketId, amount), "Inversión 60s iniciada")}
+          onUpdateRisk={(accountId, level, listed) => runOperation((fresh) => {
+            const account = requireOwnedAccount(fresh, activeUser, accountId);
+            if (account.type !== "Business") throw new Error("Solo puedes modificar fondos de tus empresas");
+            return updateInvestmentFundRisk(fresh, account.id, level, listed);
+          }, "Riesgo del fondo actualizado")}
           onSettle={(operationId) => {
             if (operationInFlightRef.current) {
               setToast("Hay una operación en curso. Espera la confirmación antes de repetir.");
@@ -957,6 +1004,9 @@ function BancoPlacetaClient() {
             void (async () => {
               try {
                 const fresh = await fetchFreshState(false);
+                const operation = pendingInvestmentOperations(fresh).find((item) => item.id === operationId);
+                if (!operation) throw new Error("Operación no encontrada");
+                requireOwnedAccount(fresh, activeUser, operation.accountId);
                 const result = settleTimedInvestment(fresh, operationId);
                 await persist(result.state, `${result.reveal.userWins ? "Resultado a favor" : "Resultado en contra"} · ${formatPz(result.reveal.amountPz)} Pz`, fresh.updatedAt || null);
               } catch (error) {
@@ -1141,6 +1191,39 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
           </a>
           {loginForm}
         </section>
+      </main>
+    );
+  }
+
+  if (!selectedAccount) {
+    return (
+      <main className="app-shell">
+        <header className="topbar">
+          <div className="top-brand">
+            <span className="brand-logo">
+              <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="68px" priority />
+            </span>
+            <div>
+              <p className="eyebrow">Banco de La Placeta</p>
+              <h1>Sin cuentas vinculadas</h1>
+              <span className="top-user">{activeUser.displayName}</span>
+            </div>
+          </div>
+          <button
+            className="icon-button"
+            aria-label="Cerrar sesión"
+            onClick={() => {
+              setActiveUser(null);
+              localStorage.removeItem("placeta-web-dip");
+            }}
+          >
+            <LogOut size={19} />
+          </button>
+        </header>
+        <article className="panel">
+          <SectionTitle icon={ShieldCheck} title="Validación de propiedad" />
+          <p className="muted">No hay ninguna cuenta bancaria vinculada a tu Placeta ID. Cierra sesión o registra una cuenta propia antes de operar.</p>
+        </article>
       </main>
     );
   }
@@ -1962,8 +2045,8 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
   const [linkTargetIban, setLinkTargetIban] = useState("");
   const [lastLinkUrl, setLastLinkUrl] = useState("");
   const [hubModal, setHubModal] = useState<"payroll" | "support" | "accounts" | "documents" | "activity" | "developers" | "links" | null>(null);
-  const business = state.accounts.find((account) => account.id === businessId) || businessAccounts[0];
-  const payrollTarget = state.accounts.find((account) => account.id === payrollTargetId) || payrollTargets[0];
+  const business = businessAccounts.find((account) => account.id === businessId) || businessAccounts[0];
+  const payrollTarget = payrollTargets.find((account) => account.id === payrollTargetId) || payrollTargets[0];
   const workerTax = Math.ceil((payrollGross * state.treasuryConfig.payrollWorkerTaxPercent) / 100);
   const employerTax = Math.ceil((payrollGross * state.treasuryConfig.payrollEmployerTaxPercent) / 100);
   const netSalary = Math.max(0, payrollGross - workerTax);
@@ -1985,7 +2068,7 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
     { title: "Extracto mensual", detail: `${recent.length} movimientos recientes`, icon: Download, kind: "MonthlyStatement", id: "doc-month" },
     { title: "Certificado DIP", detail: `${user.dip} · identidad activa`, icon: ShieldCheck, kind: "SolvencyCertificate", id: "doc-solvency" },
     { title: "Justificante de pago", detail: "Última transacción asentada", icon: Banknote, kind: "PaymentReceipt", id: "doc-payment" },
-    { title: "Recibos fiscales", detail: `${state.transactions.filter((item) => item.toAccountId === TGLP_ID).length} apuntes tributarios`, icon: Gavel, kind: "VatReceipt", id: "doc-vat" },
+    { title: "Recibos fiscales", detail: `${recent.filter((item) => item.toAccountId === TGLP_ID).length} apuntes tributarios tuyos`, icon: Gavel, kind: "VatReceipt", id: "doc-vat" },
     { title: "Impuestos semanales", detail: "Liquidación semanal TGLP", icon: Landmark, kind: "WeeklyTaxReport", id: "doc-weekly" },
     { title: "Requerimiento fiscal", detail: "Formato ATP de la app", icon: ShieldCheck, kind: "FiscalRequirement", id: "doc-fiscal" },
     { title: "Contrato laboral", detail: "Relación laboral registrada", icon: Building2, kind: "LaborContract", id: "doc-labor" },
@@ -1999,6 +2082,7 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
 
   function submitPayroll() {
     if (!business || !payrollTarget) return;
+    if (!accountBelongsTo(user, business) || !accountBelongsTo(user, payrollTarget)) return;
     onPersist(
       transferPayrollOrLoan(state, business.id, payrollTarget.id, payrollGross, `Nómina empresa ${business.displayName} -> ${payrollTarget.displayName}`),
       `Nómina registrada para ${payrollTarget.displayName}`
@@ -2007,11 +2091,13 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
   }
 
   function submitTicket() {
+    const primary = userAccounts.find((account) => account.id === user.primaryAccountId) || userAccounts[0];
+    if (!primary) return;
     const now = new Date().toISOString();
     const ticket: SupportTicket = {
       id: `SUP-${Date.now().toString().slice(-6)}`,
       ownerDip: user.dip,
-      accountId: user.primaryAccountId,
+      accountId: primary.id,
       subject: ticketSubject.trim() || "Consulta de soporte",
       message: ticketMessage.trim() || ticketSubject.trim() || "Consulta de soporte",
       attachments: ticketAttachments,
@@ -2041,6 +2127,7 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
   function submitPaymentLink() {
     const source = linkSelectedAccount;
     if (!source) return;
+    if (!accountBelongsTo(user, source)) return;
     const next = createPaymentLink(state, source.id, linkKind, linkAmount, linkConcept, linkTargetIban || undefined);
     const created = next.paymentLinks[0];
     const url = linkUrl(created.id);

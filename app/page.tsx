@@ -200,7 +200,7 @@ const footerColumns = [
 const landingPages = [
   { id: "cuentas", title: "Cuentas", icon: WalletCards, image: "/assets/promos/promo2.png", text: "Consulta saldo, IBAN, actividad reciente y accesos de cuenta sin mezclar formularios en la pantalla principal.", bullets: ["Saldo y movimientos", "Transferencias por popup", "Documentos y extractos"] },
   { id: "placezum", title: "Placezum", icon: QrCode, image: "/assets/promos/placezum-default.png", text: "Pagos rápidos con código temporal, contactos guardados y límites visibles antes de enviar.", bullets: ["Código temporal", "Contactos", "Límite semanal"] },
-  { id: "tarjetas", title: "Tarjetas", icon: CreditCard, image: "/assets/promocard.jpg", text: "Gestiona tarjetas digitales y Promo Card con estado claro y acciones separadas.", bullets: ["Emitir tarjeta", "Congelar o activar", "PIN y numeración"] },
+  { id: "tarjetas", title: "Tarjetas virtuales", icon: CreditCard, image: "/assets/VIRTUALCARD.jpg", text: "Gestiona tarjetas virtuales con estado claro y acciones separadas. No se emiten tarjetas físicas desde la web.", bullets: ["Emitir tarjeta virtual", "Congelar o activar", "PIN y numeración"] },
   { id: "empresas", title: "Empresas", icon: Building2, image: "/assets/promos/mercado-default.png", text: "Panel para nóminas, alta de empresa, actividad y rentabilidad cuando la cuenta lo permite.", bullets: ["Nóminas", "Alta empresa", "Actividad asociada"] },
   { id: "soporte", title: "Soporte", icon: ShieldCheck, image: "/assets/logobanco.jpg", text: "Tickets con contexto de cuenta, tarjeta, inversión o movimiento para explicar mejor cada incidencia.", bullets: ["Estado del ticket", "Historial", "Contexto de cuenta"] },
   { id: "developers", title: "API Developers", icon: Lock, image: "/assets/promos/banco-default.png", text: "Pagos externos con token firmado, captura segura y desglose de IVA automático.", bullets: ["Crear pago", "Consultar estado", "Capturar con IVA"] }
@@ -1263,7 +1263,7 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
 
       <section className="lp4-showcase">
         <div className="lp4-card-visual">
-          <Image src="/assets/promocard.jpg" alt="Tarjeta Banco de La Placeta" fill sizes="420px" />
+          <Image src="/assets/VIRTUALCARD.jpg" alt="Tarjeta virtual Banco de La Placeta" fill sizes="420px" />
           <div className="lp4-card-caption">
             <span>Banco de La Placeta</span>
             <strong>Tarjetas, pagos y documentos en una banca compacta</strong>
@@ -1407,7 +1407,7 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
         <SectionTitle icon={WalletCards} title="Accesos de cuenta" />
         <div className="service-grid">
           <button onClick={() => setActivePopup("transfer")}><CircleDollarSign size={22} /><strong>Transferir</strong><span>Enviar Pz por IBAN</span></button>
-          <button onClick={() => setActivePopup("cards")}><CreditCard size={22} /><strong>Tarjetas</strong><span>{cards.length ? `${cards.length} vinculadas` : "Emitir una nueva"}</span></button>
+          <button onClick={() => setActivePopup("cards")}><CreditCard size={22} /><strong>Tarjetas virtuales</strong><span>{cards.length ? `${cards.length} vinculadas` : "Emitir una nueva"}</span></button>
           <button onClick={() => setActivePopup("account")}><Landmark size={22} /><strong>Nueva cuenta</strong><span>Crear IBAN GDLP automático</span></button>
           <button onClick={onRbu}><Sparkles size={22} /><strong>RBU</strong><span>Abono disponible</span></button>
         </div>
@@ -1431,15 +1431,15 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
         <div className="cards-stack">
           {cards.map((card) => (
             <button key={card.id} className={`bank-card ${card.frozen ? "frozen" : ""}`} onClick={() => onToggleCard(card.id)}>
-              <Image className="card-art" src={card.promoPhysical ? "/assets/promocard.jpg" : "/assets/VIRTUALCARD.jpg"} alt="" fill sizes="(max-width: 760px) 100vw, 360px" />
+              <Image className="card-art" src="/assets/VIRTUALCARD.jpg" alt="" fill sizes="(max-width: 760px) 100vw, 360px" />
               <span>{card.alias}</span>
               <strong>•••• {card.cardNumber}</strong>
-              <small>{card.frozen ? "Congelada" : "Activa"} · PIN {card.pin}</small>
+              <small>Virtual · {card.frozen ? "Congelada" : "Activa"} · PIN {card.pin}</small>
             </button>
           ))}
-          {!cards.length && <Empty title="Sin tarjetas" text="Emite una tarjeta digital para esta cuenta." />}
+          {!cards.length && <Empty title="Sin tarjetas" text="Emite una tarjeta virtual para esta cuenta." />}
         </div>
-        <button className="primary-button" onClick={onIssueCard}>Emitir tarjeta digital</button>
+        <button className="primary-button" onClick={onIssueCard}>Emitir tarjeta virtual</button>
       </Modal>
 
       <Modal title="Crear cuenta" open={activePopup === "account"} onClose={() => setActivePopup(null)}>
@@ -1474,7 +1474,7 @@ function AccountCreationForm({ parentAccount, onCreate }: { parentAccount: Accou
         <Landmark size={22} />
         <div>
           <strong>Nuevo IBAN GDLP automático</strong>
-          <span>El producto se vincula a tu PlacetaID y queda disponible al instante.</span>
+          <span>El producto se vincula a tu PlacetaID con tarjeta virtual asociada.</span>
         </div>
       </div>
       <Field label="Nombre visible" value={displayName} onChange={(value) => setDisplayName(value.slice(0, 34))} placeholder={accountTypeLabel(type)} />

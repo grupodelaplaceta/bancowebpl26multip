@@ -410,6 +410,7 @@ export function createBankAccount(state: BankState, ownerPlacetaId: string, disp
     frozen: false,
     cardNumber: String(Math.floor(Math.random() * 1000000)).padStart(6, "0"),
     pin: "0000",
+    promoPhysical: false,
     released: true
   };
 

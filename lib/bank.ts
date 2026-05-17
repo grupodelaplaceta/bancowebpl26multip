@@ -1132,7 +1132,11 @@ export function capturePaymentLink(state: BankState, linkId: string, payerAccoun
   const payer = state.accounts.find((account) => account.id === payerAccountId);
   if (!payer) throw new Error("Cuenta pagadora no encontrada");
   const target = link.kind === "Payment"
-    ? state.accounts.find((account) => normalizeIban(account.iban) === normalizeIban(link.targetIban || ""))
+    ? state.accounts.find((account) =>
+      link.targetIban
+        ? normalizeIban(account.iban) === normalizeIban(link.targetIban)
+        : account.id === link.creatorAccountId
+    )
     : state.accounts.find((account) => account.id === link.creatorAccountId);
   if (!target) throw new Error("Destino del enlace no encontrado");
   const tglp = state.accounts.find((account) => account.id === TGLP_ID);

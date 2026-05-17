@@ -45,11 +45,11 @@ export default function PaymentLinkPage({ params }: { params: { id: string } }) 
       id: params.id,
       kind: search.get("kind") === "send" ? "Send" : "Payment",
       creatorAccountId: search.get("account") || "",
-      targetIban: null,
+      targetIban: search.get("iban") || null,
       amountPz: Number(search.get("amount") || 0),
       ivaPz: Number(search.get("iva") || 0),
       totalPz: Number(search.get("total") || search.get("amount") || 0),
-      concept: "Enlace generado desde app",
+      concept: search.get("concept") || "Enlace generado desde app",
       status: "Pending",
       createdAt: new Date().toISOString()
     } : null;
@@ -99,7 +99,7 @@ export default function PaymentLinkPage({ params }: { params: { id: string } }) 
     <main className="pay-link-page">
       <section className="pay-link-card pay-link-card-upgraded">
         <div className="pay-link-brand">
-          <img src="/logo.png" alt="Banco de La Placeta" />
+          <img src="/gdlp26.png" alt="Banco de La Placeta" />
           <div>
             <span>{link?.kind === "Send" ? "Envío de Placetas" : "Pago seguro"}</span>
             <strong>Banco de La Placeta</strong>

@@ -74,7 +74,9 @@ import {
   UserProfile,
   VAT_PERCENT
 } from "../lib/bank";
+import { gdlpNews, planProjects } from "../lib/gdlp-content";
 import { generateBankPdf } from "../lib/pdf";
+import { BANK_SITE_URL, GDLP_SITE_URL, GDLP_SITE_URL_NO_WWW } from "../lib/site";
 import type { WebDocumentKind } from "../lib/pdf";
 
 type Tab = "home" | "placezum" | "market" | "hub" | "tributos" | "admin";
@@ -145,7 +147,7 @@ const developerSnippet = `await fetch("/api/developer-payments", {
 });`;
 
 const developerImplementationPack = {
-  create: `const createResponse = await fetch("https://TU-DOMINIO/api/developer-payments", {
+  create: `const createResponse = await fetch("${BANK_SITE_URL}/api/developer-payments", {
   method: "POST",
   headers: {
     "content-type": "application/json",
@@ -159,7 +161,7 @@ const developerImplementationPack = {
 });
 
 const { payment, token, checkoutUrl } = await createResponse.json();`,
-  captureIban: `const captureResponse = await fetch(\`https://TU-DOMINIO/api/developer-payments/\${payment.id}/capture\`, {
+  captureIban: `const captureResponse = await fetch(\`${BANK_SITE_URL}/api/developer-payments/\${payment.id}/capture\`, {
   method: "POST",
   headers: { "content-type": "application/json" },
   body: JSON.stringify({
@@ -170,7 +172,7 @@ const { payment, token, checkoutUrl } = await createResponse.json();`,
 });
 
 const confirmation = await captureResponse.json();`,
-  captureCard: `const cardCapture = await fetch(\`https://TU-DOMINIO/api/developer-payments/\${payment.id}/capture\`, {
+  captureCard: `const cardCapture = await fetch(\`${BANK_SITE_URL}/api/developer-payments/\${payment.id}/capture\`, {
   method: "POST",
   headers: { "content-type": "application/json" },
   body: JSON.stringify({
@@ -189,8 +191,8 @@ const channelCards = [
 
 const footerColumns = [
   { title: "Banco", links: [{ label: "Cuentas", href: "/info/cuentas" }, { label: "Placezum", href: "/info/placezum" }, { label: "Tarjetas", href: "/info/tarjetas" }, { label: "Empresas", href: "/info/empresas" }] },
-  { title: "Ayuda", links: [{ label: "Soporte", href: "/info/soporte" }, { label: "Pagos", href: "/info/guia-pagos" }, { label: "Inversiones", href: "/info/inversiones-cuenta" }, { label: "Seguridad", href: "/info/seguridad" }] },
-  { title: "Legal", links: [{ label: "Términos", href: "/terminos-y-condiciones" }, { label: "Privacidad", href: "/politica-de-privacidad" }, { label: "Developers", href: "/info/developers" }, { label: "Contacto", href: "mailto:soporte@bancoplaceta.com" }] }
+  { title: "Institución", links: [{ label: "Noticias", href: "/noticias" }, { label: "Plan 2026", href: "/plan-2026" }, { label: "Seguridad", href: "/info/seguridad" }, { label: "Soporte", href: "/info/soporte" }] },
+  { title: "Legal", links: [{ label: "Términos", href: "/terminos-y-condiciones" }, { label: "Privacidad", href: "/politica-de-privacidad" }, { label: "Developers", href: "/info/developers" }, { label: "Contacto", href: "mailto:soporte@banco.laplaceta.org" }] }
 ];
 
 const landingPages = [
@@ -231,6 +233,12 @@ function parsePlacetaIdUser(value: string): PlacetaIdUserPayload | null {
     } catch {}
   }
   return null;
+}
+
+function hasPlacetaIdCallback() {
+  if (typeof window === "undefined") return false;
+  const params = new URLSearchParams(window.location.search);
+  return Boolean((params.get("placetaid_token") || params.get("token")) && params.get("user"));
 }
 
 function placetaIdFromDip(dip: string) {
@@ -334,6 +342,71 @@ async function registerPlacetaIdUser(base: BankState, payload: PlacetaIdUserPayl
   };
 }
 
+async function createLocalRegisteredUser(base: BankState, normalizedDip: string, pin: string, displayName: string) {
+  if (base.users.some((item) => item.dip === normalizedDip)) throw new Error("Ese DIP ya existe");
+  const accountId = `acct-${crypto.randomUUID()}`;
+  const createdAt = new Date().toISOString();
+  const user: UserProfile = {
+    dip: normalizedDip,
+    displayName,
+    placetaId: placetaIdFromDip(normalizedDip),
+    pinHash: await sha256(pin),
+    primaryAccountId: accountId,
+    consentimiento_rgpd: true,
+    consentimiento_rgpd_at: createdAt,
+    createdAt
+  };
+  const account: Account = {
+    id: accountId,
+    displayName: "Cuenta personal",
+    kind: "CITIZEN",
+    balancePz: 500,
+    placetaId: user.placetaId,
+    role: "Citizen",
+    type: "Current",
+    iban: ibanGenerate(accountId),
+    citizenshipTier: "CiudadaniaPlena",
+    complianceStatus: "Clear"
+  };
+  const admin = base.accounts.find((item) => item.id === AGLDP_ID);
+  const welcome: LedgerTransaction = {
+    id: `welcome-${crypto.randomUUID()}`,
+    kind: "WelcomeBonus",
+    fromAccountId: AGLDP_ID,
+    toAccountId: account.id,
+    amountPz: 500,
+    ivaPz: 0,
+    note: "Bono de bienvenida Banco de La Placeta",
+    status: "Settled",
+    createdAt,
+    netAmount: 500,
+    taxAmount: 0,
+    concept: "WELCOME_BONUS",
+    IBAN_Origin: admin?.iban || ibanGenerate(AGLDP_ID)
+  };
+  const card: DigitalCard = {
+    id: `card-${crypto.randomUUID()}`,
+    accountId,
+    alias: "Placeta Black",
+    tier: "Standard",
+    frozen: false,
+    cardNumber: String(Math.floor(Math.random() * 1000000)).padStart(6, "0"),
+    pin: "0000",
+    released: true
+  };
+  const accounts = base.accounts.map((item) => item.id === AGLDP_ID ? { ...item, balancePz: Math.max(0, item.balancePz - 500) } : item);
+  return {
+    state: finalizeState({
+      ...base,
+      users: [...base.users, user].sort((left, right) => left.displayName.localeCompare(right.displayName)),
+      accounts: [...accounts, account],
+      transactions: [welcome, ...base.transactions],
+      digitalCards: [...base.digitalCards, card]
+    }),
+    user
+  };
+}
+
 export default function BancoPlacetaWeb() {
   return <BancoPlacetaClient />;
 }
@@ -348,6 +421,7 @@ function BancoPlacetaClient() {
   const [hydrated, setHydrated] = useState(false);
   const [toast, setToast] = useState("");
   const [busyMessage, setBusyMessage] = useState("");
+  const [placetaIdLoading, setPlacetaIdLoading] = useState(() => hasPlacetaIdCallback());
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("default");
   const [notificationNow, setNotificationNow] = useState(0);
   const stateRef = useRef<BankState>(state);
@@ -590,7 +664,7 @@ function BancoPlacetaClient() {
   async function persist(next: BankState, message: string, baseUpdatedAt: string | null = stateRef.current.updatedAt || null) {
     if (persistInFlightRef.current) {
       setToast("Hay una operación guardándose. Espera un momento.");
-      return;
+      return false;
     }
     persistInFlightRef.current = true;
     setBusyMessage(message);
@@ -608,18 +682,22 @@ function BancoPlacetaClient() {
       if (response.ok) {
         setToast(`${message} · confirmado`);
         window.setTimeout(() => void silentRemoteRefresh(), 1200);
+        return true;
       } else if (response.status === 409) {
         const conflict = await response.json();
         const remote = normalizeState(conflict.remote);
         setState(remote);
         localStorage.setItem("placeta-web-state", JSON.stringify(remote));
         setToast("Operación no aplicada: los datos cambiaron en otro dispositivo. Reintenta con el saldo actualizado.");
+        return false;
       } else {
         setToast("No se pudo guardar. Revisa si había una operación duplicada o un conflicto de sincronización.");
+        return false;
       }
     } catch {
       setSync("offline");
       setToast(`${message} · guardado localmente`);
+      return true;
     } finally {
       persistInFlightRef.current = false;
       setBusyMessage("");
@@ -652,6 +730,7 @@ function BancoPlacetaClient() {
     if (!token || !rawUser) return;
 
     placetaIdCallbackHandledRef.current = true;
+    setPlacetaIdLoading(true);
     void (async () => {
       try {
         const placetaUser = parsePlacetaIdUser(rawUser);
@@ -693,9 +772,15 @@ function BancoPlacetaClient() {
         window.history.replaceState({}, "", cleanUrl);
       } catch (error) {
         setToast(error instanceof Error ? error.message : "No se pudo iniciar sesión con PlacetaID");
+      } finally {
+        setPlacetaIdLoading(false);
       }
     })();
   }, [hydrated, sync]);
+
+  if (placetaIdLoading) {
+    return <PlacetaIdLoadingScreen sync={sync} />;
+  }
 
   if (!activeUser) {
     return (
@@ -708,11 +793,14 @@ function BancoPlacetaClient() {
           setSelectedAccountId(user.primaryAccountId);
           localStorage.setItem("placeta-web-dip", user.dip);
         }}
-        onRegister={(next, user) => {
-          void persist(next, "DIP registrado en Banco de La Placeta");
-          setActiveUser(user);
-          setSelectedAccountId(user.primaryAccountId);
-          localStorage.setItem("placeta-web-dip", user.dip);
+        onRegister={async (normalizedDip, pin, displayName) => {
+          const fresh = await fetchFreshState(false).catch(() => stateRef.current);
+          const registered = await createLocalRegisteredUser(fresh, normalizedDip, pin, displayName);
+          const saved = await persist(registered.state, "DIP registrado en Banco de La Placeta", fresh.updatedAt || null);
+          if (!saved) throw new Error("No se pudo completar el alta. Reintenta con los datos actualizados.");
+          setActiveUser(registered.user);
+          setSelectedAccountId(registered.user.primaryAccountId);
+          localStorage.setItem("placeta-web-dip", registered.user.dip);
         }}
       />
     );
@@ -723,7 +811,7 @@ function BancoPlacetaClient() {
       <header className="topbar">
         <div className="top-brand">
           <span className="brand-logo">
-            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="68px" priority />
+            <Image src="/gdlp26.png" alt="Banco de La Placeta" fill sizes="68px" priority />
           </span>
           <div>
             <p className="eyebrow">Banco de La Placeta</p>
@@ -865,13 +953,39 @@ function BancoPlacetaClient() {
   );
 }
 
-function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: BankState; sync: string; showLogin: boolean; onLogin: (user: UserProfile) => void; onRegister: (state: BankState, user: UserProfile) => void }) {
+function PlacetaIdLoadingScreen({ sync }: { sync: "loading" | "online" | "offline" }) {
+  return (
+    <main className="placetaid-loading-shell" role="status" aria-live="polite">
+      <section className="placetaid-loading-card">
+        <span className="placetaid-loading-logo">
+          <Image src="/gdlp26.png" alt="Banco de La Placeta" fill sizes="82px" priority />
+        </span>
+        <div className="placetaid-loading-orbit" aria-hidden="true">
+          <span />
+          <span />
+          <ShieldCheck size={36} />
+        </div>
+        <p className="eyebrow">Acceso seguro</p>
+        <h1>Conectando con PlacetaID</h1>
+        <p>Estamos validando tu identidad y preparando tu sesión del Banco de La Placeta.</p>
+        <div className="placetaid-loading-steps">
+          <span className="done"><CheckCircle2 size={16} /> Token recibido</span>
+          <span className={sync === "online" ? "done" : "active"}><ScanLine size={16} /> Sincronizando datos</span>
+          <span className="active"><Sparkles size={16} /> Abriendo tu cuenta</span>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: BankState; sync: string; showLogin: boolean; onLogin: (user: UserProfile) => void; onRegister: (normalizedDip: string, pin: string, displayName: string) => Promise<void> }) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [dip, setDip] = useState("DIP-A001");
   const [pin, setPin] = useState("1234");
   const [name, setName] = useState("");
   const [consent, setConsent] = useState(false);
   const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const [slideIndex, setSlideIndex] = useState(0);
   const activeSlide = landingSlides[slideIndex] ?? landingSlides[0];
 
@@ -896,7 +1010,8 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError("");
-    const normalizedDip = dip.trim().toUpperCase();
+    const compactDip = dip.trim().toUpperCase();
+    const normalizedDip = compactDip.startsWith("DIP-") ? compactDip : `DIP-${compactDip}`;
     if (mode === "login") {
       const user = state.users.find((item) => item.dip === normalizedDip);
       if (!user) return setError("DIP no registrado");
@@ -906,64 +1021,28 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
     if (!/^DIP-[A-Z0-9]{4}$/.test(normalizedDip)) return setError("Formato DIP inválido. Usa DIP-XXXX");
     if (pin.length < 4 || name.trim().length < 2) return setError("Completa nombre y PIN de 4 dígitos");
     if (!consent) return setError("Debes aceptar los términos y la política de privacidad para registrarte");
-    if (state.users.some((item) => item.dip === normalizedDip)) return setError("Ese DIP ya existe");
-    const accountId = `acct-${crypto.randomUUID()}`;
-    const createdAt = new Date().toISOString();
-    const user: UserProfile = {
-      dip: normalizedDip,
-      displayName: name.trim(),
-      placetaId: normalizedDip.replace("DIP-", ""),
-      pinHash: await sha256(pin),
-      primaryAccountId: accountId,
-      consentimiento_rgpd: true,
-      consentimiento_rgpd_at: createdAt,
-      createdAt
-    };
-    const account: Account = {
-      id: accountId,
-      displayName: "Cuenta personal",
-      kind: "CITIZEN",
-      balancePz: 500,
-      placetaId: user.placetaId,
-      role: "Citizen",
-      type: "Current",
-      iban: ibanGenerate(accountId),
-      citizenshipTier: "CiudadaniaPlena",
-      complianceStatus: "Clear"
-    };
-    const admin = state.accounts.find((item) => item.id === AGLDP_ID)!;
-    const welcome: LedgerTransaction = {
-      id: `welcome-${crypto.randomUUID()}`,
-      kind: "WelcomeBonus",
-      fromAccountId: AGLDP_ID,
-      toAccountId: account.id,
-      amountPz: 500,
-      ivaPz: 0,
-      note: "Bono de bienvenida Banco de La Placeta",
-      status: "Settled",
-      createdAt: new Date().toISOString(),
-      netAmount: 500,
-      taxAmount: 0,
-      concept: "WELCOME_BONUS",
-      IBAN_Origin: admin.iban
-    };
-    const card: DigitalCard = {
-      id: `card-${crypto.randomUUID()}`,
-      accountId,
-      alias: "Placeta Black",
-      tier: "Standard",
-      frozen: false,
-      cardNumber: String(Math.floor(Math.random() * 1000000)).padStart(6, "0"),
-      pin: "0000"
-    };
-    const accounts = state.accounts.map((item) => item.id === AGLDP_ID ? { ...item, balancePz: Math.max(0, item.balancePz - 500) } : item);
-    onRegister(finalizeState({
-      ...state,
-      users: [...state.users, user].sort((left, right) => left.displayName.localeCompare(right.displayName)),
-      accounts: [...accounts, account],
-      transactions: [welcome, ...state.transactions],
-      digitalCards: [...state.digitalCards, card]
-    }), user);
+    setSubmitting(true);
+    try {
+      await onRegister(normalizedDip, pin, name.trim());
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "No se pudo completar el alta");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function switchMode(nextMode: "login" | "register") {
+    setMode(nextMode);
+    setError("");
+    if (nextMode === "login") {
+      setDip("DIP-A001");
+      setPin("1234");
+      setName("");
+      setConsent(false);
+    } else {
+      setDip("DIP-");
+      setPin("");
+    }
   }
 
   return (
@@ -971,7 +1050,7 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
       <header className="lp4-nav">
         <a className="lp4-brand" href="#inicio" aria-label="Banco de La Placeta">
           <span className="lp4-logo">
-            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="72px" priority />
+            <Image src="/gdlp26.png" alt="Banco de La Placeta" fill sizes="72px" priority />
           </span>
           <span>
             <strong>Banco de La Placeta</strong>
@@ -980,10 +1059,10 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
         </a>
         <nav className="lp4-links" aria-label="Navegación landing">
           <a href="#modulos">Módulos</a>
-          <a href="#articulos">Artículos</a>
+          <a href="/noticias">Noticias</a>
+          <a href="/plan-2026">Plan 2026</a>
           <a href="/info/developers">Developers</a>
           <a href="#ayuda">Ayuda</a>
-          <a href="/info/seguridad">Seguridad</a>
           <a className="lp4-link-cta" href="/login">Acceder</a>
         </nav>
       </header>
@@ -1002,8 +1081,8 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
             </div>
             <div className="lp4-hero-badges" aria-label="Puntos destacados">
               <span>{activeSlide.metric}</span>
-              <span>Sin promesas irreales</span>
-              <span>Responsive</span>
+              <span>Identidad GDLP</span>
+              <span>Diseño responsive</span>
             </div>
             <div className="lp4-carousel-controls" aria-label="Carrusel Banco de La Placeta">
               {landingSlides.map((slide, index) => (
@@ -1016,6 +1095,7 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
                 >
                   <span>{String(index + 1).padStart(2, "0")}</span>
                   <strong>{slide.kicker}</strong>
+                  <small>{slide.metric}</small>
                 </button>
               ))}
             </div>
@@ -1035,8 +1115,8 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
             </button>
             <div className="login-divider"><span>o usa acceso local</span></div>
             <div className="segmented">
-              <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Entrar</button>
-              <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Registro</button>
+              <button type="button" className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")}>Entrar</button>
+              <button type="button" className={mode === "register" ? "active" : ""} onClick={() => switchMode("register")}>Registro</button>
             </div>
             {mode === "register" && <Field label="Nombre" value={name} onChange={setName} placeholder="Tu nombre" />}
             <Field label="DIP oficial" value={dip} onChange={setDip} placeholder="DIP-XXXX" />
@@ -1050,7 +1130,7 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
               </label>
             )}
             {error && <p className="form-error">{error}</p>}
-            <button className="primary-button" type="submit">{mode === "login" ? "Abrir banco" : "Crear DIP"}</button>
+            <button className="primary-button" type="submit" disabled={submitting}>{submitting ? "Creando acceso..." : mode === "login" ? "Abrir banco" : "Crear DIP"}</button>
             <p className="login-hint">Demo: DIP-A001 / PIN 1234</p>
           </form> : (
             <aside className="lp4-carousel-panel" aria-label="Resumen del carrusel">
@@ -1096,24 +1176,46 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
         </div>
       </section>
 
-      <section className="lp4-help" id="articulos">
+      <section className="lp4-help lp4-plan-preview" id="plan-2026">
         <div className="lp4-section-head">
-          <span>Artículos de ayuda</span>
-          <h2>Guías concretas para operar sin dudas.</h2>
-          <p>Contenido corto, práctico y separado de la banca privada para que la landing no parezca un panel saturado.</p>
+          <span>Plan 2026</span>
+          <h2>Hoja de ruta estratégica, separada de las noticias.</h2>
+          <p>Infraestructura, gobernanza, pagos y seguridad tienen páginas propias para compartir cada proyecto del plan.</p>
         </div>
         <div className="lp4-post-grid lp4-article-grid">
-          {helpPosts.map((post) => (
-            <a key={post.id} href={`/info/${post.id}`}>
+          {planProjects.slice(0, 3).map((project) => (
+            <a key={project.slug} href={`/plan-2026/${project.slug}`}>
+              <span className="lp4-info-image">
+                <Image src={project.image} alt={project.title} fill sizes="(max-width: 760px) 100vw, 360px" />
+              </span>
+              <b>{project.status}</b>
+              <strong>{project.title}</strong>
+              <p>{project.summary}</p>
+            </a>
+          ))}
+        </div>
+        <a className="lp4-inline-link" href="/plan-2026">Ver Plan 2026 completo</a>
+      </section>
+
+      <section className="lp4-help" id="noticias">
+        <div className="lp4-section-head">
+          <span>Noticias</span>
+          <h2>Comunicados y novedades con enlace propio.</h2>
+          <p>Las noticias explican cambios, guías y avisos operativos. No se mezclan con la hoja de ruta del Plan 2026.</p>
+        </div>
+        <div className="lp4-post-grid lp4-article-grid">
+          {gdlpNews.slice(0, 3).map((post) => (
+            <a key={post.slug} href={`/noticias/${post.slug}`}>
               <span className="lp4-info-image">
                 <Image src={post.image} alt={post.title} fill sizes="(max-width: 760px) 100vw, 360px" />
               </span>
               <b>{post.tag}</b>
               <strong>{post.title}</strong>
-              <p>{post.text}</p>
+              <p>{post.summary}</p>
             </a>
           ))}
         </div>
+        <a className="lp4-inline-link" href="/noticias">Ver todas las noticias</a>
       </section>
 
       <section className="lp4-showcase">
@@ -1199,11 +1301,11 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
       <footer className="lp4-footer">
         <div className="lp4-footer-brand">
           <span className="lp4-logo small">
-            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="46px" />
+            <Image src="/gdlp26.png" alt="Banco de La Placeta" fill sizes="46px" />
           </span>
           <div>
-            <strong>Banco de La Placeta</strong>
-            <p>Banca digital, pagos y gestión financiera.</p>
+          <strong>Banco de La Placeta</strong>
+            <p>Banca digital en {BANK_SITE_URL.replace("https://", "")}. Web GDLP: {GDLP_SITE_URL.replace("https://", "")} o {GDLP_SITE_URL_NO_WWW.replace("https://", "")}.</p>
           </div>
         </div>
         <div className="lp4-footer-columns">
@@ -1796,8 +1898,7 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
   }
 
   function linkUrl(id: string) {
-    const origin = typeof window !== "undefined" ? window.location.origin : "https://banco-web.vercel.app";
-    return `${origin}/pay-link/${id}`;
+    return `${BANK_SITE_URL}/pay-link/${id}`;
   }
 
   async function copyText(value: string) {

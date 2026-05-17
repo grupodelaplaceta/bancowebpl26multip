@@ -382,6 +382,47 @@ export function makeId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
+export function createBankAccount(state: BankState, ownerPlacetaId: string, displayName: string, type: AccountType, parentAccountId?: string | null, cardTier: DigitalCard["tier"] = type === "Child" ? "Child" : "Standard") {
+  const id = makeId("acct");
+  const account: Account = {
+    id,
+    displayName: displayName.trim() || accountTypeLabel(type),
+    kind: "CITIZEN",
+    balancePz: 0,
+    placetaId: ownerPlacetaId,
+    role: "Citizen",
+    type,
+    iban: ibanGenerate(id),
+    parentAccountId: type === "Child" ? parentAccountId || null : null,
+    huchaLocked: type === "Savings",
+    sendLimitPz: type === "Child" ? 50 : null,
+    citizenshipTier: type === "Business" ? "Institucion" : type === "Child" ? "JuniorBasica" : "CiudadaniaPlena",
+    complianceStatus: "Clear",
+    fundsJustificationApproved: false,
+    listedInvestmentFund: type === "Business" ? false : undefined,
+    investmentRiskLevel: type === "Investment" ? 1 : undefined
+  };
+  const card: DigitalCard = {
+    id: `card-${id}`,
+    accountId: id,
+    alias: `${account.displayName} Card`,
+    tier: type === "Child" ? "Child" : cardTier,
+    frozen: false,
+    cardNumber: String(Math.floor(Math.random() * 1000000)).padStart(6, "0"),
+    pin: "0000",
+    released: true
+  };
+
+  return {
+    account,
+    state: finalizeState({
+      ...state,
+      accounts: [...state.accounts, account],
+      digitalCards: [...state.digitalCards, card]
+    })
+  };
+}
+
 function account(
   id: string,
   displayName: string,

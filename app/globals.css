@@ -8493,3 +8493,138 @@ select:focus {
     border-radius: 20px;
   }
 }
+
+.account-create-form {
+  display: grid;
+  gap: 12px;
+}
+
+.account-create-head {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 18px;
+  color: var(--android-ink);
+  background: rgba(63, 0, 216, .055);
+  border: 1px solid rgba(63, 0, 216, .12);
+}
+
+.account-create-head svg {
+  color: #3F00D8;
+}
+
+.account-create-head strong,
+.account-create-head span {
+  display: block;
+}
+
+.account-create-head span {
+  margin-top: 2px;
+  color: var(--android-muted);
+  font-size: .86rem;
+  font-weight: 760;
+}
+
+.product-type-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.product-type-grid button {
+  min-height: 68px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  background: white;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.product-type-grid button strong,
+.product-type-grid button span {
+  display: block;
+}
+
+.product-type-grid button strong {
+  color: var(--android-ink);
+  font-size: .9rem;
+}
+
+.product-type-grid button span {
+  color: var(--android-muted);
+  font-size: .76rem;
+  font-weight: 820;
+}
+
+.product-type-grid button.active {
+  color: white;
+  background: #3F00D8;
+  border-color: #3F00D8;
+}
+
+.product-type-grid button.active strong,
+.product-type-grid button.active span {
+  color: white;
+}
+
+.card-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.card-tier-grid button {
+  min-height: 42px;
+  border-radius: 14px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  background: white;
+  color: var(--android-ink);
+  font-weight: 900;
+}
+
+.card-tier-grid button.active {
+  color: white;
+  background: #3F00D8;
+  border-color: #3F00D8;
+}
+
+.account-product-preview,
+.account-create-panel {
+  padding: 13px;
+  border-radius: 18px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  background: var(--android-surface-2);
+}
+
+.account-product-preview {
+  display: grid;
+  gap: 5px;
+}
+
+.account-product-preview strong,
+.account-product-preview span,
+.account-product-preview small {
+  display: block;
+}
+
+.account-product-preview span,
+.account-product-preview small {
+  color: var(--android-muted);
+  font-weight: 760;
+}
+
+.account-create-panel {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+@media (max-width: 760px) {
+  .product-type-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

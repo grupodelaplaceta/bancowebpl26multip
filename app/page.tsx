@@ -30,6 +30,7 @@ import { usePathname } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Account,
+  AccountType,
   accountTypeLabel,
   AGLDP_ID,
   BankState,
@@ -46,6 +47,7 @@ import {
   forceVatRegularization,
   addSavedContact,
   createPaymentLink,
+  createBankAccount,
   dailyInvestmentCountForCompany,
   generatePlacezumCode,
   ibanGenerate,
@@ -722,6 +724,27 @@ function BancoPlacetaClient() {
     }
   }
 
+  async function handleCreateAccount(type: AccountType, displayName: string, parentAccountId?: string | null, cardTier?: DigitalCard["tier"]) {
+    if (!activeUser) return;
+    if (operationInFlightRef.current) {
+      setToast("Hay una operación en curso. Espera la confirmación antes de repetir.");
+      return;
+    }
+    operationInFlightRef.current = true;
+    setBusyMessage("Creando cuenta");
+    try {
+      const fresh = await fetchFreshState(false);
+      const created = createBankAccount(fresh, activeUser.placetaId, displayName, type, parentAccountId || selectedAccount.id, cardTier);
+      const saved = await persist(created.state, `Cuenta ${accountTypeLabel(type)} creada`, fresh.updatedAt || null);
+      if (saved) setSelectedAccountId(created.account.id);
+    } catch (error) {
+      setToast(error instanceof Error ? error.message : "No se pudo crear la cuenta");
+    } finally {
+      operationInFlightRef.current = false;
+      setBusyMessage("");
+    }
+  }
+
   useEffect(() => {
     if (!hydrated || placetaIdCallbackHandledRef.current || typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -873,6 +896,7 @@ function BancoPlacetaClient() {
           onRbu={() => runOperation((fresh) => claimRbu(fresh, selectedAccount.id), "RBU abonada")}
           onIssueCard={() => runOperation((fresh) => issueCard(fresh, selectedAccount.id), "Tarjeta digital emitida")}
           onToggleCard={(cardId) => runOperation((fresh) => toggleCard(fresh, cardId), "Estado de tarjeta actualizado")}
+          onCreateAccount={(type, displayName, parentAccountId, cardTier) => void handleCreateAccount(type, displayName, parentAccountId, cardTier)}
         />
       )}
 
@@ -921,7 +945,7 @@ function BancoPlacetaClient() {
           }}
         />
       )}
-      {tab === "hub" && <HubScreen state={state} user={activeUser} onPersist={(next, message) => void persist(next, message)} />}
+      {tab === "hub" && <HubScreen state={state} user={activeUser} onPersist={(next, message) => void persist(next, message)} onCreateAccount={(type, displayName, parentAccountId, cardTier) => void handleCreateAccount(type, displayName, parentAccountId, cardTier)} />}
       {tab === "tributos" && <TributosScreen state={state} onPersist={(next, message) => void persist(next, message)} />}
       {tab === "admin" && <AdminScreen state={state} onPersist={(next, message) => void persist(next, message)} />}
 
@@ -1340,7 +1364,7 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
   );
 }
 
-function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu, onIssueCard, onToggleCard }: {
+function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu, onIssueCard, onToggleCard, onCreateAccount }: {
   account: Account;
   accounts: Account[];
   transactions: LedgerTransaction[];
@@ -1349,12 +1373,13 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
   onRbu: () => void;
   onIssueCard: () => void;
   onToggleCard: (cardId: string) => void;
+  onCreateAccount: (type: AccountType, displayName: string, parentAccountId?: string | null, cardTier?: DigitalCard["tier"]) => void;
 }) {
   const [showBalance, setShowBalance] = useState(true);
   const [iban, setIban] = useState(accounts.find((item) => item.id !== account.id && item.kind === "CITIZEN")?.iban || "");
   const [amount, setAmount] = useState(25);
   const [note, setNote] = useState("Pago GDLP");
-  const [activePopup, setActivePopup] = useState<"transfer" | "cards" | null>(null);
+  const [activePopup, setActivePopup] = useState<"transfer" | "cards" | "account" | null>(null);
   const history = transactionsFor(account.id, transactions).slice(0, 8);
 
   return (
@@ -1374,6 +1399,7 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
         <button onClick={() => setActivePopup("transfer")}><CircleDollarSign size={20} /> Enviar</button>
         <button onClick={onRbu}><Sparkles size={20} /> RBU</button>
         <button onClick={() => setActivePopup("cards")}><CreditCard size={20} /> Tarjetas</button>
+        <button onClick={() => setActivePopup("account")}><Landmark size={20} /> Cuenta</button>
         <button onClick={() => generateBankPdf(account, { id: `doc-month-${account.id}`, title: "Extracto mensual", kind: "MonthlyStatement" }, transactionsFor(account.id, transactions))}><Download size={20} /> PDF</button>
       </div>
 
@@ -1382,6 +1408,7 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
         <div className="service-grid">
           <button onClick={() => setActivePopup("transfer")}><CircleDollarSign size={22} /><strong>Transferir</strong><span>Enviar Pz por IBAN</span></button>
           <button onClick={() => setActivePopup("cards")}><CreditCard size={22} /><strong>Tarjetas</strong><span>{cards.length ? `${cards.length} vinculadas` : "Emitir una nueva"}</span></button>
+          <button onClick={() => setActivePopup("account")}><Landmark size={22} /><strong>Nueva cuenta</strong><span>Crear IBAN GDLP automático</span></button>
           <button onClick={onRbu}><Sparkles size={22} /><strong>RBU</strong><span>Abono disponible</span></button>
         </div>
       </article>
@@ -1414,7 +1441,69 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
         </div>
         <button className="primary-button" onClick={onIssueCard}>Emitir tarjeta digital</button>
       </Modal>
+
+      <Modal title="Crear cuenta" open={activePopup === "account"} onClose={() => setActivePopup(null)}>
+        <AccountCreationForm parentAccount={account} onCreate={(type, displayName, parentAccountId, cardTier) => {
+          onCreateAccount(type, displayName, parentAccountId, cardTier);
+          setActivePopup(null);
+        }} />
+      </Modal>
     </section>
+  );
+}
+
+const accountProductTypes: AccountType[] = ["Current", "Savings", "Child", "Business", "Investment"];
+
+const accountProductCopy: Record<AccountType, string> = {
+  Current: "Cuenta corriente para pagos, ingresos y transferencias diarias.",
+  Savings: "Hucha bloqueada para ahorro y rentabilidad anual.",
+  Child: "Cuenta infantil con límite de envío y cuenta tutora.",
+  Business: "Producto empresa con umbral institucional y nóminas.",
+  Investment: "Cartera separada para activos del mercado GDLP."
+};
+
+function AccountCreationForm({ parentAccount, onCreate }: { parentAccount: Account; onCreate: (type: AccountType, displayName: string, parentAccountId?: string | null, cardTier?: DigitalCard["tier"]) => void }) {
+  const [displayName, setDisplayName] = useState("");
+  const [type, setType] = useState<AccountType>("Current");
+  const [cardTier, setCardTier] = useState<DigitalCard["tier"]>("Standard");
+  const suggestedName = displayName.trim() || accountTypeLabel(type);
+
+  return (
+    <div className="account-create-form">
+      <div className="account-create-head">
+        <Landmark size={22} />
+        <div>
+          <strong>Nuevo IBAN GDLP automático</strong>
+          <span>El producto se vincula a tu PlacetaID y queda disponible al instante.</span>
+        </div>
+      </div>
+      <Field label="Nombre visible" value={displayName} onChange={(value) => setDisplayName(value.slice(0, 34))} placeholder={accountTypeLabel(type)} />
+      <div className="product-type-grid" aria-label="Tipo de cuenta">
+        {accountProductTypes.map((item) => (
+          <button key={item} type="button" className={type === item ? "active" : ""} onClick={() => setType(item)}>
+            <strong>{accountTypeLabel(item)}</strong>
+            <span>{item === "Savings" ? "Hucha" : item === "Child" ? "Tutor" : item === "Business" ? "Empresa" : item === "Investment" ? "Mercado" : "Diaria"}</span>
+          </button>
+        ))}
+      </div>
+      <div className="account-product-preview">
+        <strong>{suggestedName}</strong>
+        <span>{accountProductCopy[type]}</span>
+        <small>{type === "Child" ? `Cuenta tutora: ${parentAccount.displayName} · Tarjeta Child` : `Tarjeta ${cardTier} · Alta sin saldo inicial`}</small>
+      </div>
+      {type !== "Child" && (
+        <div className="card-tier-grid" aria-label="Tipo de tarjeta">
+          {(["Standard", "Premium"] as DigitalCard["tier"][]).map((tier) => (
+            <button key={tier} type="button" className={cardTier === tier ? "active" : ""} onClick={() => setCardTier(tier)}>
+              Tarjeta {tier}
+            </button>
+          ))}
+        </div>
+      )}
+      <button className="primary-button" type="button" onClick={() => onCreate(type, suggestedName, type === "Child" ? parentAccount.id : null, type === "Child" ? "Child" : cardTier)}>
+        Crear producto
+      </button>
+    </div>
   );
 }
 
@@ -1825,7 +1914,7 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
   );
 }
 
-function HubScreen({ state, user, onPersist }: { state: BankState; user: UserProfile; onPersist: (state: BankState, message: string) => void }) {
+function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankState; user: UserProfile; onPersist: (state: BankState, message: string) => void; onCreateAccount: (type: AccountType, displayName: string, parentAccountId?: string | null, cardTier?: DigitalCard["tier"]) => void }) {
   const userAccounts = state.accounts.filter((account) => account.placetaId === user.placetaId || account.id === user.primaryAccountId);
   const businessAccounts = userAccounts.filter((account) => account.type === "Business");
   const payrollTargets = userAccounts.filter((account) => account.type === "Current");
@@ -2039,6 +2128,12 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
             <b>{formatPz(account.balancePz)} Pz</b>
           </div>
         ))}
+        {primaryAccount && (
+          <div className="account-create-panel">
+            <SectionTitle icon={Sparkles} title="Dar de alta producto" />
+            <AccountCreationForm parentAccount={primaryAccount} onCreate={onCreateAccount} />
+          </div>
+        )}
       </Modal>
 
       <Modal title="Documentos" open={hubModal === "documents"} onClose={() => setHubModal(null)}>

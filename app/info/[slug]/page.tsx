@@ -148,7 +148,7 @@ export default function InfoPage({ params }: { params: { slug: string } }) {
     <main className="info-page">
       <header className="info-nav">
         <a href="/" className="info-brand">
-          <span><Image src="/gdlp26.png" alt="Banco de La Placeta" fill sizes="58px" /></span>
+          <span><Image src="/logo.png" alt="Banco de La Placeta" fill sizes="58px" /></span>
           <strong>Banco de La Placeta</strong>
         </a>
         <nav>

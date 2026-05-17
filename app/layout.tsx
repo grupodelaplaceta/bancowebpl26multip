@@ -12,15 +12,15 @@ export const metadata: Metadata = {
     canonical: "/"
   },
   icons: {
-    icon: "/gdlp26.png",
-    apple: "/gdlp26.png"
+    icon: "/logo.png",
+    apple: "/logo.png"
   },
   openGraph: {
     title: "Banco de La Placeta",
     description: "Banca digital para pagos, tarjetas, cuentas y gestión financiera.",
     siteName: "Banco de La Placeta",
     url: BANK_SITE_URL,
-    images: [{ url: "/gdlp26.png", width: 512, height: 512, alt: "Banco de La Placeta" }],
+    images: [{ url: "/logo.png", width: 512, height: 512, alt: "Banco de La Placeta" }],
     locale: "es_ES",
     type: "website"
   },
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     card: "summary",
     title: "Banco de La Placeta",
     description: "Banca digital clara para pagos, tarjetas y gestión financiera.",
-    images: ["/gdlp26.png"]
+    images: ["/logo.png"]
   }
 };
 

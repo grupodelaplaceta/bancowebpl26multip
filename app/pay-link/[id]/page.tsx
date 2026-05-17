@@ -99,7 +99,7 @@ export default function PaymentLinkPage({ params }: { params: { id: string } }) 
     <main className="pay-link-page">
       <section className="pay-link-card pay-link-card-upgraded">
         <div className="pay-link-brand">
-          <img src="/gdlp26.png" alt="Banco de La Placeta" />
+          <img src="/logo.png" alt="Banco de La Placeta" />
           <div>
             <span>{link?.kind === "Send" ? "Envío de Placetas" : "Pago seguro"}</span>
             <strong>Banco de La Placeta</strong>

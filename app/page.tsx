@@ -811,7 +811,7 @@ function BancoPlacetaClient() {
       <header className="topbar">
         <div className="top-brand">
           <span className="brand-logo">
-            <Image src="/gdlp26.png" alt="Banco de La Placeta" fill sizes="68px" priority />
+            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="68px" priority />
           </span>
           <div>
             <p className="eyebrow">Banco de La Placeta</p>
@@ -958,7 +958,7 @@ function PlacetaIdLoadingScreen({ sync }: { sync: "loading" | "online" | "offlin
     <main className="placetaid-loading-shell" role="status" aria-live="polite">
       <section className="placetaid-loading-card">
         <span className="placetaid-loading-logo">
-          <Image src="/gdlp26.png" alt="Banco de La Placeta" fill sizes="82px" priority />
+          <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="82px" priority />
         </span>
         <div className="placetaid-loading-orbit" aria-hidden="true">
           <span />
@@ -1050,7 +1050,7 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
       <header className="lp4-nav">
         <a className="lp4-brand" href="#inicio" aria-label="Banco de La Placeta">
           <span className="lp4-logo">
-            <Image src="/gdlp26.png" alt="Banco de La Placeta" fill sizes="72px" priority />
+            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="72px" priority />
           </span>
           <span>
             <strong>Banco de La Placeta</strong>
@@ -1301,7 +1301,7 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
       <footer className="lp4-footer">
         <div className="lp4-footer-brand">
           <span className="lp4-logo small">
-            <Image src="/gdlp26.png" alt="Banco de La Placeta" fill sizes="46px" />
+            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="46px" />
           </span>
           <div>
           <strong>Banco de La Placeta</strong>

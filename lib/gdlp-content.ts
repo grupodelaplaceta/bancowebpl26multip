@@ -5,8 +5,11 @@ export type GdlpNewsItem = {
   summary: string;
   date: string;
   image: string;
+  images?: string[];
   body: string[];
+  html?: string;
   videoUrl?: string;
+  videos?: string[];
 };
 
 export type PlanProject = {

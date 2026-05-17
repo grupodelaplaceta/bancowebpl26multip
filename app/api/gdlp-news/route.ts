@@ -12,6 +12,11 @@ const corsHeaders = {
 
 const adminKey = () => process.env.GDLP_ADMIN_KEY || process.env.PLACETA_GDLP_ADMIN_KEY || "gdlp-admin";
 
+type GdlpNewsPayload = Partial<GdlpSharedNewsItem> & {
+  adminKey?: string;
+  news?: Partial<GdlpSharedNewsItem> | Partial<GdlpSharedNewsItem>[];
+};
+
 function text(value: unknown, fallback = "") {
   return String(value || fallback).trim();
 }
@@ -65,12 +70,12 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const payload = await request.json();
-    const provided = request.headers.get("x-gdlp-admin-key") || payload.adminKey || "";
+    const payload = (await request.json()) as GdlpNewsPayload;
+    const provided = request.headers.get("x-gdlp-admin-key") || text(payload.adminKey);
     if (provided !== adminKey()) return NextResponse.json({ error: "unauthorized" }, { status: 401, headers: corsHeaders });
 
-    const incoming = Array.isArray(payload.news) ? payload.news : [payload.news || payload];
-    const items = incoming.map((item) => sanitizeItem(item));
+    const incoming: Partial<GdlpSharedNewsItem>[] = Array.isArray(payload.news) ? payload.news : [payload.news || payload];
+    const items = incoming.map((item: Partial<GdlpSharedNewsItem>) => sanitizeItem(item));
     const remote = normalizeState(await readRemoteState());
     const bySlug = new Map<string, GdlpSharedNewsItem>();
     [...items, ...(remote.gdlpSharedNews || [])].forEach((item) => bySlug.set(item.slug, sanitizeItem(item)));

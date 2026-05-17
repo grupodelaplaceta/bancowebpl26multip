@@ -649,6 +649,21 @@ export function updateTreasuryConfig(state: BankState, patch: Partial<TreasuryCo
   return finalizeState({ ...state, treasuryConfig: normalizeTreasuryConfig({ ...state.treasuryConfig, ...patch }) });
 }
 
+export function updateInvestmentFundRisk(state: BankState, accountId: string, level: number, listedInvestmentFund = true) {
+  const safeLevel = clamp(Math.round(level), 1, 7);
+  const account = state.accounts.find((item) => item.id === accountId);
+  if (!account) throw new Error("Empresa no encontrada");
+  if (account.type !== "Business") throw new Error("Solo las cuentas Empresa pueden publicar riesgo de fondo");
+  return finalizeState({
+    ...state,
+    accounts: state.accounts.map((item) => item.id === accountId ? {
+      ...item,
+      listedInvestmentFund,
+      investmentRiskLevel: safeLevel
+    } : item)
+  });
+}
+
 export function toggleCard(state: BankState, cardId: string) {
   return finalizeState({
     ...state,
@@ -752,9 +767,10 @@ export function settleTimedInvestment(state: BankState, operationId: string, use
     investor.id,
     netReturn,
     profitTax + commission,
-    `Resultado 60s ${wins ? "gana usuario" : "gana empresa"} en ${operation.assetName} (${wins ? "+" : "-"}${movement}%)`
+    `Resultado 60s ${wins ? "gana usuario" : "gana empresa"} en ${operation.assetName} (${wins ? "+" : "-"}${movement}%) [${operation.id}]`
   );
   settlement.concept = "INVESTMENT_60S_RESULT";
+  settlement.originalTransactionId = operation.id.replace(/^op-/, "");
   const taxTxn = profitTax > 0 ? makeTransaction("InvestmentTax", company, TGLP_ID, profitTax, profitTax, `Impuesto sobre ganancia de inversión ${operation.assetName} ${state.treasuryConfig.investmentProfitTaxPercent}%`) : null;
   const commissionTxn = commission > 0 ? makeTransaction("InvestmentCommission", company, AGLDP_ID, commission, commission, `Comisión sobre ganancia de inversión ${operation.assetName} ${state.treasuryConfig.investmentGainCommissionPercent}%`) : null;
   if (taxTxn) {
@@ -783,17 +799,19 @@ export function settleTimedInvestment(state: BankState, operationId: string, use
 }
 
 export function pendingInvestmentOperations(state: BankState, accountId?: string) {
+  const settledOperationIds = new Set(state.investmentOperations.filter((operation) => operation.settledAt).map((operation) => operation.id));
   const transactionBacked = state.transactions
     .filter((transaction) => transaction.kind === "InvestmentBuy")
+    .filter((buy) => !settledOperationIds.has(`op-${buy.id}`))
     .map((buy) => {
       const company = state.accounts.find((account) => account.id === buy.toAccountId);
       const assetName = company?.displayName || buy.note.replace("Inversión 60s iniciada: ", "") || "Inversión GDLP";
       const settled = state.transactions.some((transaction) =>
         transaction.kind === "InvestmentSell" &&
-        transaction.toAccountId === buy.fromAccountId &&
-        transaction.fromAccountId === buy.toAccountId &&
-        Date.parse(transaction.createdAt) > Date.parse(buy.createdAt) &&
-        transaction.note.toLowerCase().includes(assetName.toLowerCase())
+        (
+          transaction.originalTransactionId === buy.id ||
+          transaction.note.includes(`op-${buy.id}`)
+        )
       );
       if (settled) return null;
       return {

@@ -75,19 +75,23 @@ function drawOfficialDocument(ops: string[], account: Account, document: PdfDocu
 
   let y = 444;
   if (!transactions.length) text(ops, "Sin movimientos aplicables a este documento.", 54, y, 11, muted);
-  transactions.slice(0, 10).forEach((txn, index) => {
+  const visibleTransactions = transactions.slice(0, 4);
+  visibleTransactions.forEach((txn, index) => {
     if (index % 2 === 0) roundRect(ops, 42, y - 18, 511, 38, 6, soft);
     text(ops, formatDate(txn.createdAt).slice(0, 16), 54, y, 9.5, muted);
-    text(ops, txn.note.slice(0, 34), 150, y, 11, muted);
-    text(ops, formatPz(txn.amountPz), 362, y, 11, muted);
-    text(ops, formatPz(txn.taxAmount), 432, y, 11, muted);
-    text(ops, txn.status.slice(0, 8), 492, y, 9.5, muted);
-    text(ops, `Origen ${txn.IBAN_Origin} · ${txn.concept}`.slice(0, 70), 150, y + 15, 9.5, muted);
+    fitText(ops, txn.note, 150, y, 195, 11, muted);
+    fitText(ops, formatPz(txn.amountPz), 362, y, 58, 11, muted);
+    fitText(ops, formatPz(txn.taxAmount), 432, y, 48, 11, muted);
+    fitText(ops, txn.status, 492, y, 48, 9.5, muted);
+    fitText(ops, `Origen ${txn.IBAN_Origin} · ${txn.concept}`, 150, y + 15, 340, 9.5, muted);
     y += 48;
   });
+  if (transactions.length > visibleTransactions.length) {
+    text(ops, `+ ${transactions.length - visibleTransactions.length} movimientos adicionales en el registro digital.`, 54, y, 9.5, muted);
+  }
 
   text(ops, "CLÁUSULAS Y DATOS DEL DOCUMENTO", 42, 676, 14, ink, true);
-  legalLines(document.kind, account, transactions).slice(0, 6).forEach((line, index) => text(ops, line.slice(0, 118), 42, 696 + index * 14, 9.5, muted));
+  legalLines(document.kind, account, transactions).slice(0, 4).forEach((line, index) => fitText(ops, line, 42, 696 + index * 14, 500, 9.5, muted));
   footer(ops, document, account);
 }
 
@@ -279,12 +283,12 @@ function verificationCode(document: PdfDocumentInput, account: Account) {
 
 function label(ops: string[], labelText: string, value: string, x: number, y: number) {
   text(ops, labelText, x, y, 9.5, muted);
-  text(ops, value.slice(0, 32), x, y + 18, 14, ink, true);
+  fitText(ops, value, x, y + 18, 210, 14, ink, true);
 }
 
 function row(ops: string[], labelText: string, value: string, x: number, y: number) {
-  text(ops, `${labelText}:`, x, y, 14, ink, true);
-  text(ops, value.slice(0, 54), x + 180, y, 11, muted);
+  fitText(ops, `${labelText}:`, x, y, 170, 14, ink, true);
+  fitText(ops, value, x + 180, y, 315, 11, muted);
 }
 
 function money(ops: string[], labelText: string, amount: number, x: number, y: number, negative = false, accent = false) {
@@ -295,7 +299,7 @@ function money(ops: string[], labelText: string, amount: number, x: number, y: n
 function summaryBox(ops: string[], labelText: string, value: string, x: number, y: number) {
   roundRect(ops, x, y, 150, 72, 14, soft, border);
   text(ops, labelText, x + 16, y + 27, 11, muted);
-  text(ops, value, x + 16, y + 52, 14, ink, true);
+  fitText(ops, value, x + 16, y + 52, 118, 14, ink, true);
 }
 
 function wrapped(ops: string[], source: string, x: number, y: number, maxChars: number, size: number) {
@@ -307,6 +311,17 @@ function wrapped(ops: string[], source: string, x: number, y: number, maxChars: 
 function text(ops: string[], value: string, x: number, y: number, size: number, color = muted, bold = false) {
   const font = bold ? "F2" : "F1";
   ops.push(`BT /${font} ${size} Tf ${rgb(color)} rg ${x.toFixed(2)} ${(PAGE_H - y).toFixed(2)} Td (${escapePdf(value)}) Tj ET`);
+}
+
+function fitText(ops: string[], value: string, x: number, y: number, maxWidth: number, size: number, color = muted, bold = false) {
+  const safe = ellipsize(value, Math.max(4, Math.floor(maxWidth / (size * 0.52))));
+  text(ops, safe, x, y, size, color, bold);
+}
+
+function ellipsize(value: string, maxChars: number) {
+  const clean = value.replace(/\s+/g, " ").trim();
+  if (clean.length <= maxChars) return clean;
+  return `${clean.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
 }
 
 function line(ops: string[], x1: number, y1: number, x2: number, y2: number) {
@@ -340,6 +355,7 @@ function escapePdf(value: string) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/→/g, "->")
+    .replace(/…/g, "...")
     .replace(/[\\()]/g, "\\$&")
     .replace(/[^\x20-\x7E]/g, " ");
 }

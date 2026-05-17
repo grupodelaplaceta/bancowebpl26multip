@@ -93,6 +93,17 @@ button:focus-visible, input:focus-visible {
   margin: 0 auto;
   padding: 16px 18px calc(var(--nav-h) + 28px);
 }
+.app-shell.is-busy .app-nav,
+.app-shell.is-busy .bottom-nav,
+.app-shell.is-busy .account-strip,
+.app-shell.is-busy .screen-grid {
+  pointer-events: none;
+}
+.app-shell.is-busy .app-nav,
+.app-shell.is-busy .bottom-nav,
+.app-shell.is-busy .account-strip {
+  opacity: .72;
+}
 
 .topbar, .top-actions, .hero-topline, .section-title, .transaction-row, .holding-row {
   display: flex;
@@ -1303,6 +1314,13 @@ button:focus-visible, input:focus-visible {
   align-content: center;
   gap: 5px;
 }
+.fund-card strong {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  line-height: 1.2;
+}
 .fund-card i {
   display: block;
   width: min(260px, 100%);
@@ -1317,6 +1335,132 @@ button:focus-visible, input:focus-visible {
   height: 100%;
   border-radius: inherit;
   background: #3F00D8;
+}
+.risk-badge {
+  min-width: 36px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  display: inline-grid;
+  place-items: center;
+  font-size: .76rem;
+  font-weight: 950;
+  letter-spacing: 0;
+  background: rgba(63, 0, 216, .1);
+  color: #3F00D8;
+}
+.risk-indicator {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  background: rgba(63, 0, 216, .045);
+}
+.risk-indicator.compact {
+  width: min(280px, 100%);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  gap: 6px;
+}
+.risk-indicator-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.risk-indicator-head strong,
+.risk-indicator-head span {
+  display: block;
+}
+.risk-indicator-head strong {
+  color: var(--ink);
+  font-size: .92rem;
+}
+.risk-indicator-head span {
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 900;
+  text-align: right;
+}
+.risk-bar {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+.risk-bar span {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(63, 0, 216, .12);
+  box-shadow: inset 0 0 0 1px rgba(63, 0, 216, .05);
+}
+.risk-bar span.active,
+.risk-badge {
+  --risk-color: #3F00D8;
+  --risk-bg: rgba(63, 0, 216, .1);
+}
+.risk-bar span.active {
+  background: var(--risk-color);
+}
+.risk-badge.risk-1,
+.risk-badge.risk-2,
+.risk-bar span.risk-1,
+.risk-bar span.risk-2 {
+  --risk-color: #168255;
+  --risk-bg: rgba(22, 130, 85, .12);
+}
+.risk-badge.risk-3,
+.risk-badge.risk-4,
+.risk-bar span.risk-3,
+.risk-bar span.risk-4 {
+  --risk-color: #9a6b00;
+  --risk-bg: rgba(154, 107, 0, .13);
+}
+.risk-badge.risk-5,
+.risk-bar span.risk-5 {
+  --risk-color: #b24a00;
+  --risk-bg: rgba(178, 74, 0, .12);
+}
+.risk-badge.risk-6,
+.risk-badge.risk-7,
+.risk-bar span.risk-6,
+.risk-bar span.risk-7 {
+  --risk-color: #b42318;
+  --risk-bg: rgba(180, 35, 24, .12);
+}
+.risk-badge[class*="risk-"] {
+  color: var(--risk-color);
+  background: var(--risk-bg);
+}
+.risk-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: .88rem;
+  line-height: 1.45;
+}
+.risk-selector {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+.risk-selector button {
+  min-height: 38px;
+  border: 1px solid rgba(63, 0, 216, .16);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 950;
+  cursor: pointer;
+}
+.risk-selector button:hover,
+.risk-selector button.active {
+  border-color: #3F00D8;
+  background: #3F00D8;
+  color: #fff;
 }
 .fund-card b {
   align-self: center;
@@ -1506,6 +1650,40 @@ button:focus-visible, input:focus-visible {
   justify-content: center;
   gap: 9px;
   text-align: center;
+}
+.action-progress {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--nav-h) + 88px);
+  z-index: 31;
+  transform: translateX(-50%);
+  max-width: min(420px, calc(100vw - 32px));
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #3F00D8;
+  color: #fff;
+  box-shadow: 0 14px 30px rgba(63, 0, 216, .2);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: .82rem;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.action-progress span {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,.38);
+  border-top-color: #fff;
+  animation: spin .75s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .modal-backdrop {
@@ -2178,6 +2356,208 @@ button:focus-visible, input:focus-visible {
   font-weight: 850;
 }
 
+/* Compact data density for the banking app. */
+.app-shell {
+  width: min(1120px, 100%);
+  padding-top: 12px;
+}
+.topbar {
+  min-height: 64px;
+  margin-top: -12px;
+  padding-block: 8px;
+}
+.brand-logo {
+  width: 60px;
+  height: 60px;
+}
+.app-nav {
+  margin-bottom: 10px;
+  padding: 5px;
+  gap: 5px;
+  border-radius: 14px;
+}
+.app-nav button {
+  min-height: 36px;
+  border-radius: 9px;
+  font-size: .78rem;
+}
+.account-strip {
+  gap: 8px;
+  padding: 6px;
+  margin-bottom: 10px;
+  border-radius: 14px;
+}
+.account-chip {
+  flex-basis: 150px;
+  min-height: 54px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+.account-chip span {
+  margin-bottom: 3px;
+  font-size: .76rem;
+}
+.account-chip strong {
+  font-size: .93rem;
+}
+.screen-grid {
+  gap: 10px;
+}
+.hero-card,
+.placezum-card {
+  min-height: 132px;
+  padding: 14px;
+  border-radius: 14px;
+}
+.hero-card strong,
+.placezum-card strong {
+  margin: 6px 0;
+  font-size: clamp(1.48rem, 3.6vw, 2.55rem);
+  line-height: 1;
+}
+.hero-card p,
+.hero-card span,
+.placezum-card p,
+.placezum-card span {
+  font-size: .9rem;
+}
+.panel {
+  padding: 13px;
+  border-radius: 14px;
+}
+.section-title {
+  margin-bottom: 11px;
+  font-size: .94rem;
+}
+.metric-grid {
+  gap: 8px;
+}
+.metric-card {
+  min-height: 72px;
+  padding: 10px 11px;
+  border-radius: 13px;
+  gap: 5px;
+}
+.metric-card span {
+  font-size: .72rem;
+}
+.metric-card strong {
+  font-size: clamp(1rem, 1.7vw, 1.28rem);
+}
+.quick-grid button,
+.contact-grid button,
+.service-grid button {
+  min-height: 58px;
+  padding: 8px;
+  gap: 5px;
+  border-radius: 10px;
+  font-size: .82rem;
+}
+.field {
+  gap: 5px;
+  margin-bottom: 9px;
+}
+.field input {
+  min-height: 42px;
+  padding-inline: 11px;
+  border-radius: 10px;
+  font-size: .94rem;
+}
+.primary-button {
+  min-height: 44px;
+  border-radius: 10px;
+}
+.bank-card {
+  min-height: 118px;
+  padding: 14px;
+  border-radius: 14px;
+}
+.transaction-row,
+.holding-row,
+.investment-row {
+  min-height: 58px;
+  padding-block: 9px;
+  gap: 9px;
+}
+.transaction-row strong,
+.investment-row strong {
+  font-size: .9rem;
+}
+.transaction-row span,
+.investment-row span,
+.holding-row span {
+  font-size: .8rem;
+}
+.mini-action {
+  min-height: 34px;
+  padding-inline: 11px;
+  border-radius: 10px;
+  font-size: .8rem;
+}
+.amount-chips {
+  gap: 6px;
+  margin-bottom: 9px;
+}
+.amount-chips button {
+  min-height: 34px;
+  border-radius: 10px;
+  font-size: .8rem;
+}
+.investment-rules,
+.analysis-grid,
+.payroll-summary {
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.investment-rules div,
+.analysis-grid div,
+.payroll-summary div {
+  min-height: 60px;
+  padding: 9px 10px;
+  border-radius: 12px;
+}
+.analysis-grid span,
+.investment-rules span,
+.payroll-summary span {
+  font-size: .74rem;
+}
+.analysis-grid strong,
+.investment-rules strong,
+.payroll-summary strong {
+  font-size: .96rem;
+}
+.fund-list .fund-card {
+  min-height: 78px;
+  padding: 11px;
+}
+.risk-indicator {
+  padding: 10px;
+  gap: 8px;
+  border-radius: 12px;
+}
+.risk-indicator.compact {
+  gap: 5px;
+}
+.risk-bar span {
+  height: 8px;
+}
+.risk-selector {
+  gap: 6px;
+  margin: 9px 0;
+}
+.risk-selector button {
+  min-height: 34px;
+  border-radius: 10px;
+  font-size: .78rem;
+}
+.modal-panel {
+  border-radius: 16px;
+}
+.modal-header,
+.modal-body {
+  padding: 13px;
+}
+
 @media (max-width: 900px) {
   .app-shell {
     width: min(760px, 100%);
@@ -2249,12 +2629,12 @@ button:focus-visible, input:focus-visible {
 @media (max-width: 760px) {
   :root { --nav-h: 66px; }
   .app-shell {
-    padding: 14px 12px calc(var(--nav-h) + 30px);
+    padding: 12px 10px calc(var(--nav-h) + 24px);
   }
   .topbar {
-    min-height: 78px;
-    margin: -14px -12px 12px;
-    padding: 12px;
+    min-height: 68px;
+    margin: -12px -10px 10px;
+    padding: 9px 10px;
     align-items: center;
   }
   .top-brand { gap: 10px; }
@@ -2280,20 +2660,20 @@ button:focus-visible, input:focus-visible {
     border-radius: 14px;
   }
   .account-chip {
-    flex-basis: 164px;
-    min-height: 66px;
-    padding: 11px 12px;
+    flex-basis: 148px;
+    min-height: 56px;
+    padding: 8px 10px;
   }
   .account-chip strong {
     font-size: .94rem;
   }
   .hero-card, .placezum-card {
-    min-height: 176px;
-    padding: 18px;
-    border-radius: 18px;
+    min-height: 138px;
+    padding: 14px;
+    border-radius: 15px;
   }
   .hero-card strong, .placezum-card strong {
-    font-size: clamp(2rem, 11vw, 3.2rem);
+    font-size: clamp(1.55rem, 8vw, 2.45rem);
   }
   .placezum-card svg {
     width: 70px;
@@ -2310,12 +2690,12 @@ button:focus-visible, input:focus-visible {
     font-size: .82rem;
   }
   .panel {
-    padding: 15px;
-    border-radius: 16px;
+    padding: 12px;
+    border-radius: 14px;
   }
   .metric-card {
-    min-height: 94px;
-    border-radius: 16px;
+    min-height: 72px;
+    border-radius: 13px;
   }
   .hub-service-grid div,
   .split-panel div,

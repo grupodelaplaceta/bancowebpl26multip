@@ -61,6 +61,7 @@ import {
   toggleCard,
   transferByIban,
   transferPayrollOrLoan,
+  updateInvestmentFundRisk,
   updateTreasuryConfig,
   UserProfile
 } from "../lib/bank";
@@ -207,6 +208,7 @@ export default function BancoPlacetaWeb() {
   const [sync, setSync] = useState<"loading" | "online" | "offline">("loading");
   const [hydrated, setHydrated] = useState(false);
   const [toast, setToast] = useState("");
+  const [busyMessage, setBusyMessage] = useState("");
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("default");
   const [notificationNow, setNotificationNow] = useState(0);
   const stateRef = useRef<BankState>(state);
@@ -308,7 +310,7 @@ export default function BancoPlacetaWeb() {
   }, []);
 
   const silentRemoteRefresh = useCallback(async () => {
-    if (persistInFlightRef.current || remoteRefreshInFlightRef.current) return;
+    if (persistInFlightRef.current || operationInFlightRef.current || remoteRefreshInFlightRef.current) return;
     remoteRefreshInFlightRef.current = true;
     try {
       const response = await fetch("/api/bank-state", { cache: "no-store" });
@@ -317,9 +319,9 @@ export default function BancoPlacetaWeb() {
       const current = stateRef.current;
       const remoteTime = Date.parse(remote.updatedAt || "");
       const currentTime = Date.parse(current.updatedAt || "");
-      const remoteIsNewer = Number.isFinite(remoteTime) && Number.isFinite(currentTime) ? remoteTime >= currentTime : true;
-      const remoteHasMoreLedger = remote.transactions.length > current.transactions.length;
-      if (remoteIsNewer || remoteHasMoreLedger) {
+      const canCompareDates = Number.isFinite(remoteTime) && Number.isFinite(currentTime);
+      const remoteIsNewer = canCompareDates ? remoteTime > currentTime : remote.updatedAt !== current.updatedAt;
+      if (remoteIsNewer) {
         setState(remote);
         localStorage.setItem("placeta-web-state", JSON.stringify(remote));
       }
@@ -413,21 +415,29 @@ export default function BancoPlacetaWeb() {
     }
   }
 
-  async function fetchFreshState() {
+  async function fetchFreshState(applyToUi = true) {
     const response = await fetch("/api/bank-state", { cache: "no-store" });
     if (!response.ok) throw new Error("No se pudo leer el estado remoto");
     const remote = normalizeState(await response.json());
-    setState(remote);
-    localStorage.setItem("placeta-web-state", JSON.stringify(remote));
+    if (applyToUi) {
+      setState(remote);
+      localStorage.setItem("placeta-web-state", JSON.stringify(remote));
+    }
     setSync("online");
     return remote;
   }
 
   async function persist(next: BankState, message: string, baseUpdatedAt: string | null = stateRef.current.updatedAt || null) {
+    if (persistInFlightRef.current) {
+      setToast("Hay una operación guardándose. Espera un momento.");
+      return;
+    }
     persistInFlightRef.current = true;
+    setBusyMessage(message);
     const normalizedNext = normalizeState(next);
     setState(normalizedNext);
     setToast(message);
+    localStorage.setItem("placeta-web-state", JSON.stringify(normalizedNext));
     try {
       const response = await fetch("/api/bank-state", {
         method: "PUT",
@@ -436,13 +446,8 @@ export default function BancoPlacetaWeb() {
       });
       setSync(response.ok ? "online" : "offline");
       if (response.ok) {
-        const fresh = await fetch("/api/bank-state", { cache: "no-store" });
-        if (fresh.ok) {
-          const remote = normalizeState(await fresh.json());
-          setState(remote);
-          localStorage.setItem("placeta-web-state", JSON.stringify(remote));
-          if (remote.updatedAt !== normalizedNext.updatedAt) setToast(`${message} · actualizado`);
-        }
+        setToast(`${message} · confirmado`);
+        window.setTimeout(() => void silentRemoteRefresh(), 1200);
       } else if (response.status === 409) {
         const conflict = await response.json();
         const remote = normalizeState(conflict.remote);
@@ -457,6 +462,7 @@ export default function BancoPlacetaWeb() {
       setToast(`${message} · guardado localmente`);
     } finally {
       persistInFlightRef.current = false;
+      setBusyMessage("");
     }
   }
 
@@ -466,13 +472,15 @@ export default function BancoPlacetaWeb() {
       return;
     }
     operationInFlightRef.current = true;
+    setBusyMessage(message);
     try {
-      const fresh = await fetchFreshState();
+      const fresh = await fetchFreshState(false);
       await persist(operation(fresh), message, fresh.updatedAt || null);
     } catch (error) {
       setToast(error instanceof Error ? error.message : "Operación rechazada");
     } finally {
       operationInFlightRef.current = false;
+      setBusyMessage("");
     }
   }
 
@@ -497,7 +505,7 @@ export default function BancoPlacetaWeb() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${busyMessage ? "is-busy" : ""}`}>
       <header className="topbar">
         <div className="top-brand">
           <span className="brand-logo">
@@ -588,21 +596,24 @@ export default function BancoPlacetaWeb() {
           state={state}
           account={selectedAccount}
           onStart={(marketId, amount) => runOperation((fresh) => startTimedInvestment(fresh, selectedAccount.id, marketId, amount), "Inversión 60s iniciada")}
+          onUpdateRisk={(accountId, level, listed) => runOperation((fresh) => updateInvestmentFundRisk(fresh, accountId, level, listed), "Riesgo del fondo actualizado")}
           onSettle={(operationId) => {
             if (operationInFlightRef.current) {
               setToast("Hay una operación en curso. Espera la confirmación antes de repetir.");
               return;
             }
             operationInFlightRef.current = true;
+            setBusyMessage("Calculando resultado");
             void (async () => {
               try {
-                const fresh = await fetchFreshState();
+                const fresh = await fetchFreshState(false);
                 const result = settleTimedInvestment(fresh, operationId);
                 await persist(result.state, `${result.reveal.userWins ? "Resultado a favor" : "Resultado en contra"} · ${formatPz(result.reveal.amountPz)} Pz`, fresh.updatedAt || null);
               } catch (error) {
                 setToast(error instanceof Error ? error.message : "Resultado no disponible");
               } finally {
                 operationInFlightRef.current = false;
+                setBusyMessage("");
               }
             })();
           }}
@@ -629,6 +640,12 @@ export default function BancoPlacetaWeb() {
           <CheckCircle2 size={18} />
           {toast}
         </button>
+      )}
+      {busyMessage && (
+        <div className="action-progress" role="status" aria-live="polite">
+          <span />
+          {busyMessage}
+        </div>
       )}
     </main>
   );
@@ -1107,9 +1124,16 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
   );
 }
 
-function MarketScreen({ state, account, onStart, onSettle }: { state: BankState; account: Account; onStart: (marketId: string, amount: number) => void; onSettle: (operationId: string) => void }) {
+function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
+  state: BankState;
+  account: Account;
+  onStart: (marketId: string, amount: number) => void;
+  onSettle: (operationId: string) => void;
+  onUpdateRisk: (accountId: string, level: number, listedInvestmentFund: boolean) => void;
+}) {
   const [amount, setAmount] = useState(120);
   const [now, setNow] = useState(Date.now());
+  const [riskDraft, setRiskDraft] = useState(account.investmentRiskLevel || 3);
   const market = state.accounts
     .filter((item) => item.listedInvestmentFund || item.id.startsWith("biz-market-"))
     .sort((left, right) => (left.investmentRiskLevel || 3) - (right.investmentRiskLevel || 3));
@@ -1130,8 +1154,24 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
   const companyOpen = pendingInvestmentOperations(state).filter((operation) => operation.companyId === account.id);
   const companyReceived = companyBuys.reduce((sum, transaction) => sum + transaction.amountPz, 0);
   const companyPaid = companySettlements.reduce((sum, transaction) => sum + transaction.amountPz, 0);
-  const companyNet = companyReceived - companyPaid;
-  const companyRoi = companyReceived > 0 ? Math.round((companyNet / companyReceived) * 100) : 0;
+  const companySettlementRows = companySettlements.map((settlement) => {
+    const sourceBuy = companyBuys.find((buy) =>
+      settlement.originalTransactionId === buy.id ||
+      settlement.note.includes(`op-${buy.id}`)
+    ) || [...companyBuys].reverse().find((buy) =>
+      buy.fromAccountId === settlement.toAccountId &&
+      Date.parse(buy.createdAt) < Date.parse(settlement.createdAt)
+    );
+    const principalPz = sourceBuy?.amountPz || 0;
+    const companyResultPz = principalPz > 0 ? principalPz - settlement.amountPz : 0;
+    return { settlement, principalPz, companyResultPz };
+  });
+  const companySettledPrincipal = companySettlementRows.reduce((sum, row) => sum + row.principalPz, 0);
+  const companyClosedMargin = companySettlementRows.reduce((sum, row) => sum + row.companyResultPz, 0);
+  const companyOpenCapital = companyOpen.reduce((sum, operation) => sum + operation.amountPz, 0);
+  const companyRoi = companySettledPrincipal > 0 ? Math.round((companyClosedMargin / companySettledPrincipal) * 100) : 0;
+  const companyInvestorLosses = companySettlementRows.filter((row) => row.companyResultPz > 0).length;
+  const companyInvestorWins = companySettlementRows.filter((row) => row.companyResultPz < 0).length;
   const companyInvestors = new Set(companyBuys.map((transaction) => transaction.fromAccountId)).size;
   const today = new Date().toISOString().slice(0, 10);
   const dailyInvestmentCount = state.transactions.filter((transaction) =>
@@ -1149,6 +1189,10 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    setRiskDraft(account.investmentRiskLevel || 3);
+  }, [account.id, account.investmentRiskLevel]);
 
   if (!isInvestmentAccount && !isBusinessAccount) {
     return (
@@ -1182,8 +1226,8 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
         </article>
         <div className="metric-grid market-metrics">
           <MetricCard label="Capital recibido" value={`${formatPz(companyReceived)} Pz`} tone="purple" />
-          <MetricCard label="Liquidado" value={`${formatPz(companyPaid)} Pz`} tone="gold" />
-          <MetricCard label="Rentabilidad" value={`${companyRoi >= 0 ? "+" : ""}${companyRoi}%`} tone={companyRoi >= 0 ? "green" : "red"} />
+          <MetricCard label="Pagado a usuarios" value={`${formatPz(companyPaid)} Pz`} tone="gold" />
+          <MetricCard label="Margen cerrado" value={`${companyRoi >= 0 ? "+" : ""}${companyRoi}%`} tone={companyRoi >= 0 ? "green" : "red"} />
           <MetricCard label="Inversores" value={String(companyInvestors)} tone="green" />
         </div>
         <article className="panel investment-analysis company-analysis">
@@ -1197,13 +1241,29 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
           <p className="muted">Las cuentas empresa no compran desde esta pantalla. Aquí se revisa el alta, el capital recibido y la rentabilidad de las operaciones asociadas.</p>
         </article>
         <article className="panel investment-analysis company-analysis">
+          <SectionTitle icon={TrendingUp} title="Riesgo del fondo" />
+          <RiskIndicator level={riskDraft} />
+          <div className="risk-selector" aria-label="Editar riesgo del fondo">
+            {[1, 2, 3, 4, 5, 6, 7].map((level) => (
+              <button key={level} className={riskDraft === level ? "active" : ""} onClick={() => setRiskDraft(level)}>
+                R{level}
+              </button>
+            ))}
+          </div>
+          <button className="primary-button" onClick={() => onUpdateRisk(account.id, riskDraft, true)}>
+            {account.listedInvestmentFund ? "Actualizar ficha de fondo" : "Dar de alta como fondo"}
+          </button>
+          <p className="muted">El indicador va de 1 a 7. Cuanto más alto, mayor variación potencial y mayor probabilidad de pérdida para quien invierte.</p>
+        </article>
+        <article className="panel investment-analysis company-analysis">
           <SectionTitle icon={Sparkles} title="Rentabilidad empresa" />
           <div className="analysis-grid">
-            <div><span>Saldo neto inversión</span><strong className={companyNet >= 0 ? "good" : "bad"}>{companyNet >= 0 ? "+" : ""}{formatPz(companyNet)} Pz</strong></div>
-            <div><span>Operaciones recibidas</span><strong>{companyBuys.length}</strong></div>
-            <div><span>Operaciones liquidadas</span><strong>{companySettlements.length}</strong></div>
-            <div><span>Capital abierto</span><strong>{formatPz(companyOpen.reduce((sum, operation) => sum + operation.amountPz, 0))} Pz</strong></div>
+            <div><span>Margen cerrado empresa</span><strong className={companyClosedMargin >= 0 ? "good" : "bad"}>{companyClosedMargin >= 0 ? "+" : ""}{formatPz(companyClosedMargin)} Pz</strong></div>
+            <div><span>Usuarios en pérdida</span><strong>{companyInvestorLosses}/{companySettlements.length}</strong></div>
+            <div><span>Usuarios en ganancia</span><strong>{companyInvestorWins}/{companySettlements.length}</strong></div>
+            <div><span>Capital abierto</span><strong>{formatPz(companyOpenCapital)} Pz</strong></div>
           </div>
+          <p className="muted">Para la empresa, la rentabilidad es positiva cuando devuelve menos de lo captado en una operación cerrada. Si el usuario pierde, ese margen queda a favor del fondo; el capital abierto aún no cuenta como resultado.</p>
           <div className="company-open-list">
             {companyOpen.length ? companyOpen.slice(0, 6).map((operation) => (
               <div key={operation.id}>
@@ -1215,15 +1275,18 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
         </article>
         <article className="panel history-panel market-results">
           <SectionTitle icon={Landmark} title="Actividad de inversión" />
-          {[...companyBuys, ...companySettlements].slice(0, 8).map((transaction) => (
-            <div className="investment-row" key={transaction.id}>
-              <div>
-                <strong>{transaction.kind === "InvestmentBuy" ? "Capital recibido" : "Liquidación enviada"}</strong>
-                <span>{transaction.createdAt.slice(0, 10)} · {transaction.note}</span>
+          {[...companyBuys, ...companySettlements].sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt)).slice(0, 8).map((transaction) => {
+            const isPayout = transaction.kind === "InvestmentSell";
+            return (
+              <div className={`investment-row ${isPayout ? "loss" : ""}`} key={transaction.id}>
+                <div>
+                  <strong>{transaction.kind === "InvestmentBuy" ? "Capital recibido" : "Pago al usuario"}</strong>
+                  <span>{transaction.createdAt.slice(0, 10)} · {transaction.note}</span>
+                </div>
+                <b>{isPayout ? "-" : "+"}{formatPz(transaction.amountPz)} Pz</b>
               </div>
-              <b>{formatPz(transaction.amountPz)} Pz</b>
-            </div>
-          ))}
+            );
+          })}
           {!companyBuys.length && !companySettlements.length && <Empty title="Sin actividad" text="Las operaciones aparecerán cuando una cartera invierta en esta empresa." />}
         </article>
       </section>
@@ -1280,9 +1343,9 @@ function MarketScreen({ state, account, onStart, onSettle }: { state: BankState;
             return (
               <button key={fund.id} className="fund-card" disabled={!isInvestmentAccount || remainingToday <= 0 || safeAmount <= 0} onClick={() => onStart(fund.id, safeAmount)}>
                 <div>
-                  <strong>{fund.displayName}</strong>
-                  <span>Liquidez {formatPz(fund.balancePz)} Pz · riesgo {risk}/7</span>
-                  <i><span style={{ width: `${Math.round((risk / 7) * 100)}%` }} /></i>
+                  <strong>{fund.displayName} <RiskBadge level={risk} /></strong>
+                  <span>Liquidez {formatPz(fund.balancePz)} Pz · {riskDescription(risk)}</span>
+                  <RiskIndicator level={risk} compact />
                 </div>
                 <b>{isInvestmentAccount ? "Invertir" : "Bloqueado"}</b>
               </button>
@@ -1852,6 +1915,53 @@ function MetricCard({ label, value, tone }: { label: string; value: string; tone
       <strong>{value}</strong>
     </div>
   );
+}
+
+function RiskBadge({ level }: { level: number }) {
+  const safeLevel = clampRisk(level);
+  return <span className={`risk-badge risk-${safeLevel}`}>R{safeLevel}</span>;
+}
+
+function RiskIndicator({ level, compact = false }: { level: number; compact?: boolean }) {
+  const safeLevel = clampRisk(level);
+  return (
+    <div className={`risk-indicator ${compact ? "compact" : ""}`}>
+      <div className="risk-indicator-head">
+        <strong>Riesgo {safeLevel}/7</strong>
+        <span>{riskLabel(safeLevel)}</span>
+      </div>
+      <div className="risk-bar" aria-label={`Riesgo ${safeLevel} de 7`}>
+        {[1, 2, 3, 4, 5, 6, 7].map((item) => (
+          <span key={item} className={item <= safeLevel ? `active risk-${item}` : ""} />
+        ))}
+      </div>
+      {!compact && <p className="risk-description">{riskDescription(safeLevel)}</p>}
+    </div>
+  );
+}
+
+function clampRisk(level: number) {
+  const numeric = Number.isFinite(level) ? level : 3;
+  return Math.min(7, Math.max(1, Math.round(numeric)));
+}
+
+function riskLabel(level: number) {
+  const safeLevel = clampRisk(level);
+  if (safeLevel <= 2) return "Conservador";
+  if (safeLevel <= 4) return "Moderado";
+  if (safeLevel <= 6) return "Dinámico";
+  return "Muy alto";
+}
+
+function riskDescription(level: number) {
+  const safeLevel = clampRisk(level);
+  if (safeLevel === 1) return "Riesgo muy bajo: variación limitada, pérdidas menos probables.";
+  if (safeLevel === 2) return "Riesgo bajo: exposición moderada a movimientos negativos.";
+  if (safeLevel === 3) return "Riesgo medio-bajo: puede fluctuar, adecuado para importes prudentes.";
+  if (safeLevel === 4) return "Riesgo medio: equilibrio entre oportunidad y pérdida.";
+  if (safeLevel === 5) return "Riesgo alto: variación intensa y pérdidas frecuentes posibles.";
+  if (safeLevel === 6) return "Riesgo muy alto: solo para operaciones especulativas.";
+  return "Riesgo extremo: puedes perder gran parte del importe apostado.";
 }
 
 function StatusPill({ sync }: { sync: "loading" | "online" | "offline" }) {

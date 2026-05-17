@@ -990,9 +990,10 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
   const activeSlide = landingSlides[slideIndex] ?? landingSlides[0];
 
   useEffect(() => {
+    if (showLogin) return;
     const timer = window.setInterval(() => setSlideIndex((value) => (value + 1) % landingSlides.length), 6500);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [showLogin]);
 
   function startPlacetaId() {
     if (typeof window === "undefined") return;
@@ -1045,8 +1046,59 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
     }
   }
 
+  const loginForm = (
+    <form id="acceso" className="lp4-login" onSubmit={submit}>
+      <div className="lp4-login-head">
+        <span>{sync === "online" ? "Servicio conectado" : sync === "offline" ? "Modo sin conexión" : "Sincronizando datos"}</span>
+        <h2>{mode === "login" ? "Acceso DIP" : "Crear acceso"}</h2>
+      </div>
+      <button type="button" className="placetaid-button" onClick={startPlacetaId}>
+        <ShieldCheck size={19} />
+        <span>
+          <strong>Continuar con PlacetaID</strong>
+          <small>Login o registro automático con identidad GDLP</small>
+        </span>
+      </button>
+      <div className="login-divider"><span>o usa acceso local</span></div>
+      <div className="segmented">
+        <button type="button" className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")}>Entrar</button>
+        <button type="button" className={mode === "register" ? "active" : ""} onClick={() => switchMode("register")}>Registro</button>
+      </div>
+      {mode === "register" && <Field label="Nombre" value={name} onChange={setName} placeholder="Tu nombre" />}
+      <Field label="DIP oficial" value={dip} onChange={setDip} placeholder="DIP-XXXX" />
+      <Field label="PIN" value={pin} onChange={setPin} placeholder="1234" type="password" />
+      {mode === "register" && (
+        <label className="legal-consent">
+          <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
+          <span>
+            He leído y acepto los <a href="/terminos-y-condiciones" target="_blank" rel="noreferrer">Términos y Condiciones</a> del Banco de La Placeta y consiento el tratamiento de mis datos de conexión según la <a href="/politica-de-privacidad" target="_blank" rel="noreferrer">Política de Privacidad</a>.
+          </span>
+        </label>
+      )}
+      {error && <p className="form-error">{error}</p>}
+      <button className="primary-button" type="submit" disabled={submitting}>{submitting ? "Creando acceso..." : mode === "login" ? "Abrir banco" : "Crear DIP"}</button>
+      <p className="login-hint">Demo: DIP-A001 / PIN 1234</p>
+    </form>
+  );
+
+  if (showLogin) {
+    return (
+      <main className="lp4-shell login-page login-only-page" id="acceso">
+        <section className="login-only-card" aria-label="Acceso Banco de La Placeta">
+          <a className="login-only-brand" href="/" aria-label="Volver al Banco de La Placeta">
+            <span>
+              <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="76px" priority />
+            </span>
+            <strong>Banco de La Placeta</strong>
+          </a>
+          {loginForm}
+        </section>
+      </main>
+    );
+  }
+
   return (
-    <main className={`lp4-shell ${showLogin ? "login-page" : "landing-page"}`} id="inicio">
+    <main className="lp4-shell landing-page" id="inicio">
       <header className="lp4-nav">
         <a className="lp4-brand" href="#inicio" aria-label="Banco de La Placeta">
           <span className="lp4-logo">
@@ -1070,7 +1122,7 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
       <section className="lp4-hero">
         <Image src={activeSlide.image} alt={activeSlide.title} fill priority sizes="100vw" />
         <div className="lp4-hero-shade" />
-        <div className={`lp4-hero-inner ${showLogin ? "" : "landing-only"}`}>
+        <div className="lp4-hero-inner landing-only">
           <div className="lp4-hero-copy">
             <span>{activeSlide.kicker}</span>
             <h1>{activeSlide.title}</h1>
@@ -1101,45 +1153,12 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
             </div>
           </div>
 
-          {showLogin ? <form id="acceso" className="lp4-login" onSubmit={submit}>
-            <div className="lp4-login-head">
-              <span>{sync === "online" ? "Servicio conectado" : sync === "offline" ? "Modo sin conexión" : "Sincronizando datos"}</span>
-              <h2>{mode === "login" ? "Acceso DIP" : "Crear acceso"}</h2>
-            </div>
-            <button type="button" className="placetaid-button" onClick={startPlacetaId}>
-              <ShieldCheck size={19} />
-              <span>
-                <strong>Continuar con PlacetaID</strong>
-                <small>Login o registro automático con identidad GDLP</small>
-              </span>
-            </button>
-            <div className="login-divider"><span>o usa acceso local</span></div>
-            <div className="segmented">
-              <button type="button" className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")}>Entrar</button>
-              <button type="button" className={mode === "register" ? "active" : ""} onClick={() => switchMode("register")}>Registro</button>
-            </div>
-            {mode === "register" && <Field label="Nombre" value={name} onChange={setName} placeholder="Tu nombre" />}
-            <Field label="DIP oficial" value={dip} onChange={setDip} placeholder="DIP-XXXX" />
-            <Field label="PIN" value={pin} onChange={setPin} placeholder="1234" type="password" />
-            {mode === "register" && (
-              <label className="legal-consent">
-                <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
-                <span>
-                  He leído y acepto los <a href="/terminos-y-condiciones" target="_blank" rel="noreferrer">Términos y Condiciones</a> del Banco de La Placeta y consiento el tratamiento de mis datos de conexión según la <a href="/politica-de-privacidad" target="_blank" rel="noreferrer">Política de Privacidad</a>.
-                </span>
-              </label>
-            )}
-            {error && <p className="form-error">{error}</p>}
-            <button className="primary-button" type="submit" disabled={submitting}>{submitting ? "Creando acceso..." : mode === "login" ? "Abrir banco" : "Crear DIP"}</button>
-            <p className="login-hint">Demo: DIP-A001 / PIN 1234</p>
-          </form> : (
-            <aside className="lp4-carousel-panel" aria-label="Resumen del carrusel">
-              <span>{activeSlide.action}</span>
-              <strong>{activeSlide.metric}</strong>
-              <p>La entrada DIP vive ahora en una página separada para mantener la landing limpia y comercial.</p>
-              <a href="/login">Ir al acceso seguro</a>
-            </aside>
-          )}
+          <aside className="lp4-carousel-panel" aria-label="Resumen del carrusel">
+            <span>{activeSlide.action}</span>
+            <strong>{activeSlide.metric}</strong>
+            <p>La entrada DIP vive ahora en una página separada para mantener la landing limpia y comercial.</p>
+            <a href="/login">Ir al acceso seguro</a>
+          </aside>
         </div>
       </section>
 

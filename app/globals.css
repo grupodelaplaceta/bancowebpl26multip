@@ -15,7 +15,7 @@
   --brand-purple-2: #3F00D8;
   --brand-purple-dark: #260083;
   --gold: #b77912;
-  --red: #c6423a;
+  --red: #3F00D8;
   --green: #168255;
   --blue: #1f6f9f;
   --shadow-sm: 0 6px 16px rgba(23, 19, 34, 0.05);
@@ -618,7 +618,7 @@ button:focus-visible, input:focus-visible {
 .metric-card.purple { background: #3F00D8; }
 .metric-card.green { background: #168255; }
 .metric-card.gold { background: #b77912; }
-.metric-card.red { background: #c6423a; }
+.metric-card.red { background: #3F00D8; }
 .action-grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -1307,8 +1307,8 @@ button:focus-visible, input:focus-visible {
 .contact-remove {
   min-width: 72px;
   border-radius: 16px;
-  border: 1px solid rgba(198, 66, 58, .18);
-  background: rgba(198, 66, 58, .08);
+  border: 1px solid rgba(63, 0, 216, .18);
+  background: rgba(63, 0, 216, .08);
   color: var(--red);
   font-size: .82rem;
   font-weight: 900;
@@ -1373,7 +1373,7 @@ button:focus-visible, input:focus-visible {
   margin-top: -2px;
 }
 .market-alert {
-  border-color: rgba(198, 66, 58, .18);
+  border-color: rgba(63, 0, 216, .18);
   background: rgba(255,255,255,.96);
 }
 .market-ticket {
@@ -5505,8 +5505,8 @@ button:focus-visible, input:focus-visible {
 /* GDLP institutional pass: compact, legible and closer to the Gencat rhythm. */
 :root {
   --gdlp-black: #111111;
-  --gdlp-accent: #c00000;
-  --gdlp-accent-dark: #8f0000;
+  --gdlp-accent: #3F00D8;
+  --gdlp-accent-dark: #260083;
   --gdlp-paper: #f4f4f2;
   --gdlp-line: rgba(17, 17, 17, .12);
 }
@@ -6747,6 +6747,50 @@ body {
   gap: 11px;
 }
 
+.login-only-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(14px, 4vw, 32px);
+  background:
+    radial-gradient(circle at top left, rgba(63, 0, 216, .14), transparent 34%),
+    linear-gradient(180deg, #f7f4ff 0%, #ffffff 46%, #f8f7fb 100%);
+}
+
+.login-only-card {
+  width: min(430px, 100%);
+  display: grid;
+  gap: 14px;
+}
+
+.login-only-brand {
+  width: fit-content;
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--android-ink);
+  text-decoration: none;
+  font-weight: 900;
+}
+
+.login-only-brand > span {
+  position: relative;
+  width: 72px;
+  height: 72px;
+  display: block;
+}
+
+.login-only-brand img {
+  object-fit: contain;
+}
+
+.login-only-page .lp4-login {
+  width: 100%;
+  min-height: 0;
+  padding: clamp(16px, 4vw, 24px);
+}
+
 .placetaid-button {
   background: linear-gradient(135deg, var(--android-accent), var(--android-soft));
   box-shadow: 0 14px 28px rgba(63, 0, 216, .24);
@@ -7353,4 +7397,154 @@ body {
     width: 100%;
     text-align: center;
   }
+}
+
+/* Banco top bars: brand accent background */
+.app-shell .topbar,
+.lp4-shell .lp4-nav,
+.content-page .info-nav,
+.info-page .info-nav,
+.legal-page .info-nav {
+  color: white;
+  background: #3F00D8 !important;
+  border-bottom-color: rgba(255,255,255,.18);
+}
+
+.app-shell .topbar h1,
+.app-shell .topbar .eyebrow,
+.app-shell .topbar .top-user,
+.lp4-shell .lp4-brand,
+.lp4-shell .lp4-brand strong,
+.lp4-shell .lp4-brand small,
+.content-page .info-brand,
+.content-page .info-brand strong,
+.info-page .info-brand,
+.info-page .info-brand strong,
+.legal-page .info-brand,
+.legal-page .info-brand strong {
+  color: white;
+}
+
+.lp4-shell .lp4-links a,
+.content-page .info-nav nav a,
+.info-page .info-nav nav a,
+.legal-page .info-nav nav a {
+  color: rgba(255,255,255,.92);
+  background: rgba(255,255,255,.12);
+  border-color: rgba(255,255,255,.22);
+}
+
+.lp4-shell .lp4-links .lp4-link-cta,
+.content-page .info-nav nav a:last-child,
+.info-page .info-nav nav a:last-child,
+.legal-page .info-nav nav a:last-child {
+  color: #3F00D8;
+  background: white;
+  border-color: white;
+}
+
+/* Banco rounded pass */
+:root {
+  --radius: 20px;
+  --radius-lg: 28px;
+}
+
+.app-shell .topbar,
+.lp4-shell .lp4-nav,
+.content-page .info-nav,
+.info-page .info-nav,
+.legal-page .info-nav {
+  border-radius: 0 0 24px 24px;
+}
+
+.panel,
+.admin-panel,
+.hub-panel,
+.payroll-panel,
+.market-funds-panel,
+.history-panel,
+.split-panel,
+.login-panel,
+.modal-panel,
+.hero-card,
+.placezum-card,
+.metric-card,
+.bank-card,
+.fund-card,
+.pay-link-card,
+.lp4-login,
+.lp4-carousel-panel,
+.lp4-strip article,
+.lp4-product,
+.lp4-help,
+.lp4-showcase,
+.lp4-channels,
+.lp4-developers,
+.lp4-final-cta,
+.lp4-footer,
+.lp4-service-grid article,
+.lp4-service-grid a,
+.lp4-post-grid article,
+.lp4-post-grid a,
+.lp4-channel-grid article,
+.lp4-channel-grid a,
+.info-hero,
+.info-content aside,
+.info-sections article,
+.info-related,
+.info-card,
+.legal-card,
+.content-card,
+.news-card,
+.plan-card,
+.detail-card,
+.share-panel {
+  border-radius: 26px;
+}
+
+.lp4-hero,
+.landing-page .lp4-hero {
+  border-radius: 30px;
+}
+
+.lp4-info-image,
+.lp4-card-visual,
+.lp4-card-caption,
+.featured-card,
+.content-card,
+.plan-list-card,
+.pay-link-input-wrap,
+.field,
+.field input,
+.lp4-login input:not([type="checkbox"]),
+.pay-link-card input,
+.pay-link-card button,
+.segmented,
+.placetaid-button,
+.primary-button,
+.secondary-button,
+.ghost-button,
+.action-grid button,
+.quick-actions button,
+.contact-remove,
+.developer-code,
+.code-block {
+  border-radius: 18px;
+}
+
+.lp4-links a,
+.info-nav nav a,
+.topbar button,
+.bottom-nav button,
+.app-nav button,
+.lp4-hero-actions a,
+.lp4-final-cta a,
+.lp4-carousel-panel a,
+.login-only-brand,
+.login-only-brand > span {
+  border-radius: 999px;
+}
+
+.login-only-card {
+  border-radius: 30px;
 }

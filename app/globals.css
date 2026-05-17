@@ -8076,3 +8076,408 @@ select {
     font-size: .64rem;
   }
 }
+
+/* Banco final polish: same accent, flat, rounded and functional */
+:root {
+  --brand: #3F00D8;
+  --brand-2: #3F00D8;
+  --brand-3: #3F00D8;
+  --android-accent: #3F00D8;
+  --android-accent-2: #3F00D8;
+  --android-soft: #3F00D8;
+  --android-cyan: #03DAC6;
+  --android-cyan-ink: #2A006E;
+  --android-bg: #f7f5ff;
+  --android-surface: #ffffff;
+  --android-surface-2: #f3efff;
+  --android-line: rgba(63, 0, 216, .14);
+  --android-shadow: 0 12px 28px rgba(36, 20, 76, .10);
+  --android-shadow-soft: 0 4px 14px rgba(36, 20, 76, .07);
+  --radius: 20px;
+  --radius-lg: 28px;
+}
+
+button,
+a,
+.account-chip,
+.panel,
+.hero-card,
+.placezum-card,
+.metric-card,
+.bank-card,
+.lp4-service-grid a,
+.lp4-post-grid a,
+.lp4-channel-grid a,
+.news-card,
+.plan-card,
+.content-card {
+  transition:
+    transform .18s ease,
+    background .18s ease,
+    border-color .18s ease,
+    box-shadow .18s ease,
+    color .18s ease;
+}
+
+button svg,
+a svg,
+.section-title svg,
+.quick-grid svg,
+.service-grid svg,
+.hub-action-grid svg,
+.admin-action-grid svg,
+.bottom-nav svg,
+.app-nav svg,
+.icon-button svg {
+  transform-origin: 50% 50%;
+  transition: transform .2s ease, color .18s ease, opacity .18s ease;
+}
+
+button:hover svg,
+a:hover svg,
+.account-chip:hover svg,
+.panel:hover .section-title svg,
+.quick-grid button:hover svg,
+.service-grid button:hover svg,
+.hub-action-grid button:hover svg,
+.admin-action-grid button:hover svg,
+.bottom-nav button:hover svg,
+.app-nav button:hover svg,
+.icon-button:hover svg {
+  transform: translateY(-1px) scale(1.08);
+}
+
+button:active svg,
+a:active svg,
+.icon-button:active svg {
+  transform: scale(.94);
+}
+
+.app-shell,
+.login-only-page,
+.placetaid-loading-shell,
+.pay-link-page,
+.lp4-shell,
+.info-page,
+.content-page,
+.legal-page {
+  background:
+    radial-gradient(circle at 0 0, rgba(63, 0, 216, .10), transparent 260px),
+    linear-gradient(180deg, #fff 0%, var(--android-bg) 54%, #fff 100%);
+}
+
+.topbar,
+.lp4-nav,
+.info-nav,
+.content-page .info-nav,
+.legal-page .info-nav {
+  background: #3F00D8 !important;
+  box-shadow: 0 8px 22px rgba(63, 0, 216, .18);
+  border-bottom: 1px solid rgba(255, 255, 255, .18);
+}
+
+.brand-logo,
+.lp4-logo,
+.info-brand span {
+  background: transparent;
+  box-shadow: none;
+}
+
+.status-pill,
+.icon-button {
+  border-radius: 16px;
+  background: rgba(255,255,255,.14);
+  border-color: rgba(255,255,255,.26);
+}
+
+.icon-button:hover,
+.status-pill:hover {
+  background: rgba(255,255,255,.22);
+  border-color: rgba(255,255,255,.38);
+}
+
+.icon-button.notify-on,
+.primary-button,
+.placetaid-button,
+.pay-link-card button,
+.section-link,
+.hero-actions a:first-child,
+.lp4-hero-actions a:first-child {
+  color: var(--android-cyan-ink);
+  background: #03DAC6;
+  border-color: #03DAC6;
+  box-shadow: none;
+}
+
+.primary-button:hover,
+.placetaid-button:hover,
+.pay-link-card button:hover,
+.section-link:hover,
+.hero-actions a:first-child:hover,
+.lp4-hero-actions a:first-child:hover {
+  transform: translateY(-1px);
+  filter: brightness(.98);
+}
+
+.app-nav,
+.account-strip,
+.bottom-nav,
+.panel,
+.admin-panel,
+.hub-panel,
+.payroll-panel,
+.market-funds-panel,
+.history-panel,
+.split-panel,
+.market-ticket,
+.investment-analysis,
+.modal-panel,
+.login-panel,
+.lp4-login,
+.pay-link-card,
+.info-card,
+.legal-card,
+.content-card,
+.news-card,
+.plan-card,
+.detail-card,
+.share-panel,
+.lp4-carousel-panel,
+.lp4-product,
+.lp4-help,
+.lp4-showcase,
+.lp4-channels,
+.lp4-developers,
+.lp4-footer,
+.lp4-strip article,
+.lp4-service-grid a,
+.lp4-post-grid a,
+.lp4-channel-grid a {
+  border: 1px solid var(--android-line);
+  border-radius: 24px;
+  background: rgba(255,255,255,.96);
+  box-shadow: var(--android-shadow-soft);
+}
+
+.panel:hover,
+.admin-panel:hover,
+.hub-panel:hover,
+.payroll-panel:hover,
+.market-funds-panel:hover,
+.history-panel:hover,
+.split-panel:hover,
+.market-ticket:hover,
+.investment-analysis:hover,
+.lp4-service-grid a:hover,
+.lp4-post-grid a:hover,
+.lp4-channel-grid a:hover,
+.news-card:hover,
+.plan-card:hover,
+.content-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(63, 0, 216, .24);
+  box-shadow: 0 8px 22px rgba(36, 20, 76, .09);
+}
+
+.app-nav,
+.account-strip,
+.bottom-nav {
+  border-radius: 22px;
+}
+
+.app-nav button,
+.bottom-nav button,
+.account-chip,
+.quick-grid button,
+.contact-grid button,
+.service-grid button,
+.admin-action-grid button,
+.hub-action-grid button,
+.action-grid button,
+.fund-list .fund-card,
+.secondary-button,
+.ghost-button {
+  border-radius: 18px;
+  box-shadow: none;
+}
+
+.app-nav button.active,
+.bottom-nav button.active,
+.account-chip.active,
+.metric-card,
+.metric-card.purple,
+.metric-card.green,
+.metric-card.gold,
+.metric-card.red {
+  color: white;
+  background: #3F00D8 !important;
+  border-color: #3F00D8;
+  box-shadow: 0 8px 20px rgba(63, 0, 216, .18);
+}
+
+.app-nav button.active svg,
+.bottom-nav button.active svg {
+  animation: banco-icon-pop .26s ease both;
+}
+
+.hero-card,
+.placezum-card,
+.market-hero,
+.tributos-hero,
+.admin-hero,
+.hub-hero,
+.lp4-hero,
+.info-hero,
+.content-hero,
+.legal-hero,
+.lp4-final-cta {
+  border-radius: 28px;
+  background: #3F00D8;
+  box-shadow: 0 12px 28px rgba(63, 0, 216, .18);
+}
+
+.hero-card::after,
+.placezum-card::after,
+.market-hero::after,
+.tributos-hero::after,
+.admin-hero::after,
+.hub-hero::after,
+.landing-page .lp4-hero::before,
+.info-hero::after,
+.content-hero::after,
+.legal-hero::after {
+  background: rgba(63, 0, 216, .86);
+}
+
+.hero-card::before,
+.placezum-card::before {
+  opacity: .12;
+  filter: saturate(.95);
+}
+
+.hero-card strong,
+.placezum-card strong {
+  text-shadow: none;
+}
+
+.hero-card p,
+.hero-card span,
+.placezum-card p,
+.placezum-card span,
+.lp4-final-cta p {
+  color: rgba(255,255,255,.82);
+}
+
+.quick-grid button,
+.contact-grid button,
+.service-grid button,
+.admin-action-grid button,
+.hub-action-grid button,
+.action-grid button,
+.fund-list .fund-card {
+  background: #fff;
+  border-color: var(--android-line);
+}
+
+.quick-grid button:hover,
+.contact-grid button:hover,
+.service-grid button:hover,
+.admin-action-grid button:hover,
+.hub-action-grid button:hover,
+.action-grid button:hover,
+.fund-list .fund-card:hover {
+  color: #3F00D8;
+  background: rgba(63, 0, 216, .055);
+  border-color: rgba(63, 0, 216, .22);
+}
+
+.section-title svg,
+.quick-grid svg,
+.service-grid svg,
+.hub-action-grid svg,
+.admin-action-grid svg,
+.info-card svg,
+.content-card svg,
+.news-card svg,
+.plan-card svg,
+.detail-card svg {
+  color: #3F00D8;
+}
+
+.field input,
+.field select,
+.lp4-login input:not([type="checkbox"]),
+.pay-link-card input,
+textarea,
+select {
+  border-radius: 16px;
+  background: var(--android-surface-2);
+  border-color: rgba(63, 0, 216, .14);
+}
+
+.field input:focus,
+.field select:focus,
+.lp4-login input:not([type="checkbox"]):focus,
+.pay-link-card input:focus,
+textarea:focus,
+select:focus {
+  border-color: #3F00D8;
+  box-shadow: 0 0 0 4px rgba(63, 0, 216, .10);
+}
+
+.toast,
+.action-progress {
+  border-radius: 20px;
+  box-shadow: 0 12px 28px rgba(36, 20, 76, .12);
+}
+
+@keyframes banco-icon-pop {
+  0% { transform: scale(.86); }
+  70% { transform: scale(1.13); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .001ms !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .topbar {
+    border-radius: 0 0 20px 20px;
+  }
+
+  .hero-card,
+  .placezum-card,
+  .market-hero,
+  .tributos-hero,
+  .admin-hero,
+  .hub-hero,
+  .lp4-hero,
+  .info-hero,
+  .content-hero,
+  .legal-hero {
+    border-radius: 24px;
+  }
+
+  .app-nav,
+  .account-strip,
+  .bottom-nav,
+  .panel,
+  .admin-panel,
+  .hub-panel,
+  .payroll-panel,
+  .market-funds-panel,
+  .history-panel,
+  .split-panel,
+  .market-ticket,
+  .investment-analysis {
+    border-radius: 20px;
+  }
+}

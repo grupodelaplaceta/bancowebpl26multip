@@ -67,6 +67,8 @@ export type UserProfile = {
   primaryAccountId: string;
   birthDate?: string | null;
   verifiedAge?: number | null;
+  consentimiento_rgpd?: boolean;
+  consentimiento_rgpd_at?: string | null;
   createdAt: string;
 };
 
@@ -204,6 +206,8 @@ export type TreasuryConfig = {
   contactlessLimitPz: number;
   placezumWeeklyLimitPz: number;
   weeklyTaxPercent: number;
+  weeklyDeveloperApiFeePercent: number;
+  weeklyPaymentLinkFeePercent: number;
   minimumWeeklySalaryPz: number;
   payrollWorkerTaxPercent: number;
   payrollEmployerTaxPercent: number;
@@ -258,6 +262,8 @@ export const treasuryDefaults: TreasuryConfig = {
   contactlessLimitPz: 500,
   placezumWeeklyLimitPz: 1000,
   weeklyTaxPercent: 2,
+  weeklyDeveloperApiFeePercent: 1,
+  weeklyPaymentLinkFeePercent: 1,
   minimumWeeklySalaryPz: 150,
   payrollWorkerTaxPercent: 10,
   payrollEmployerTaxPercent: 10,
@@ -287,7 +293,7 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Number.isFinite(value) ? value : min));
 }
 
-function normalizeIban(value: string) {
+export function normalizeIban(value: string) {
   return value.replace(/\s+/g, "").toUpperCase();
 }
 
@@ -299,6 +305,8 @@ export function normalizeTreasuryConfig(config: Partial<TreasuryConfig> = {}): T
     webBridgeCommissionPercent: clamp(next.webBridgeCommissionPercent, 0, VAT_PERCENT),
     placezumWeeklyLimitPz: clamp(next.placezumWeeklyLimitPz, 0, 1000000),
     weeklyTaxPercent: clamp(next.weeklyTaxPercent, 0, 25),
+    weeklyDeveloperApiFeePercent: clamp(next.weeklyDeveloperApiFeePercent, 0, 25),
+    weeklyPaymentLinkFeePercent: clamp(next.weeklyPaymentLinkFeePercent, 0, 25),
     minimumWeeklySalaryPz: clamp(next.minimumWeeklySalaryPz, 1, 10000),
     payrollWorkerTaxPercent: clamp(next.payrollWorkerTaxPercent, 0, 35),
     payrollEmployerTaxPercent: clamp(next.payrollEmployerTaxPercent, 0, 35),
@@ -672,6 +680,69 @@ export function chargeWeeklyTax(state: BankState, accountId: string) {
   return simpleTransfer(state, accountId, TGLP_ID, amount, "Tax", `Impuesto semanal ${state.treasuryConfig.weeklyTaxPercent}%`, true);
 }
 
+export function businessUsageFeePreview(state: BankState, businessAccountId: string, now = new Date()) {
+  const weekKey = weeklyFeeKey(now);
+  const business = state.accounts.find((account) => account.id === businessAccountId);
+  if (!business || business.type !== "Business") {
+    return { weekKey, apiBasePz: 0, linkBasePz: 0, apiFeePz: 0, linkFeePz: 0, totalFeePz: 0, alreadyCharged: false };
+  }
+  const weekStart = weekStartUtc(now).getTime();
+  const paidLinks = new Set((state.paymentLinks || [])
+    .filter((link) => link.creatorAccountId === businessAccountId && link.status === "Paid")
+    .map((link) => link.id));
+  const apiBasePz = state.transactions
+    .filter((transaction) =>
+      transaction.concept === "DEVELOPER_PAYMENT" &&
+      transaction.toAccountId === businessAccountId &&
+      Date.parse(transaction.createdAt) >= weekStart
+    )
+    .reduce((sum, transaction) => sum + transaction.amountPz, 0);
+  const linkBasePz = state.transactions
+    .filter((transaction) =>
+      paidLinks.has(transaction.originalTransactionId || "") &&
+      Date.parse(transaction.createdAt) >= weekStart
+    )
+    .reduce((sum, transaction) => sum + transaction.amountPz, 0);
+  const apiFeePz = apiBasePz > 0 ? percentCeil(apiBasePz, state.treasuryConfig.weeklyDeveloperApiFeePercent) : 0;
+  const linkFeePz = linkBasePz > 0 ? percentCeil(linkBasePz, state.treasuryConfig.weeklyPaymentLinkFeePercent) : 0;
+  const totalFeePz = apiFeePz + linkFeePz;
+  const alreadyCharged = state.transactions.some((transaction) =>
+    transaction.originalTransactionId === `${businessAccountId}:${weekKey}` &&
+    (transaction.concept === "WEEKLY_DEVELOPER_API_FEE" || transaction.concept === "WEEKLY_PAYMENT_LINK_FEE")
+  );
+  return { weekKey, apiBasePz, linkBasePz, apiFeePz, linkFeePz, totalFeePz, alreadyCharged };
+}
+
+export function chargeWeeklyBusinessUsageFees(state: BankState, businessAccountId: string) {
+  const preview = businessUsageFeePreview(state, businessAccountId);
+  const business = state.accounts.find((account) => account.id === businessAccountId);
+  const tglp = state.accounts.find((account) => account.id === TGLP_ID);
+  if (!business || business.type !== "Business") throw new Error("Selecciona una cuenta empresa");
+  if (!tglp) throw new Error("Cuenta TGLP no encontrada");
+  if (preview.alreadyCharged) throw new Error("Tasas semanales de empresa ya cobradas esta semana");
+  if (preview.totalFeePz <= 0) throw new Error("Sin base liquidable de API o enlaces esta semana");
+  if (business.balancePz < preview.totalFeePz) throw new Error("La empresa no tiene saldo para liquidar tasas semanales");
+  const accounts = state.accounts.map((account) => ({ ...account }));
+  const nextBusiness = accounts.find((account) => account.id === business.id)!;
+  const nextTglp = accounts.find((account) => account.id === TGLP_ID)!;
+  nextBusiness.balancePz -= preview.totalFeePz;
+  nextTglp.balancePz += preview.totalFeePz;
+  const transactions: LedgerTransaction[] = [];
+  if (preview.apiFeePz > 0) {
+    const apiFee = makeTransaction("Tax", nextBusiness, TGLP_ID, preview.apiFeePz, preview.apiFeePz, `Tasa semanal API pagos ${state.treasuryConfig.weeklyDeveloperApiFeePercent}% · base ${formatPz(preview.apiBasePz)} Pz`);
+    apiFee.concept = "WEEKLY_DEVELOPER_API_FEE";
+    apiFee.originalTransactionId = `${businessAccountId}:${preview.weekKey}`;
+    transactions.push(apiFee);
+  }
+  if (preview.linkFeePz > 0) {
+    const linkFee = makeTransaction("Tax", nextBusiness, TGLP_ID, preview.linkFeePz, preview.linkFeePz, `Tasa semanal enlaces de pago/cobro ${state.treasuryConfig.weeklyPaymentLinkFeePercent}% · base ${formatPz(preview.linkBasePz)} Pz`);
+    linkFee.concept = "WEEKLY_PAYMENT_LINK_FEE";
+    linkFee.originalTransactionId = `${businessAccountId}:${preview.weekKey}`;
+    transactions.push(linkFee);
+  }
+  return finalizeState({ ...state, accounts, transactions: applyTransactions(state.transactions, transactions) });
+}
+
 export function issueOfficialFine(state: BankState, accountId: string, amountPz: number, note = "Sanción oficial AGLDP") {
   if (amountPz <= 0) throw new Error("La multa debe ser superior a 0 Pz");
   return simpleTransfer(state, accountId, AGLDP_ID, amountPz, "Fine", note, true);
@@ -694,6 +765,20 @@ export function investmentRiskLimits(config: TreasuryConfig, riskLevel: number) 
     allowedPercent,
     maxAmountPz: Math.max(1, Math.floor((config.maxInvestmentAmountPz * allowedPercent) / 100)),
     dailyLimit: Math.max(1, Math.floor((config.dailyInvestmentLimit * allowedPercent) / 100))
+  };
+}
+
+export function investmentRiskProfile(riskLevel: number, economyWeight = 0) {
+  const safeRisk = clamp(Math.round(riskLevel || 3), 1, 7);
+  const userWinProbabilityPercent = clamp(78 - (safeRisk - 1) * 8, 30, 78);
+  const winMovementMinPercent = clamp(3 + (safeRisk - 1) * 3, 3, 45);
+  const winMovementMaxPercent = clamp(7 + (safeRisk - 1) * 5 + Math.max(0, Math.floor(economyWeight)), winMovementMinPercent, 60);
+  return {
+    riskLevel: safeRisk,
+    userWinProbabilityPercent,
+    companyWinProbabilityPercent: 100 - userWinProbabilityPercent,
+    winMovementMinPercent,
+    winMovementMaxPercent
   };
 }
 
@@ -803,8 +888,9 @@ export function settleTimedInvestment(state: BankState, operationId: string, use
   if (!tglp) throw new Error("Cuenta TGLP no encontrada");
   if (investor.citizenshipTier !== "CiudadaniaPlena") throw new Error("Inversiones limitadas a +18 / Ciudadanía Plena");
   const economyWeight = clamp(Math.floor(company.balancePz / 20000), 1, 10);
-  const movement = clamp(movementPercent ?? randomInt(6, 14 + economyWeight), 1, 100);
-  const wins = userWins ?? Math.random() < 0.5;
+  const riskProfile = investmentRiskProfile(company.investmentRiskLevel || 3, economyWeight);
+  const movement = clamp(movementPercent ?? randomInt(riskProfile.winMovementMinPercent, riskProfile.winMovementMaxPercent + 1), 1, 100);
+  const wins = userWins ?? Math.random() * 100 < riskProfile.userWinProbabilityPercent;
   const resultAmount = percentCeil(operation.amountPz, movement);
   const grossReturn = wins ? operation.amountPz + resultAmount : Math.max(0, operation.amountPz - resultAmount);
   const profitTax = wins ? percentCeil(resultAmount, state.treasuryConfig.investmentProfitTaxPercent) : 0;
@@ -1158,6 +1244,17 @@ function dedupeByComposite<T>(items: T[], key: (item: T) => string): T[] {
 
 function randomInt(min: number, maxExclusive: number) {
   return Math.floor(Math.random() * Math.max(1, maxExclusive - min)) + min;
+}
+
+function weekStartUtc(now = new Date()) {
+  const date = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const day = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() - day + 1);
+  return date;
+}
+
+function weeklyFeeKey(now = new Date()) {
+  return weekStartUtc(now).toISOString().slice(0, 10);
 }
 
 function ensureVaultEmission(accounts: Account[]): Account[] {

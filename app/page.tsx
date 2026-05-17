@@ -26,13 +26,16 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Account,
   accountTypeLabel,
   AGLDP_ID,
   BankState,
+  businessUsageFeePreview,
   chargeWeeklyTax,
+  chargeWeeklyBusinessUsageFees,
   claimRbu,
   demoSeed,
   DigitalCard,
@@ -49,6 +52,7 @@ import {
   issueCard,
   issueOfficialFine,
   investmentRiskLimits,
+  investmentRiskProfile,
   LedgerTransaction,
   investmentResultRows,
   normalizeState,
@@ -67,7 +71,8 @@ import {
   transferPayrollOrLoan,
   updateInvestmentFundRisk,
   updateTreasuryConfig,
-  UserProfile
+  UserProfile,
+  VAT_PERCENT
 } from "../lib/bank";
 import { generateBankPdf } from "../lib/pdf";
 import type { WebDocumentKind } from "../lib/pdf";
@@ -110,18 +115,6 @@ const landingSlides = [
   }
 ];
 
-const landingFeatures = [
-  { title: "Pagos digitales", text: "Placezum, IBAN y transferencias con límites visibles antes de confirmar.", icon: QrCode },
-  { title: "Tarjetas y cuentas", text: "Tarjeta digital, cuentas personales y empresa con estado claro en cada operación.", icon: CreditCard },
-  { title: "Administración", text: "Nóminas, documentos, soporte y tributos en paneles separados para trabajar mejor.", icon: Landmark }
-];
-
-const landingTrust = [
-  { title: "Operaciones verificables", text: "Cada movimiento conserva origen, destino, concepto y estado para evitar confusiones entre sesiones.", icon: ShieldCheck },
-  { title: "Diseño financiero claro", text: "Sin promesas exageradas: la landing explica pagos, cuentas, tarjetas, soporte y administración.", icon: Landmark },
-  { title: "Experiencia unificada", text: "La web acompaña a Android con la misma lógica de cuenta, documentos y color de marca.", icon: Sparkles }
-];
-
 const landingStats = [
   { label: "Servicios", value: "6", detail: "cuentas, pagos, tarjetas, documentos, hub y soporte" },
   { label: "Identidad", value: "DIP", detail: "acceso único sincronizado con la app Android" },
@@ -133,12 +126,6 @@ const landingWorkflow = [
   { title: "Elige el módulo", text: "Las acciones se abren en paneles y popups para no llenar cada pantalla." },
   { title: "Confirma la operación", text: "Importe, origen, destino y límites aparecen antes de guardar cambios." },
   { title: "Consulta el historial", text: "Movimientos, PDFs, soporte y administración quedan separados por contexto." }
-];
-
-const landingFaq = [
-  { question: "¿Qué puedo hacer desde Banco de La Placeta web?", answer: "Consultar cuentas, enviar pagos, gestionar tarjetas, revisar actividad, abrir tickets y usar herramientas administrativas si tu perfil lo permite." },
-  { question: "¿La web sustituye a la app Android?", answer: "No. La complementa: mantiene la misma lógica de cuenta y añade una experiencia más cómoda para escritorio." },
-  { question: "¿Dónde veo soporte o incidencias?", answer: "Dentro del Hub puedes abrir tickets con contexto de cuentas, tarjetas, inversiones o movimientos." }
 ];
 
 const developerApiCards = [
@@ -157,71 +144,202 @@ const developerSnippet = `await fetch("/api/developer-payments", {
   })
 });`;
 
-const commercialServices = [
-  { title: "Cuenta digital", text: "Saldo, IBAN, actividad y documentos en una vista clara para operar con menos pasos.", icon: WalletCards },
-  { title: "Pagos Placezum", text: "Pagos rápidos, contactos guardados y límites visibles antes de confirmar.", icon: QrCode },
-  { title: "Tarjetas", text: "Tarjeta virtual y Promo Card con control de estado y acciones separadas.", icon: CreditCard },
-  { title: "Empresa", text: "Nóminas, alta, actividad asociada y soporte operativo para cuentas empresariales.", icon: Building2 },
-  { title: "Documentos", text: "Extractos, certificados y recibos descargables desde el Hub.", icon: Download },
-  { title: "Soporte", text: "Tickets con asunto, mensaje y contexto para acelerar la revisión.", icon: ShieldCheck },
-  { title: "API Developers", text: "Pagos externos con token firmado, captura segura e IVA separado automáticamente.", icon: Lock }
-];
+const developerImplementationPack = {
+  create: `const createResponse = await fetch("https://TU-DOMINIO/api/developer-payments", {
+  method: "POST",
+  headers: {
+    "content-type": "application/json",
+    "x-api-key": "TU_API_KEY"
+  },
+  body: JSON.stringify({
+    merchantIban: "GDLP-AP00-000",
+    amountPz: 250,
+    concept: "Pedido web #1042"
+  })
+});
 
-const customerSegments = [
-  { title: "Particulares", text: "Pagos, tarjetas, extractos y actividad diaria con una navegación sencilla.", icon: Home },
-  { title: "Empresas", text: "Nóminas, rentabilidad, movimientos y documentos agrupados por cuenta.", icon: Building2 },
-  { title: "Administración", text: "Paneles para revisión fiscal, normativa y operación interna cuando el rol lo permite.", icon: Landmark }
-];
+const { payment, token, checkoutUrl } = await createResponse.json();`,
+  captureIban: `const captureResponse = await fetch(\`https://TU-DOMINIO/api/developer-payments/\${payment.id}/capture\`, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    token,
+    paymentCredential: "GDLP-AP00-000",
+    verificationAccepted: payment.totalPz > 500
+  })
+});
+
+const confirmation = await captureResponse.json();`,
+  captureCard: `const cardCapture = await fetch(\`https://TU-DOMINIO/api/developer-payments/\${payment.id}/capture\`, {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    token,
+    paymentCredential: "183042",
+    cardPin: "0000"
+  })
+});`
+};
 
 const channelCards = [
-  { title: "Web escritorio", text: "Diseñada para revisar, comparar, descargar y gestionar operaciones con más espacio.", icon: MoreHorizontal },
-  { title: "App Android", text: "Mantiene la operativa móvil diaria con la misma identidad y lógica de cuenta.", icon: WalletCards },
-  { title: "Notificaciones", text: "Avisos opcionales en PC para movimientos, soporte y operaciones relevantes.", icon: Bell }
+  { title: "Web escritorio", text: "Diseñada para revisar, comparar, descargar y gestionar operaciones con más espacio.", icon: MoreHorizontal, href: "/info/cuentas" },
+  { title: "App Android", text: "Mantiene la operativa móvil diaria con la misma identidad y lógica de cuenta.", icon: WalletCards, href: "/info/seguridad" },
+  { title: "Notificaciones", text: "Avisos opcionales en PC para movimientos, soporte y operaciones relevantes.", icon: Bell, href: "/info/seguridad" }
 ];
 
 const footerColumns = [
-  { title: "Banco", links: ["Cuentas", "Pagos", "Tarjetas", "Documentos"] },
-  { title: "Ayuda", links: ["Soporte", "FAQ", "Seguridad", "Contacto"] },
-  { title: "Legal", links: ["Privacidad", "Términos", "Accesibilidad", "Cookies"] }
+  { title: "Banco", links: [{ label: "Cuentas", href: "/info/cuentas" }, { label: "Placezum", href: "/info/placezum" }, { label: "Tarjetas", href: "/info/tarjetas" }, { label: "Empresas", href: "/info/empresas" }] },
+  { title: "Ayuda", links: [{ label: "Soporte", href: "/info/soporte" }, { label: "Pagos", href: "/info/guia-pagos" }, { label: "Inversiones", href: "/info/inversiones-cuenta" }, { label: "Seguridad", href: "/info/seguridad" }] },
+  { title: "Legal", links: [{ label: "Términos", href: "/terminos-y-condiciones" }, { label: "Privacidad", href: "/politica-de-privacidad" }, { label: "Developers", href: "/info/developers" }, { label: "Contacto", href: "mailto:soporte@bancoplaceta.com" }] }
 ];
 
 const landingPages = [
-  { id: "cuentas", title: "Cuentas", icon: WalletCards, text: "Consulta saldo, IBAN, actividad reciente y accesos de cuenta sin mezclar formularios en la pantalla principal.", bullets: ["Saldo y movimientos", "Transferencias por popup", "Documentos y extractos"] },
-  { id: "placezum", title: "Placezum", icon: QrCode, text: "Pagos rápidos con código temporal, contactos guardados y límites visibles antes de enviar.", bullets: ["Código temporal", "Contactos", "Límite semanal"] },
-  { id: "tarjetas", title: "Tarjetas", icon: CreditCard, text: "Gestiona tarjetas digitales y Promo Card con estado claro y acciones separadas.", bullets: ["Emitir tarjeta", "Congelar o activar", "PIN y numeración"] },
-  { id: "empresas", title: "Empresas", icon: Building2, text: "Panel para nóminas, alta de empresa, actividad y rentabilidad cuando la cuenta lo permite.", bullets: ["Nóminas", "Alta empresa", "Actividad asociada"] },
-  { id: "soporte", title: "Soporte", icon: ShieldCheck, text: "Tickets con contexto de cuenta, tarjeta, inversión o movimiento para explicar mejor cada incidencia.", bullets: ["Adjuntos", "Estado del ticket", "Historial"] },
-  { id: "seguridad", title: "Seguridad", icon: Lock, text: "Interfaz clara, permisos explícitos y validaciones de operación para reducir errores entre sesiones.", bullets: ["Notificaciones opcionales", "Validación de origen", "Modo sin conexión"] }
+  { id: "cuentas", title: "Cuentas", icon: WalletCards, image: "/assets/promos/promo2.png", text: "Consulta saldo, IBAN, actividad reciente y accesos de cuenta sin mezclar formularios en la pantalla principal.", bullets: ["Saldo y movimientos", "Transferencias por popup", "Documentos y extractos"] },
+  { id: "placezum", title: "Placezum", icon: QrCode, image: "/assets/promos/placezum-default.png", text: "Pagos rápidos con código temporal, contactos guardados y límites visibles antes de enviar.", bullets: ["Código temporal", "Contactos", "Límite semanal"] },
+  { id: "tarjetas", title: "Tarjetas", icon: CreditCard, image: "/assets/promocard.jpg", text: "Gestiona tarjetas digitales y Promo Card con estado claro y acciones separadas.", bullets: ["Emitir tarjeta", "Congelar o activar", "PIN y numeración"] },
+  { id: "empresas", title: "Empresas", icon: Building2, image: "/assets/promos/mercado-default.png", text: "Panel para nóminas, alta de empresa, actividad y rentabilidad cuando la cuenta lo permite.", bullets: ["Nóminas", "Alta empresa", "Actividad asociada"] },
+  { id: "soporte", title: "Soporte", icon: ShieldCheck, image: "/assets/logobanco.jpg", text: "Tickets con contexto de cuenta, tarjeta, inversión o movimiento para explicar mejor cada incidencia.", bullets: ["Estado del ticket", "Historial", "Contexto de cuenta"] },
+  { id: "developers", title: "API Developers", icon: Lock, image: "/assets/promos/banco-default.png", text: "Pagos externos con token firmado, captura segura y desglose de IVA automático.", bullets: ["Crear pago", "Consultar estado", "Capturar con IVA"] }
 ];
 
 const helpPosts = [
-  { title: "Cómo enviar un pago sin errores", tag: "Pagos", text: "Revisa IBAN, importe y concepto antes de confirmar. La web separa el formulario en popup para evitar acciones accidentales." },
-  { title: "Qué cuenta usar para inversiones", tag: "Inversiones", text: "Solo la cuenta de inversión permite operar. Las cuentas empresa muestran alta, capital recibido y rentabilidad asociada." },
-  { title: "Cómo abrir un ticket útil", tag: "Soporte", text: "Incluye cuenta, tarjeta o movimiento relacionado para que la revisión sea más rápida y clara." }
+  { id: "guia-pagos", title: "Cómo enviar un pago sin errores", tag: "Pagos", image: "/assets/promos/placezum-default.png", text: "Revisa IBAN, importe y concepto antes de confirmar. La web separa el formulario en popup para evitar acciones accidentales." },
+  { id: "inversiones-cuenta", title: "Qué cuenta usar para inversiones", tag: "Inversiones", image: "/assets/promos/mercado-default.png", text: "Solo la cuenta de inversión permite operar. Las cuentas empresa muestran alta, capital recibido y rentabilidad asociada." },
+  { id: "ticket-soporte", title: "Cómo abrir un ticket útil", tag: "Soporte", image: "/assets/logobanco.jpg", text: "Incluye cuenta, tarjeta o movimiento relacionado para que la revisión sea más rápida y clara." }
 ];
 
-const landingArticles = [
-  {
-    title: "Placezum para pagos rápidos",
-    text: "Contactos guardados, IBAN oficial y límites semanales visibles antes de enviar.",
-    image: "/assets/promos/placezum-default.png",
-    icon: QrCode
-  },
-  {
-    title: "Tarjetas con assets originales",
-    text: "Promo Card y tarjeta virtual mantienen la identidad visual de Banco de La Placeta.",
-    image: "/assets/promocard.jpg",
-    icon: CreditCard
-  },
-  {
-    title: "Hub ciudadano completo",
-    text: "Cuentas, documentos, administración y soporte organizados en módulos separados.",
-    image: "/assets/logobanco.jpg",
-    icon: MoreHorizontal
+const PLACETAID_BASE_URL = "https://plid26.vercel.app";
+const PLACETAID_SERVICE_NAME = "BancodeLaPlacetaDev";
+
+type PlacetaIdUserPayload = {
+  dip?: string;
+  nombre?: string;
+  apellidos?: string;
+  nombreCompleto?: string;
+  edad?: number | null;
+  rol?: string;
+  accesoComo?: string;
+};
+
+function parsePlacetaIdUser(value: string): PlacetaIdUserPayload | null {
+  const attempts = [value];
+  try { attempts.push(decodeURIComponent(value)); } catch {}
+  for (const candidate of attempts) {
+    try {
+      const parsed = JSON.parse(candidate);
+      if (parsed && typeof parsed === "object") return parsed as PlacetaIdUserPayload;
+    } catch {}
   }
-];
+  return null;
+}
+
+function placetaIdFromDip(dip: string) {
+  const compact = dip.toUpperCase().replace(/^DIP-/, "").replace(/[^A-Z0-9-]/g, "");
+  return compact.slice(0, 18) || `PLID-${Date.now().toString().slice(-6)}`;
+}
+
+function citizenshipTierFromAge(age?: number | null) {
+  if (typeof age !== "number" || !Number.isFinite(age)) return "CiudadaniaPlena";
+  if (age < 16) return "JuniorBasica";
+  if (age < 18) return "JuniorSenior";
+  return "CiudadaniaPlena";
+}
+
+function applyPlacetaIdAge(base: BankState, dip: string, age?: number | null) {
+  if (typeof age !== "number" || !Number.isFinite(age)) return base;
+  const user = base.users.find((item) => item.dip === dip);
+  if (!user) return base;
+  const tier = citizenshipTierFromAge(age);
+  return finalizeState({
+    ...base,
+    users: base.users.map((item) => item.dip === dip ? { ...item, verifiedAge: age } : item),
+    accounts: base.accounts.map((account) =>
+      account.placetaId === user.placetaId || account.id === user.primaryAccountId
+        ? {
+          ...account,
+          citizenshipTier: account.type === "Business" ? account.citizenshipTier : tier,
+          sendLimitPz: tier === "JuniorBasica" ? Math.min(account.sendLimitPz ?? 50, 50) : tier === "JuniorSenior" ? Math.min(account.sendLimitPz ?? 100, 100) : account.sendLimitPz
+        }
+        : account
+    )
+  });
+}
+
+async function registerPlacetaIdUser(base: BankState, payload: PlacetaIdUserPayload) {
+  const normalizedDip = String(payload.dip || "").trim().toUpperCase();
+  if (!normalizedDip) throw new Error("PlacetaID no devolvió DIP válido");
+  const displayName = payload.nombreCompleto || [payload.nombre, payload.apellidos].filter(Boolean).join(" ") || normalizedDip;
+  const accountId = `acct-plid-${crypto.randomUUID()}`;
+  const createdAt = new Date().toISOString();
+  const verifiedAge = typeof payload.edad === "number" ? payload.edad : null;
+  const user: UserProfile = {
+    dip: normalizedDip,
+    displayName,
+    placetaId: placetaIdFromDip(normalizedDip),
+    pinHash: await sha256(`placetaid:${normalizedDip}`),
+    primaryAccountId: accountId,
+    verifiedAge,
+    consentimiento_rgpd: true,
+    consentimiento_rgpd_at: createdAt,
+    createdAt
+  };
+  const account: Account = {
+    id: accountId,
+    displayName: "Cuenta PlacetaID",
+    kind: "CITIZEN",
+    balancePz: 500,
+    placetaId: user.placetaId,
+    role: "Citizen",
+    type: "Current",
+    iban: ibanGenerate(accountId),
+    citizenshipTier: citizenshipTierFromAge(verifiedAge),
+    complianceStatus: "Clear"
+  };
+  const admin = base.accounts.find((item) => item.id === AGLDP_ID);
+  const welcome: LedgerTransaction = {
+    id: `welcome-${crypto.randomUUID()}`,
+    kind: "WelcomeBonus",
+    fromAccountId: AGLDP_ID,
+    toAccountId: account.id,
+    amountPz: 500,
+    ivaPz: 0,
+    note: `Alta Banco de La Placeta mediante PlacetaID · ${PLACETAID_SERVICE_NAME}`,
+    status: "Settled",
+    createdAt,
+    netAmount: 500,
+    taxAmount: 0,
+    concept: "WELCOME_BONUS",
+    IBAN_Origin: admin?.iban || ibanGenerate(AGLDP_ID)
+  };
+  const card: DigitalCard = {
+    id: `card-${crypto.randomUUID()}`,
+    accountId,
+    alias: "PlacetaID Card",
+    tier: verifiedAge !== null && verifiedAge < 18 ? "Child" : "Standard",
+    frozen: false,
+    cardNumber: String(Math.floor(Math.random() * 1000000)).padStart(6, "0"),
+    pin: "0000",
+    released: true
+  };
+  const accounts = base.accounts.map((item) => item.id === AGLDP_ID ? { ...item, balancePz: Math.max(0, item.balancePz - 500) } : item);
+  return {
+    state: finalizeState({
+      ...base,
+      users: [...base.users, user].sort((left, right) => left.displayName.localeCompare(right.displayName)),
+      accounts: [...accounts, account],
+      transactions: [welcome, ...base.transactions],
+      digitalCards: [...base.digitalCards, card]
+    }),
+    user
+  };
+}
 
 export default function BancoPlacetaWeb() {
+  return <BancoPlacetaClient />;
+}
+
+export function BancoPlacetaClient() {
+  const pathname = usePathname();
   const [state, setState] = useState<BankState>(() => normalizeState(null));
   const [activeUser, setActiveUser] = useState<UserProfile | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState("u-alba");
@@ -239,6 +357,7 @@ export default function BancoPlacetaWeb() {
   const notificationSeenRef = useRef<Set<string>>(new Set());
   const notificationsReadyRef = useRef(false);
   const notificationUserRef = useRef("");
+  const placetaIdCallbackHandledRef = useRef(false);
 
   useEffect(() => {
     const cached = localStorage.getItem("placeta-web-state");
@@ -299,7 +418,7 @@ export default function BancoPlacetaWeb() {
       }
     }
     setNotificationNow(Date.now());
-    const timer = window.setInterval(() => setNotificationNow(Date.now()), 30000);
+    const timer = window.setInterval(() => setNotificationNow(Date.now()), 5000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -371,10 +490,14 @@ export default function BancoPlacetaWeb() {
     const transactions = state.transactions.filter((transaction) => accountIds.has(transaction.fromAccountId) || accountIds.has(transaction.toAccountId));
     const readyInvestments = pendingInvestmentOperations(state).filter((operation) => accountIds.has(operation.accountId) && readyNow >= Date.parse(operation.readyAt));
     const tickets = (state.supportTickets || []).filter((ticket) => ticket.ownerDip === activeUser.dip);
+    const paymentLinks = (state.paymentLinks || []).filter((link) =>
+      accountIds.has(link.creatorAccountId) || Boolean(link.usedByAccountId && accountIds.has(link.usedByAccountId))
+    );
     const currentIds = [
       ...transactions.map((transaction) => `txn:${transaction.id}`),
       ...readyInvestments.map((operation) => `investment-ready:${operation.id}`),
-      ...tickets.map((ticket) => `ticket:${ticket.id}:${ticket.updatedAt}`)
+      ...tickets.map((ticket) => `ticket:${ticket.id}:${ticket.updatedAt}`),
+      ...paymentLinks.map((link) => `payment-link:${link.id}:${link.status}:${link.usedAt || link.createdAt}`)
     ];
 
     if (!notificationsReadyRef.current || notificationUserRef.current !== activeUser.dip) {
@@ -390,10 +513,12 @@ export default function BancoPlacetaWeb() {
       const id = `txn:${transaction.id}`;
       if (notificationSeenRef.current.has(id)) continue;
       const incoming = accountIds.has(transaction.toAccountId);
+      const counterpartyId = incoming ? transaction.fromAccountId : transaction.toAccountId;
+      const counterparty = accountsById.get(counterpartyId)?.displayName || counterpartyId;
       pendingAlerts.push({
         id,
         title: incoming ? "Ingreso recibido" : "Movimiento enviado",
-        body: `${transaction.kind} · ${formatPz(transaction.amountPz)} Pz`
+        body: `${transaction.kind} · ${formatPz(transaction.amountPz)} Pz · ${counterparty}`
       });
     }
     for (const operation of readyInvestments) {
@@ -414,12 +539,26 @@ export default function BancoPlacetaWeb() {
         body: `${ticket.status} · ${ticket.subject}`
       });
     }
+    for (const link of paymentLinks) {
+      const id = `payment-link:${link.id}:${link.status}:${link.usedAt || link.createdAt}`;
+      if (notificationSeenRef.current.has(id)) continue;
+      if (link.status === "Pending") continue;
+      pendingAlerts.push({
+        id,
+        title: link.kind === "Payment" ? "Enlace de pago actualizado" : "Enlace de Placetas actualizado",
+        body: `${link.status} · ${formatPz(link.totalPz)} Pz · ${link.concept}`
+      });
+    }
 
     if (!pendingAlerts.length) return;
     for (const alert of pendingAlerts) notificationSeenRef.current.add(alert.id);
     saveSeenNotifications();
-    if (notificationPermission === "granted") pendingAlerts.slice(-3).forEach((alert) => notifyDesktop(alert.title, alert.body, alert.id));
-  }, [activeUser, hydrated, notificationNow, notificationPermission, notifyDesktop, saveSeenNotifications, state, userAccounts]);
+    const latest = pendingAlerts.slice(-3);
+    if (latest.length > 1 && document.visibilityState === "visible") {
+      setToast(`${latest.length} actualizaciones nuevas`);
+    }
+    if (notificationPermission === "granted") latest.forEach((alert) => notifyDesktop(alert.title, alert.body, alert.id));
+  }, [accountsById, activeUser, hydrated, notificationNow, notificationPermission, notifyDesktop, saveSeenNotifications, state, userAccounts]);
 
   async function requestDesktopNotifications() {
     if (typeof window === "undefined" || !("Notification" in window)) {
@@ -505,11 +644,65 @@ export default function BancoPlacetaWeb() {
     }
   }
 
+  useEffect(() => {
+    if (!hydrated || placetaIdCallbackHandledRef.current || typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("placetaid_token") || params.get("token");
+    const rawUser = params.get("user");
+    if (!token || !rawUser) return;
+
+    placetaIdCallbackHandledRef.current = true;
+    void (async () => {
+      try {
+        const placetaUser = parsePlacetaIdUser(rawUser);
+        if (!placetaUser?.dip) throw new Error("PlacetaID no devolvió datos de usuario válidos");
+        const returnedState = params.get("state") || "";
+        const expectedState = localStorage.getItem("placetaidOauthState") || "";
+        if (returnedState && expectedState && returnedState !== expectedState) throw new Error("Validación PlacetaID rechazada por state incorrecto");
+        const normalizedDip = placetaUser.dip.trim().toUpperCase();
+        localStorage.setItem("placetaidToken", token);
+        localStorage.setItem("placetaidUser", JSON.stringify(placetaUser));
+        localStorage.setItem("placetaidService", PLACETAID_SERVICE_NAME);
+        localStorage.removeItem("placetaidOauthState");
+
+        const fresh = sync === "online" ? await fetchFreshState(false).catch(() => stateRef.current) : stateRef.current;
+        const existing = fresh.users.find((item) => item.dip === normalizedDip);
+        if (existing) {
+          const ageChecked = applyPlacetaIdAge(fresh, normalizedDip, placetaUser.edad);
+          const refreshedUser = ageChecked.users.find((item) => item.dip === normalizedDip) || existing;
+          if (ageChecked !== fresh) await persist(ageChecked, "Edad verificada con PlacetaID", fresh.updatedAt || null);
+          setActiveUser(refreshedUser);
+          setSelectedAccountId(refreshedUser.primaryAccountId);
+          localStorage.setItem("placeta-web-dip", refreshedUser.dip);
+          setToast(`Sesión iniciada con PlacetaID${typeof placetaUser.edad === "number" ? ` · edad ${placetaUser.edad}` : ""}`);
+        } else {
+          const registered = await registerPlacetaIdUser(fresh, placetaUser);
+          await persist(registered.state, "Cuenta creada con PlacetaID", fresh.updatedAt || null);
+          setActiveUser(registered.user);
+          setSelectedAccountId(registered.user.primaryAccountId);
+          localStorage.setItem("placeta-web-dip", registered.user.dip);
+        }
+
+        params.delete("token");
+        params.delete("placetaid_token");
+        params.delete("user");
+        params.delete("platform");
+        params.delete("expires_in");
+        params.delete("state");
+        const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params}` : ""}${window.location.hash}`;
+        window.history.replaceState({}, "", cleanUrl);
+      } catch (error) {
+        setToast(error instanceof Error ? error.message : "No se pudo iniciar sesión con PlacetaID");
+      }
+    })();
+  }, [hydrated, sync]);
+
   if (!activeUser) {
     return (
       <LoginScreen
         state={state}
         sync={sync}
+        showLogin={pathname?.startsWith("/login") || false}
         onLogin={(user) => {
           setActiveUser(user);
           setSelectedAccountId(user.primaryAccountId);
@@ -672,12 +865,33 @@ export default function BancoPlacetaWeb() {
   );
 }
 
-function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; sync: string; onLogin: (user: UserProfile) => void; onRegister: (state: BankState, user: UserProfile) => void }) {
+function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: BankState; sync: string; showLogin: boolean; onLogin: (user: UserProfile) => void; onRegister: (state: BankState, user: UserProfile) => void }) {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [dip, setDip] = useState("DIP-A001");
   const [pin, setPin] = useState("1234");
   const [name, setName] = useState("");
+  const [consent, setConsent] = useState(false);
   const [error, setError] = useState("");
+  const [slideIndex, setSlideIndex] = useState(0);
+  const activeSlide = landingSlides[slideIndex] ?? landingSlides[0];
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setSlideIndex((value) => (value + 1) % landingSlides.length), 6500);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  function startPlacetaId() {
+    if (typeof window === "undefined") return;
+    const callbackUrl = `${window.location.origin}/`;
+    const stateToken = crypto.randomUUID();
+    localStorage.setItem("placetaidOauthState", stateToken);
+    const url = new URL(`${PLACETAID_BASE_URL}/`);
+    url.searchParams.set("from", callbackUrl);
+    url.searchParams.set("platform", "web");
+    url.searchParams.set("state", stateToken);
+    url.searchParams.set("service", PLACETAID_SERVICE_NAME);
+    window.location.href = url.toString();
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -691,15 +905,19 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
     }
     if (!/^DIP-[A-Z0-9]{4}$/.test(normalizedDip)) return setError("Formato DIP inválido. Usa DIP-XXXX");
     if (pin.length < 4 || name.trim().length < 2) return setError("Completa nombre y PIN de 4 dígitos");
+    if (!consent) return setError("Debes aceptar los términos y la política de privacidad para registrarte");
     if (state.users.some((item) => item.dip === normalizedDip)) return setError("Ese DIP ya existe");
     const accountId = `acct-${crypto.randomUUID()}`;
+    const createdAt = new Date().toISOString();
     const user: UserProfile = {
       dip: normalizedDip,
       displayName: name.trim(),
       placetaId: normalizedDip.replace("DIP-", ""),
       pinHash: await sha256(pin),
       primaryAccountId: accountId,
-      createdAt: new Date().toISOString()
+      consentimiento_rgpd: true,
+      consentimiento_rgpd_at: createdAt,
+      createdAt
     };
     const account: Account = {
       id: accountId,
@@ -749,7 +967,7 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
   }
 
   return (
-    <main className="lp4-shell" id="inicio">
+    <main className={`lp4-shell ${showLogin ? "login-page" : "landing-page"}`} id="inicio">
       <header className="lp4-nav">
         <a className="lp4-brand" href="#inicio" aria-label="Banco de La Placeta">
           <span className="lp4-logo">
@@ -761,40 +979,61 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
           </span>
         </a>
         <nav className="lp4-links" aria-label="Navegación landing">
-          <a href="#cuentas">Cuentas</a>
-          <a href="#servicios">Servicios</a>
-          <a href="#developers">Developers</a>
-          <a href="#clientes">Clientes</a>
+          <a href="#modulos">Módulos</a>
+          <a href="#articulos">Artículos</a>
+          <a href="/info/developers">Developers</a>
           <a href="#ayuda">Ayuda</a>
-          <a href="#seguridad">Seguridad</a>
-          <a className="lp4-link-cta" href="#acceso">Acceder</a>
+          <a href="/info/seguridad">Seguridad</a>
+          <a className="lp4-link-cta" href="/login">Acceder</a>
         </nav>
       </header>
 
       <section className="lp4-hero">
-        <Image src="/assets/promos/promo2.png" alt="Banco de La Placeta web" fill priority sizes="100vw" />
+        <Image src={activeSlide.image} alt={activeSlide.title} fill priority sizes="100vw" />
         <div className="lp4-hero-shade" />
-        <div className="lp4-hero-inner">
+        <div className={`lp4-hero-inner ${showLogin ? "" : "landing-only"}`}>
           <div className="lp4-hero-copy">
-            <span>Banca digital para La Placeta</span>
-            <h1>Tu banco web para operar con claridad y control.</h1>
-            <p>Banco de La Placeta reúne cuentas, pagos, tarjetas, documentos y soporte en una experiencia comercial lista para escritorio, con un lenguaje financiero serio y sin pantallas saturadas.</p>
+            <span>{activeSlide.kicker}</span>
+            <h1>{activeSlide.title}</h1>
+            <p>{activeSlide.subtitle}</p>
             <div className="lp4-hero-actions">
-              <a href="#acceso">Entrar al banco</a>
-              <a href="#servicios">Ver servicios</a>
+              <a href="/login">Entrar al banco</a>
+              <a href="#modulos">Ver módulos</a>
             </div>
             <div className="lp4-hero-badges" aria-label="Puntos destacados">
+              <span>{activeSlide.metric}</span>
               <span>Sin promesas irreales</span>
-              <span>Datos con trazabilidad</span>
               <span>Responsive</span>
+            </div>
+            <div className="lp4-carousel-controls" aria-label="Carrusel Banco de La Placeta">
+              {landingSlides.map((slide, index) => (
+                <button
+                  key={slide.title}
+                  type="button"
+                  className={index === slideIndex ? "active" : ""}
+                  onClick={() => setSlideIndex(index)}
+                  aria-label={`Ver ${slide.title}`}
+                >
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{slide.kicker}</strong>
+                </button>
+              ))}
             </div>
           </div>
 
-          <form id="acceso" className="lp4-login" onSubmit={submit}>
+          {showLogin ? <form id="acceso" className="lp4-login" onSubmit={submit}>
             <div className="lp4-login-head">
               <span>{sync === "online" ? "Servicio conectado" : sync === "offline" ? "Modo sin conexión" : "Sincronizando datos"}</span>
               <h2>{mode === "login" ? "Acceso DIP" : "Crear acceso"}</h2>
             </div>
+            <button type="button" className="placetaid-button" onClick={startPlacetaId}>
+              <ShieldCheck size={19} />
+              <span>
+                <strong>Continuar con PlacetaID</strong>
+                <small>Login o registro automático con identidad GDLP</small>
+              </span>
+            </button>
+            <div className="login-divider"><span>o usa acceso local</span></div>
             <div className="segmented">
               <button type="button" className={mode === "login" ? "active" : ""} onClick={() => setMode("login")}>Entrar</button>
               <button type="button" className={mode === "register" ? "active" : ""} onClick={() => setMode("register")}>Registro</button>
@@ -802,10 +1041,25 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
             {mode === "register" && <Field label="Nombre" value={name} onChange={setName} placeholder="Tu nombre" />}
             <Field label="DIP oficial" value={dip} onChange={setDip} placeholder="DIP-XXXX" />
             <Field label="PIN" value={pin} onChange={setPin} placeholder="1234" type="password" />
+            {mode === "register" && (
+              <label className="legal-consent">
+                <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
+                <span>
+                  He leído y acepto los <a href="/terminos-y-condiciones" target="_blank" rel="noreferrer">Términos y Condiciones</a> del Banco de La Placeta y consiento el tratamiento de mis datos de conexión según la <a href="/politica-de-privacidad" target="_blank" rel="noreferrer">Política de Privacidad</a>.
+                </span>
+              </label>
+            )}
             {error && <p className="form-error">{error}</p>}
             <button className="primary-button" type="submit">{mode === "login" ? "Abrir banco" : "Crear DIP"}</button>
             <p className="login-hint">Demo: DIP-A001 / PIN 1234</p>
-          </form>
+          </form> : (
+            <aside className="lp4-carousel-panel" aria-label="Resumen del carrusel">
+              <span>{activeSlide.action}</span>
+              <strong>{activeSlide.metric}</strong>
+              <p>La entrada DIP vive ahora en una página separada para mantener la landing limpia y comercial.</p>
+              <a href="/login">Ir al acceso seguro</a>
+            </aside>
+          )}
         </div>
       </section>
 
@@ -819,23 +1073,46 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         ))}
       </section>
 
-      <section className="lp4-product" id="servicios">
+      <section className="lp4-product" id="modulos">
         <div className="lp4-section-head">
-          <span>Servicios</span>
-          <h2>Una oferta bancaria clara, modular y vendible.</h2>
-          <p>La web agrupa cada tarea en una zona reconocible: consultar, pagar, documentar, administrar y pedir ayuda.</p>
+          <span>Módulos</span>
+          <h2>La información importante vive en subpáginas claras.</h2>
+          <p>La portada resume lo esencial y cada módulo abre una vista útil con imagen, explicación, pasos y ayuda relacionada.</p>
         </div>
-        <div className="lp4-service-grid">
-          {commercialServices.map((item) => {
+        <div className="lp4-service-grid lp4-info-grid">
+          {landingPages.map((item) => {
             const Icon = item.icon;
             return (
-              <article key={item.title}>
+              <a key={item.id} href={`/info/${item.id}`}>
+                <span className="lp4-info-image">
+                  <Image src={item.image} alt={item.title} fill sizes="(max-width: 760px) 100vw, 360px" />
+                </span>
                 <Icon size={22} />
                 <strong>{item.title}</strong>
                 <p>{item.text}</p>
-              </article>
+              </a>
             );
           })}
+        </div>
+      </section>
+
+      <section className="lp4-help" id="articulos">
+        <div className="lp4-section-head">
+          <span>Artículos de ayuda</span>
+          <h2>Guías concretas para operar sin dudas.</h2>
+          <p>Contenido corto, práctico y separado de la banca privada para que la landing no parezca un panel saturado.</p>
+        </div>
+        <div className="lp4-post-grid lp4-article-grid">
+          {helpPosts.map((post) => (
+            <a key={post.id} href={`/info/${post.id}`}>
+              <span className="lp4-info-image">
+                <Image src={post.image} alt={post.title} fill sizes="(max-width: 760px) 100vw, 360px" />
+              </span>
+              <b>{post.tag}</b>
+              <strong>{post.title}</strong>
+              <p>{post.text}</p>
+            </a>
+          ))}
         </div>
       </section>
 
@@ -843,14 +1120,14 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         <div className="lp4-card-visual">
           <Image src="/assets/promocard.jpg" alt="Tarjeta Banco de La Placeta" fill sizes="420px" />
           <div className="lp4-card-caption">
-            <span>Promo Card</span>
-            <strong>Assets originales de marca</strong>
+            <span>Banco de La Placeta</span>
+            <strong>Tarjetas, pagos y documentos en una banca compacta</strong>
           </div>
         </div>
         <div className="lp4-flow">
-          <span>Operativa</span>
-          <h2>Una experiencia pensada para escritorio.</h2>
-          <p>Acciones principales visibles, formularios bajo demanda, documentos descargables y tickets con contexto.</p>
+          <span>Cómo se usa</span>
+          <h2>Entra, elige módulo y confirma con contexto.</h2>
+          <p>Las operaciones importantes usan popups y validaciones para que la pantalla principal no se llene de formularios.</p>
           {landingWorkflow.map((item, index) => (
             <article key={item.title}>
               <b>{index + 1}</b>
@@ -863,42 +1140,22 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
         </div>
       </section>
 
-      <section className="lp4-clients" id="clientes">
+      <section className="lp4-channels" id="ayuda">
         <div className="lp4-section-head">
-          <span>Clientes</span>
-          <h2>Una web preparada para cada perfil.</h2>
-          <p>El contenido cambia por rol y tipo de cuenta para evitar módulos incompatibles y mostrar solo lo que corresponde.</p>
-        </div>
-        <div className="lp4-client-grid">
-          {customerSegments.map((item) => {
-            const Icon = item.icon;
-            return (
-              <article key={item.title}>
-                <Icon size={24} />
-                <strong>{item.title}</strong>
-                <p>{item.text}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="lp4-channels">
-        <div className="lp4-section-head">
-          <span>Canales</span>
-          <h2>Web y Android sincronizados.</h2>
+          <span>Ayuda rápida</span>
+          <h2>Accesos útiles sin llenar la portada.</h2>
         </div>
         <div className="lp4-channel-grid">
-          {channelCards.map((item) => {
+          {[...channelCards, { title: "Centro de seguridad", text: "Buenas prácticas, límites y validación de operaciones.", icon: ShieldCheck, href: "/info/seguridad" }].map((item) => {
             const Icon = item.icon;
             return (
-              <article key={item.title}>
+              <a key={item.title} href={item.href}>
                 <Icon size={22} />
                 <div>
                   <strong>{item.title}</strong>
                   <p>{item.text}</p>
                 </div>
-              </article>
+              </a>
             );
           })}
         </div>
@@ -925,57 +1182,9 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
             <span>Ejemplo</span>
             <pre><code>{developerSnippet}</code></pre>
             <p>El importe enviado es neto. La API calcula IVA 12%, total, token firmado y al capturar mueve el IVA a TGLP.</p>
+            <a className="lp4-inline-link" href="/info/developers">Ver documentación completa</a>
           </div>
         </div>
-      </section>
-
-      <section className="lp4-help" id="ayuda">
-        <div className="lp4-section-head">
-          <span>Ayuda</span>
-          <h2>Contenido útil para operar mejor.</h2>
-        </div>
-        <div className="lp4-post-grid">
-          {helpPosts.map((post) => (
-            <article key={post.title}>
-              <span>{post.tag}</span>
-              <strong>{post.title}</strong>
-              <p>{post.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="lp4-trust" id="seguridad">
-        <div>
-          <span>Seguridad y confianza</span>
-          <h2>Lenguaje financiero real y operaciones con contexto.</h2>
-          <p>Banco de La Placeta evita promesas irreales y prioriza origen, destino, límites, documentos y soporte.</p>
-        </div>
-        <div className="lp4-trust-grid">
-          {landingTrust.map((item) => {
-            const Icon = item.icon;
-            return (
-              <article key={item.title}>
-                <Icon size={22} />
-                <strong>{item.title}</strong>
-                <p>{item.text}</p>
-              </article>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="lp4-faq" id="faq">
-        <div className="lp4-section-head">
-          <span>FAQ</span>
-          <h2>Preguntas frecuentes</h2>
-        </div>
-        {landingFaq.map((item) => (
-          <details key={item.question}>
-            <summary>{item.question}</summary>
-            <p>{item.answer}</p>
-          </details>
-        ))}
       </section>
 
       <section className="lp4-final-cta">
@@ -984,7 +1193,7 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
           <h2>Accede a tu banca web y continúa donde lo dejaste.</h2>
           <p>La web está pensada para operar, revisar y administrar con calma desde PC sin perder continuidad con la app.</p>
         </div>
-        <a href="#acceso">Abrir acceso DIP</a>
+        <a href="/login">Abrir acceso DIP</a>
       </section>
 
       <footer className="lp4-footer">
@@ -1001,7 +1210,7 @@ function LoginScreen({ state, sync, onLogin, onRegister }: { state: BankState; s
           {footerColumns.map((column) => (
             <nav key={column.title} aria-label={column.title}>
               <strong>{column.title}</strong>
-              {column.links.map((link) => <a key={link} href={link === "Soporte" ? "mailto:soporte@bancoplaceta.com" : "#inicio"}>{link}</a>)}
+              {column.links.map((link) => <a key={link.label} href={link.href}>{link.label}</a>)}
             </nav>
           ))}
         </div>
@@ -1091,16 +1300,21 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
 function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay, onAddContact, onRemoveContact }: { user: UserProfile; account: Account; accounts: Account[]; contacts: { accountId: string }[]; limit: number; spent: number; onPay: (targetId: string, amount: number) => void; onAddContact: (accountId: string) => void; onRemoveContact: (accountId: string) => void }) {
   const [amount, setAmount] = useState(12);
   const [contactQuery, setContactQuery] = useState("");
-  const [contactsOpen, setContactsOpen] = useState(false);
+  const [activeModal, setActiveModal] = useState<"pay" | "contacts" | "receive" | null>(null);
   const [tick, setTick] = useState(0);
   const codeWindow = Math.floor(tick / 120);
-  const code = useMemo(() => generatePlacezumCode(account), [account, codeWindow]);
+  const code = useMemo(() => generatePlacezumCode(account, new Date(codeWindow * 120000)), [account, codeWindow]);
+  const secondsLeft = 120 - (tick % 120);
+  const remaining = Math.max(0, limit - spent);
+  const usagePercent = limit > 0 ? Math.min(100, Math.round((spent / limit) * 100)) : 0;
+  const safeAmount = Math.max(0, Math.min(amount, remaining));
+  const quickAmounts = remaining > 0 ? [5, 12, 25, 50, 100].filter((value) => value <= Math.max(remaining, 5)) : [];
   const normalizedQuery = contactQuery.trim().toUpperCase();
   const resolvedContact = normalizedQuery
     ? accounts.find((candidate) =>
-    candidate.id !== account.id &&
-    (candidate.iban.toUpperCase() === normalizedQuery || candidate.placetaId?.toUpperCase() === normalizedQuery || candidate.displayName.toUpperCase().includes(normalizedQuery))
-  )
+      candidate.id !== account.id &&
+      (candidate.iban.toUpperCase() === normalizedQuery || candidate.placetaId?.toUpperCase() === normalizedQuery || candidate.displayName.toUpperCase().includes(normalizedQuery))
+    )
     : undefined;
   const favoriteAccounts = contacts
     .map((contact) => accounts.find((item) => item.id === contact.accountId))
@@ -1115,29 +1329,65 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
   }, []);
 
   return (
-    <section className="screen-grid">
+    <section className="screen-grid placezum-grid">
       <article className="placezum-card">
-        <div>
-          <p>Código temporal de {user.placetaId}</p>
+        <div className="placezum-code-copy">
+          <p>Recibir con {user.placetaId}</p>
           <strong>{code}</strong>
-          <span>Válido durante 120 segundos</span>
+          <span>Se renueva en {secondsLeft}s · {account.iban}</span>
         </div>
-        <QrCode size={98} strokeWidth={1.4} />
+        <button className="placezum-qr" onClick={() => setActiveModal("receive")} aria-label="Ver código Placezum">
+          <QrCode size={78} strokeWidth={1.5} />
+        </button>
       </article>
+
+      <div className="metric-grid placezum-metrics">
+        <MetricCard label="Disponible" value={`${formatPz(remaining)} Pz`} tone="purple" />
+        <MetricCard label="Usado semana" value={`${usagePercent}%`} tone="gold" />
+        <MetricCard label="Contactos" value={String(favoriteAccounts.length)} tone="green" />
+        <MetricCard label="Código" value={`${secondsLeft}s`} tone="purple" />
+      </div>
+
       <article className="panel action-summary">
         <SectionTitle icon={ScanLine} title="Placezum" />
-        <div className="service-grid">
-          <button onClick={() => setContactsOpen(true)}><QrCode size={22} /><strong>Pagar contacto</strong><span>{favoriteAccounts.length ? `${favoriteAccounts.length} guardados` : "Añadir primero"}</span></button>
-          <button onClick={() => setContactsOpen(true)}><ShieldCheck size={22} /><strong>Contactos</strong><span>Guardar IBAN o Placeta ID</span></button>
+        <div className="placezum-actions">
+          <button onClick={() => setActiveModal("pay")}><CircleDollarSign size={22} /><strong>Pagar</strong><span>A contacto guardado</span></button>
+          <button onClick={() => setActiveModal("contacts")}><ShieldCheck size={22} /><strong>Contactos</strong><span>Añadir o quitar</span></button>
+          <button onClick={() => setActiveModal("receive")}><QrCode size={22} /><strong>Recibir</strong><span>Código temporal</span></button>
         </div>
       </article>
       <article className="panel split-panel">
-        <div><ShieldCheck size={23} /><strong>Límite semanal</strong><span>{formatPz(spent)} de {formatPz(limit)} Pz por Placezum</span></div>
-        <div><Lock size={23} /><strong>Biometría web</strong><span>Confirmación local del navegador</span></div>
+        <div><ShieldCheck size={23} /><strong>Límite semanal</strong><span>{formatPz(spent)} de {formatPz(limit)} Pz por Placezum</span><i className="placezum-progress"><b style={{ width: `${usagePercent}%` }} /></i></div>
+        <div><Lock size={23} /><strong>Operación segura</strong><span>Valida IBAN, contacto y cupo antes de enviar</span></div>
       </article>
 
-      <Modal title="Contactos Placezum" open={contactsOpen} onClose={() => setContactsOpen(false)}>
-        <Field label="Importe Pz" value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
+      <Modal title="Pagar con Placezum" open={activeModal === "pay"} onClose={() => setActiveModal(null)}>
+        <Field label={`Importe Pz · disponible ${formatPz(remaining)}`} value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
+        <div className="amount-chips">
+          {quickAmounts.map((value) => (
+            <button key={value} className={safeAmount === value ? "active" : ""} onClick={() => setAmount(value)}>{formatPz(value)}</button>
+          ))}
+        </div>
+        {favoriteAccounts.length ? (
+          <div className="contact-list">
+            {favoriteAccounts.map((target) => (
+              <div key={target.id} className="contact-item">
+                <button className="contact-pay" disabled={safeAmount <= 0} onClick={() => {
+                  onPay(target.id, safeAmount);
+                  setActiveModal(null);
+                }}>
+                  <span>{target.displayName.slice(0, 1).toUpperCase()}</span>
+                  <strong>{target.displayName}</strong>
+                  <small>{target.iban} · {generatePlacezumCode(target)}</small>
+                </button>
+                <button className="contact-remove" aria-label={`Eliminar ${target.displayName}`} onClick={() => onRemoveContact(target.id)}>Quitar</button>
+              </div>
+            ))}
+          </div>
+        ) : <Empty title="Sin contactos" text="Añade un IBAN o Placeta ID para pagar por Placezum." />}
+      </Modal>
+
+      <Modal title="Contactos Placezum" open={activeModal === "contacts"} onClose={() => setActiveModal(null)}>
         <div className="contact-add">
           <Field label="Añadir por IBAN, Placeta ID o nombre" value={contactQuery} onChange={setContactQuery} placeholder="GDLP-APXX-XXX" />
           <div className={`contact-resolver ${resolvedContact ? "resolved" : ""}`}>
@@ -1156,7 +1406,10 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
           <div className="contact-list">
             {favoriteAccounts.map((target) => (
               <div key={target.id} className="contact-item">
-                <button className="contact-pay" onClick={() => onPay(target.id, amount)}>
+                <button className="contact-pay" onClick={() => {
+                  setContactQuery(target.iban);
+                  setActiveModal("pay");
+                }}>
                   <span>{target.displayName.slice(0, 1).toUpperCase()}</span>
                   <strong>{target.displayName}</strong>
                   <small>{target.iban} · {generatePlacezumCode(target)}</small>
@@ -1166,6 +1419,21 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
             ))}
           </div>
         ) : <Empty title="Sin contactos" text="Añade un IBAN real de la app para guardarlo aquí." />}
+      </Modal>
+
+      <Modal title="Recibir con Placezum" open={activeModal === "receive"} onClose={() => setActiveModal(null)}>
+        <div className="placezum-receive">
+          <div className="placezum-receive-qr"><QrCode size={120} strokeWidth={1.3} /></div>
+          <span>Código temporal</span>
+          <strong>{code}</strong>
+          <p>{account.displayName} · {account.iban}</p>
+          <div className="payroll-summary">
+            <div><span>Renueva en</span><strong>{secondsLeft}s</strong></div>
+            <div><span>Placeta ID</span><strong>{user.placetaId}</strong></div>
+            <div><span>Estado</span><strong>{account.complianceStatus || "Clear"}</strong></div>
+            <div><span>Límite restante</span><strong>{formatPz(remaining)} Pz</strong></div>
+          </div>
+        </div>
       </Modal>
     </section>
   );
@@ -1385,6 +1653,7 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
           {market.map((fund) => {
             const risk = fund.investmentRiskLevel || 3;
             const limits = companyDailyLimits.get(fund.id) || investmentRiskLimits(state.treasuryConfig, risk);
+            const profile = investmentRiskProfile(risk);
             const usedToday = companyDailyCounts.get(fund.id) || 0;
             const remainingForFund = Math.max(0, limits.dailyLimit - usedToday);
             const canInvestFund = isInvestmentAccount && remainingForFund > 0 && safeAmount > 0 && safeAmount <= limits.maxAmountPz;
@@ -1393,6 +1662,7 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
                 <div>
                   <strong>{fund.displayName} <RiskBadge level={risk} /></strong>
                   <span>Máx {formatPz(limits.maxAmountPz)} Pz · {remainingForFund}/{limits.dailyLimit} hoy · {limits.allowedPercent}% base</span>
+                  <span>Prob. usuario {profile.userWinProbabilityPercent}% · si gana +{profile.winMovementMinPercent}-{profile.winMovementMaxPercent}%</span>
                   <RiskIndicator level={risk} compact />
                 </div>
                 <b>{canInvestFund ? "Invertir" : safeAmount > limits.maxAmountPz ? "Baja importe" : "Sin cupo"}</b>
@@ -1471,6 +1741,11 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
   ];
   const paymentLinks = ((state.paymentLinks || []) as PaymentLink[]).filter((link) => userAccounts.some((account) => account.id === link.creatorAccountId)).slice(0, 6);
   const primaryAccount = userAccounts.find((account) => account.id === user.primaryAccountId) || userAccounts[0];
+  const linkSelectedAccount = linkKind === "Payment"
+    ? (business || userAccounts.find((account) => account.type === "Business") || primaryAccount)
+    : primaryAccount;
+  const linkAccountRole = linkKind === "Payment" ? "destino de cobro" : "destino receptor";
+  const linkIvaPreview = linkKind === "Payment" && linkSelectedAccount?.type === "Business" ? Math.ceil((Math.max(1, Math.round(linkAmount || 0)) * VAT_PERCENT) / 100) : 0;
   const documents: Array<{ title: string; detail: string; icon: LucideIcon; kind: WebDocumentKind; id: string }> = [
     { title: "Extracto mensual", detail: `${recent.length} movimientos recientes`, icon: Download, kind: "MonthlyStatement", id: "doc-month" },
     { title: "Certificado DIP", detail: `${user.dip} · identidad activa`, icon: ShieldCheck, kind: "SolvencyCertificate", id: "doc-solvency" },
@@ -1530,7 +1805,7 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
   }
 
   function submitPaymentLink() {
-    const source = linkKind === "Payment" ? (business || userAccounts.find((account) => account.type === "Business") || primaryAccount) : primaryAccount;
+    const source = linkSelectedAccount;
     if (!source) return;
     const next = createPaymentLink(state, source.id, linkKind, linkAmount, linkConcept, linkTargetIban || undefined);
     const created = next.paymentLinks[0];
@@ -1667,7 +1942,7 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
       <Modal title="API para Developers" open={hubModal === "developers"} onClose={() => setHubModal(null)}>
         <SectionTitle icon={Lock} title="API para Developers" />
         <div className="developer-modal">
-          <p className="muted">Integra pagos en webs y apps externas. El comercio crea un pago neto, la API calcula IVA 12%, firma el token y captura contra una cuenta GDLP pagadora.</p>
+          <p className="muted">Pack listo para implementar en webs y apps externas. El comercio crea un pago neto, la API calcula IVA 12%, firma el token y captura con IBAN/PlacetaID o tarjeta + PIN.</p>
           <div className="developer-endpoints compact">
             {developerApiCards.map((item) => (
               <article key={item.path}>
@@ -1678,15 +1953,28 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
               </article>
             ))}
           </div>
-          <div className="developer-code">
-            <span>Crear pago</span>
-            <pre><code>{developerSnippet}</code></pre>
+          <div className="implementation-pack">
+            <div className="developer-code">
+              <span>1 · Crear pago firmado</span>
+              <pre><code>{developerImplementationPack.create}</code></pre>
+              <button onClick={() => copyText(developerImplementationPack.create)}>Copiar implementación</button>
+            </div>
+            <div className="developer-code">
+              <span>2 · Capturar con IBAN o PlacetaID</span>
+              <pre><code>{developerImplementationPack.captureIban}</code></pre>
+              <button onClick={() => copyText(developerImplementationPack.captureIban)}>Copiar captura IBAN</button>
+            </div>
+            <div className="developer-code">
+              <span>3 · Capturar con tarjeta + PIN</span>
+              <pre><code>{developerImplementationPack.captureCard}</code></pre>
+              <button onClick={() => copyText(developerImplementationPack.captureCard)}>Copiar captura tarjeta</button>
+            </div>
           </div>
           <div className="payroll-summary">
             <div><span>IVA</span><strong>12%</strong></div>
-            <div><span>Auth</span><strong>x-api-key</strong></div>
-            <div><span>Firma</span><strong>HMAC</strong></div>
-            <div><span>Estado</span><strong>Pending/Paid</strong></div>
+            <div><span>Tasa semanal API</span><strong>{state.treasuryConfig.weeklyDeveloperApiFeePercent}%</strong></div>
+            <div><span>Cuenta</span><strong>IBAN / PlacetaID</strong></div>
+            <div><span>Tarjeta</span><strong>PIN obligatorio</strong></div>
           </div>
         </div>
       </Modal>
@@ -1699,13 +1987,23 @@ function HubScreen({ state, user, onPersist }: { state: BankState; user: UserPro
         </div>
         <Field label="Importe Pz" value={String(linkAmount)} onChange={(value) => setLinkAmount(Number(value) || 0)} type="number" />
         <Field label="Concepto" value={linkConcept} onChange={setLinkConcept} placeholder="Pedido, reserva o envío" />
-        {linkKind === "Send" && <Field label="IBAN destino opcional" value={linkTargetIban} onChange={setLinkTargetIban} placeholder="GDLP-..." />}
+        {linkKind === "Send" && <Field label="Referencia IBAN opcional" value={linkTargetIban} onChange={setLinkTargetIban} placeholder="GDLP-... (solo referencia)" />}
+        {linkSelectedAccount && (
+          <div className="link-account-notice">
+            <Landmark size={20} />
+            <div>
+              <strong>Se usará esta cuenta como {linkAccountRole}</strong>
+              <span>{linkSelectedAccount.displayName} · {linkSelectedAccount.iban} · {formatPz(linkSelectedAccount.balancePz)} Pz</span>
+            </div>
+          </div>
+        )}
         <div className="payroll-summary">
-          <div><span>IVA empresa</span><strong>{linkKind === "Payment" ? "12%" : "0%"}</strong></div>
+          <div><span>IVA empresa</span><strong>{linkKind === "Payment" ? `${formatPz(linkIvaPreview)} Pz` : "0 Pz"}</strong></div>
+          <div><span>Tasa semanal</span><strong>{state.treasuryConfig.weeklyPaymentLinkFeePercent}%</strong></div>
           <div><span>Uso</span><strong>Único</strong></div>
           <div><span>Apertura</span><strong>Web/App</strong></div>
-          <div><span>Normativa</span><strong>Activa</strong></div>
         </div>
+        <p className="muted">Empresas: los enlaces de cobro sirven para pedidos, reservas o facturas. No los uses para enviar salarios; las nóminas deben registrarse desde el módulo de nóminas.</p>
         <button className="primary-button" disabled={linkAmount <= 0} onClick={submitPaymentLink}>Crear y copiar enlace</button>
         {lastLinkUrl && <button className="link-copy" onClick={() => copyText(lastLinkUrl)}>{lastLinkUrl}</button>}
         <div className="support-thread">
@@ -1862,11 +2160,13 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
 function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state: BankState, message: string) => void }) {
   const [amount, setAmount] = useState(1000);
   const [weeklyTax, setWeeklyTax] = useState(state.treasuryConfig.weeklyTaxPercent);
+  const [developerApiFee, setDeveloperApiFee] = useState(state.treasuryConfig.weeklyDeveloperApiFeePercent);
+  const [paymentLinkFee, setPaymentLinkFee] = useState(state.treasuryConfig.weeklyPaymentLinkFeePercent);
   const [opTax, setOpTax] = useState(state.treasuryConfig.operationalTransferTaxPercent);
   const [placezumLimit, setPlacezumLimit] = useState(state.treasuryConfig.placezumWeeklyLimitPz);
   const [investmentMax, setInvestmentMax] = useState(state.treasuryConfig.maxInvestmentAmountPz);
   const [dailyInvestmentLimit, setDailyInvestmentLimit] = useState(state.treasuryConfig.dailyInvestmentLimit);
-  const [adminModal, setAdminModal] = useState<"emission" | "policy" | "audit" | "users" | null>(null);
+  const [adminModal, setAdminModal] = useState<"emission" | "policy" | "businessFees" | "audit" | "users" | null>(null);
   const agldp = state.accounts.find((item) => item.id === AGLDP_ID);
   const totalMoney = state.accounts.reduce((sum, account) => sum + Math.max(0, account.balancePz), 0);
   const businessCount = state.accounts.filter((account) => account.type === "Business").length;
@@ -1874,6 +2174,7 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
   const adminActions = [
     { id: "emission" as const, title: "Emisión", detail: `Preparado ${formatPz(amount)} Pz`, icon: Landmark },
     { id: "policy" as const, title: "Normativa", detail: "Límites, tasas e inversión", icon: ShieldCheck },
+    { id: "businessFees" as const, title: "Tasas empresa", detail: "API y enlaces semanales", icon: Banknote },
     { id: "audit" as const, title: "Auditoría", detail: `${state.complianceFlags.length} flags · ${state.transactions.length} movimientos`, icon: WifiOff },
     { id: "users" as const, title: "Usuarios", detail: `${state.users.length} perfiles registrados`, icon: Building2 }
   ];
@@ -1911,7 +2212,7 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
         <SectionTitle icon={ShieldCheck} title="Resumen del sistema" />
         <div className="hub-status-list">
           <div><strong>Saldo AGLDP</strong><span>{formatPz(agldp?.balancePz || 0)} Pz disponibles</span></div>
-          <div><strong>Normativa activa</strong><span>Placezum {formatPz(state.treasuryConfig.placezumWeeklyLimitPz)} Pz · inversión máx {formatPz(state.treasuryConfig.maxInvestmentAmountPz)} Pz</span></div>
+          <div><strong>Normativa activa</strong><span>Placezum {formatPz(state.treasuryConfig.placezumWeeklyLimitPz)} Pz · API {state.treasuryConfig.weeklyDeveloperApiFeePercent}% · enlaces {state.treasuryConfig.weeklyPaymentLinkFeePercent}%</span></div>
           <div><strong>Operación</strong><span>{pendingRequests ? `${pendingRequests} solicitudes pendientes` : "Sin solicitudes pendientes"}</span></div>
         </div>
       </article>
@@ -1929,6 +2230,8 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
         <SectionTitle icon={ShieldCheck} title="Configuración normativa" />
         <div className="config-grid">
           <Field label="Impuesto semanal %" value={String(weeklyTax)} onChange={(value) => setWeeklyTax(Number(value) || 0)} type="number" />
+          <Field label="Tasa semanal API pagos %" value={String(developerApiFee)} onChange={(value) => setDeveloperApiFee(Number(value) || 0)} type="number" />
+          <Field label="Tasa semanal enlaces empresa %" value={String(paymentLinkFee)} onChange={(value) => setPaymentLinkFee(Number(value) || 0)} type="number" />
           <Field label="Tasa operativa %" value={String(opTax)} onChange={(value) => setOpTax(Number(value) || 0)} type="number" />
           <Field label="Placezum semanal" value={String(placezumLimit)} onChange={(value) => setPlacezumLimit(Number(value) || 0)} type="number" />
           <Field label="Máx inversión" value={String(investmentMax)} onChange={(value) => setInvestmentMax(Number(value) || 0)} type="number" />
@@ -1937,6 +2240,8 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
         <button className="primary-button" onClick={() => {
           onPersist(updateTreasuryConfig(state, {
             weeklyTaxPercent: weeklyTax,
+            weeklyDeveloperApiFeePercent: developerApiFee,
+            weeklyPaymentLinkFeePercent: paymentLinkFee,
             operationalTransferTaxPercent: opTax,
             placezumWeeklyLimitPz: placezumLimit,
             maxInvestmentAmountPz: investmentMax,
@@ -1944,6 +2249,25 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
           }), "Configuración normativa guardada");
           setAdminModal(null);
         }}>Guardar configuración</button>
+      </Modal>
+
+      <Modal title="Tasas semanales de empresa" open={adminModal === "businessFees"} onClose={() => setAdminModal(null)}>
+        <SectionTitle icon={Banknote} title="API de pagos y enlaces" />
+        <p className="muted">Liquida semanalmente el uso de API de pagos y enlaces creados por empresas. Los enlaces de cobro no sustituyen el módulo de nóminas ni deben usarse para enviar salarios.</p>
+        <div className="ops-list">
+          {state.accounts.filter((account) => account.type === "Business").map((business) => {
+            const preview = businessUsageFeePreview(state, business.id);
+            return (
+              <div key={business.id}>
+                <strong>{business.displayName}</strong>
+                <span>API base {formatPz(preview.apiBasePz)} Pz · enlaces base {formatPz(preview.linkBasePz)} Pz · tasa {formatPz(preview.totalFeePz)} Pz · semana {preview.weekKey}</span>
+                <button className="mini-action" disabled={preview.totalFeePz <= 0 || preview.alreadyCharged} onClick={() => onPersist(chargeWeeklyBusinessUsageFees(state, business.id), "Tasas semanales de empresa cobradas")}>
+                  {preview.alreadyCharged ? "Cobrada" : "Cobrar tasas"}
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </Modal>
 
       <Modal title="Auditoría operativa" open={adminModal === "audit"} onClose={() => setAdminModal(null)}>
@@ -2039,18 +2363,19 @@ function RiskBadge({ level }: { level: number }) {
 
 function RiskIndicator({ level, compact = false }: { level: number; compact?: boolean }) {
   const safeLevel = clampRisk(level);
+  const profile = investmentRiskProfile(safeLevel);
   return (
     <div className={`risk-indicator ${compact ? "compact" : ""}`}>
       <div className="risk-indicator-head">
         <strong>Riesgo {safeLevel}/7</strong>
-        <span>{riskLabel(safeLevel)}</span>
+        <span>{riskLabel(safeLevel)} · {profile.userWinProbabilityPercent}% usuario</span>
       </div>
       <div className="risk-bar" aria-label={`Riesgo ${safeLevel} de 7`}>
         {[1, 2, 3, 4, 5, 6, 7].map((item) => (
           <span key={item} className={item <= safeLevel ? `active risk-${item}` : ""} />
         ))}
       </div>
-      {!compact && <p className="risk-description">{riskDescription(safeLevel)}</p>}
+      {!compact && <p className="risk-description">{riskDescription(safeLevel)} Si sale a favor, resultado estimado +{profile.winMovementMinPercent}-{profile.winMovementMaxPercent}%.</p>}
     </div>
   );
 }
@@ -2073,10 +2398,10 @@ function riskDescription(level: number) {
   if (safeLevel === 1) return "Riesgo muy bajo: variación limitada, pérdidas menos probables.";
   if (safeLevel === 2) return "Riesgo bajo: exposición moderada a movimientos negativos.";
   if (safeLevel === 3) return "Riesgo medio-bajo: puede fluctuar, adecuado para importes prudentes.";
-  if (safeLevel === 4) return "Riesgo medio: equilibrio entre oportunidad y pérdida.";
-  if (safeLevel === 5) return "Riesgo alto: variación intensa y pérdidas frecuentes posibles.";
-  if (safeLevel === 6) return "Riesgo muy alto: solo para operaciones especulativas.";
-  return "Riesgo extremo: puedes perder gran parte del importe apostado.";
+  if (safeLevel === 4) return "Riesgo medio: equilibrio entre probabilidad y resultado potencial.";
+  if (safeLevel === 5) return "Riesgo alto: ganar es menos probable, pero el resultado a favor sube.";
+  if (safeLevel === 6) return "Riesgo muy alto: probabilidad menor para el usuario y pago potencial superior.";
+  return "Riesgo extremo: probabilidad baja para el usuario, con el mayor porcentaje si acierta.";
 }
 
 function StatusPill({ sync }: { sync: "loading" | "online" | "offline" }) {

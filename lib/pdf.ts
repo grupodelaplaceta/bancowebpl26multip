@@ -27,7 +27,7 @@ const soft = "F6F0FF";
 const gold = "FFD36E";
 const border = "CFB8FF";
 
-export function generateBankPdf(account: Account, document: PdfDocumentInput, transactions: LedgerTransaction[]) {
+export async function generateBankPdf(account: Account, document: PdfDocumentInput, transactions: LedgerTransaction[]) {
   const ops = pdfOps();
   const filtered = filterTransactions(document.kind, transactions);
 
@@ -37,7 +37,7 @@ export function generateBankPdf(account: Account, document: PdfDocumentInput, tr
     drawOfficialDocument(ops, account, document, filtered);
   }
 
-  const pdf = buildPdf(ops.join("\n"));
+  const pdf = await buildPdf(ops.join("\n"));
   const blob = new Blob([pdf], { type: "application/pdf" });
   const url = URL.createObjectURL(blob);
   const link = documentNode("a") as HTMLAnchorElement;
@@ -364,25 +364,89 @@ function pdfOps() {
   return ["q"];
 }
 
-function buildPdf(content: string) {
+let outfitFontCache: Promise<{ regular: Uint8Array; bold: Uint8Array }> | null = null;
+
+function loadOutfitFonts() {
+  if (!outfitFontCache) {
+    outfitFontCache = Promise.all([
+      fetch("/fonts/outfit_regular.ttf").then((response) => response.arrayBuffer()),
+      fetch("/fonts/outfit_bold.ttf").then((response) => response.arrayBuffer())
+    ]).then(([regular, bold]) => ({ regular: new Uint8Array(regular), bold: new Uint8Array(bold) }));
+  }
+  return outfitFontCache;
+}
+
+async function buildPdf(content: string) {
+  const fonts = await loadOutfitFonts();
   const stream = `${content}\nQ`;
-  const objects = [
-    "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n",
-    "2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n",
-    `3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >> endobj\n`,
-    "4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n",
-    "5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >> endobj\n",
-    `6 0 obj << /Length ${stream.length} >> stream\n${stream}\nendstream endobj\n`
+  const widthsRegular = outfitWidths(500);
+  const widthsBold = outfitWidths(560);
+  const objects: PdfObjectChunk[] = [
+    pdfObject("1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n"),
+    pdfObject("2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj\n"),
+    pdfObject(`3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Resources << /Font << /F1 4 0 R /F2 7 0 R >> >> /Contents 10 0 R >> endobj\n`),
+    pdfObject(`4 0 obj << /Type /Font /Subtype /TrueType /BaseFont /Outfit-Regular /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [${widthsRegular}] /FontDescriptor 5 0 R >> endobj\n`),
+    pdfObject("5 0 obj << /Type /FontDescriptor /FontName /Outfit-Regular /Flags 32 /FontBBox [-500 -300 1200 1000] /ItalicAngle 0 /Ascent 1000 /Descent -300 /CapHeight 720 /StemV 80 /FontFile2 6 0 R >> endobj\n"),
+    pdfStreamObject(6, fonts.regular),
+    pdfObject(`7 0 obj << /Type /Font /Subtype /TrueType /BaseFont /Outfit-Bold /Encoding /WinAnsiEncoding /FirstChar 32 /LastChar 126 /Widths [${widthsBold}] /FontDescriptor 8 0 R >> endobj\n`),
+    pdfObject("8 0 obj << /Type /FontDescriptor /FontName /Outfit-Bold /Flags 32 /FontBBox [-500 -300 1200 1000] /ItalicAngle 0 /Ascent 1000 /Descent -300 /CapHeight 720 /StemV 96 /FontFile2 9 0 R >> endobj\n"),
+    pdfStreamObject(9, fonts.bold),
+    pdfStreamObject(10, asciiBytes(stream))
   ];
-  let offset = "%PDF-1.4\n".length;
+  return assemblePdf(objects);
+}
+
+type PdfObjectChunk = Uint8Array;
+
+function pdfObject(value: string): PdfObjectChunk {
+  return asciiBytes(value);
+}
+
+function pdfStreamObject(id: number, bytes: Uint8Array): PdfObjectChunk {
+  return concatBytes([
+    asciiBytes(`${id} 0 obj << /Length ${bytes.length} >> stream\n`),
+    bytes,
+    asciiBytes("\nendstream endobj\n")
+  ]);
+}
+
+function assemblePdf(objects: PdfObjectChunk[]) {
+  const header = asciiBytes("%PDF-1.4\n");
+  let offset = header.length;
   const xref = ["0000000000 65535 f \n"];
-  const body = objects.map((obj) => {
+  for (const object of objects) {
     xref.push(`${String(offset).padStart(10, "0")} 00000 n \n`);
-    offset += obj.length;
-    return obj;
-  }).join("");
+    offset += object.length;
+  }
   const startxref = offset;
-  return `%PDF-1.4\n${body}xref\n0 ${objects.length + 1}\n${xref.join("")}trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${startxref}\n%%EOF`;
+  const trailer = asciiBytes(`xref\n0 ${objects.length + 1}\n${xref.join("")}trailer << /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${startxref}\n%%EOF`);
+  return concatBytes([header, ...objects, trailer]);
+}
+
+function outfitWidths(defaultWidth: number) {
+  return Array.from({ length: 95 }, (_, index) => {
+    const code = index + 32;
+    if (code === 32) return 260;
+    if ("ilI.,:;!|'".includes(String.fromCharCode(code))) return 260;
+    if ("mwMW@#".includes(String.fromCharCode(code))) return 780;
+    if ("0123456789".includes(String.fromCharCode(code))) return 560;
+    return defaultWidth;
+  }).join(" ");
+}
+
+function asciiBytes(value: string) {
+  return new TextEncoder().encode(value);
+}
+
+function concatBytes(chunks: Uint8Array[]) {
+  const total = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return merged;
 }
 
 function documentNode(tag: string) {

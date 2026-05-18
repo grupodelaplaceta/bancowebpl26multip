@@ -8995,6 +8995,7 @@ select:focus {
   .admin-action-grid,
   .hub-action-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-items: center;
     gap: 7px;
   }
 
@@ -9009,6 +9010,8 @@ select:focus {
     border-radius: 13px;
     gap: 6px;
     font-size: .78rem;
+    width: min(100%, 156px);
+    justify-self: center;
   }
 
   .admin-action-grid button,
@@ -9016,6 +9019,7 @@ select:focus {
   .document-grid button {
     grid-template-columns: 26px minmax(0, 1fr);
     text-align: left;
+    width: min(100%, 170px);
   }
 
   .admin-action-grid strong,
@@ -9044,11 +9048,19 @@ select:focus {
     padding: 8px 10px;
     border-radius: 13px;
     font-size: .86rem;
+    width: min(100%, 280px);
+    justify-self: center;
+  }
+
+  .action-grid,
+  .card-tier-grid,
+  .product-type-grid {
+    justify-items: center;
   }
 
   .bottom-nav {
     bottom: max(6px, env(safe-area-inset-bottom));
-    width: min(100% - 12px, 420px);
+    width: min(100% - 24px, 360px);
     padding: 5px;
     border-radius: 18px;
   }
@@ -9096,6 +9108,7 @@ select:focus {
   .landing-page .bank-simple-carousel .lp4-hero-actions {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    justify-items: center;
     gap: 8px;
     margin-top: 16px;
   }
@@ -9105,6 +9118,7 @@ select:focus {
     padding: 0 10px;
     border-radius: 13px;
     font-size: .84rem;
+    width: min(100%, 142px);
   }
 
   .landing-page .bank-simple-carousel .lp4-hero-badges {

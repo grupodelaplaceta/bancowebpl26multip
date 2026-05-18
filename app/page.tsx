@@ -76,9 +76,8 @@ import {
   UserProfile,
   VAT_PERCENT
 } from "../lib/bank";
-import { gdlpNews, planProjects } from "../lib/gdlp-content";
 import { generateBankPdf } from "../lib/pdf";
-import { BANK_API_URL, BANK_SITE_URL, GDLP_SITE_URL, GDLP_SITE_URL_NO_WWW } from "../lib/site";
+import { BANK_API_URL, BANK_SITE_URL } from "../lib/site";
 import type { WebDocumentKind } from "../lib/pdf";
 
 type Tab = "home" | "placezum" | "market" | "hub" | "tributos" | "admin";
@@ -113,34 +112,11 @@ const landingSlides = [
   }
 ];
 
-const landingStats = [
-  { label: "Servicios", value: "6", detail: "cuentas, pagos, tarjetas, documentos, hub y soporte" },
-  { label: "Identidad", value: "DIP", detail: "acceso único sincronizado con la app Android" },
-  { label: "Atención", value: "Tickets", detail: "incidencias con contexto de cuenta y operación" }
-];
-
-const landingWorkflow = [
-  { title: "Accede con tu DIP", text: "Entras con el mismo identificador usado en la app Android." },
-  { title: "Elige el módulo", text: "Las acciones se abren en paneles y popups para no llenar cada pantalla." },
-  { title: "Confirma la operación", text: "Importe, origen, destino y límites aparecen antes de guardar cambios." },
-  { title: "Consulta el historial", text: "Movimientos, PDFs, soporte y administración quedan separados por contexto." }
-];
-
 const developerApiCards = [
   { title: "Crear pago", method: "POST", path: `${BANK_API_URL}/api/developer-payments`, text: "Genera un pago firmado con importe neto, IVA y total a cobrar." },
   { title: "Consultar pago", method: "GET", path: `${BANK_API_URL}/api/developer-payments/{id}?token=...`, text: "Valida el token y recupera la ficha del pago para checkout externo." },
   { title: "Capturar pago", method: "POST", path: `${BANK_API_URL}/api/developer-payments/{id}/capture`, text: "Carga la cuenta pagadora, abona al comercio y separa el IVA hacia TGLP." }
 ];
-
-const developerSnippet = `await fetch("${BANK_API_URL}/api/developer-payments", {
-  method: "POST",
-  headers: { "content-type": "application/json", "x-api-key": "TU_API_KEY" },
-  body: JSON.stringify({
-    merchantIban: "GDLP...",
-    amountPz: 250,
-    concept: "Pedido web #1042"
-  })
-});`;
 
 const developerImplementationPack = {
   create: `const createResponse = await fetch("${BANK_API_URL}/api/developer-payments", {
@@ -179,18 +155,6 @@ const confirmation = await captureResponse.json();`,
 });`
 };
 
-const channelCards = [
-  { title: "Web escritorio", text: "Diseñada para revisar, comparar, descargar y gestionar operaciones con más espacio.", icon: MoreHorizontal, href: "/info/cuentas" },
-  { title: "App Android", text: "Mantiene la operativa móvil diaria con la misma identidad y lógica de cuenta.", icon: WalletCards, href: "/info/seguridad" },
-  { title: "Notificaciones", text: "Avisos opcionales en PC para movimientos, soporte y operaciones relevantes.", icon: Bell, href: "/info/seguridad" }
-];
-
-const footerColumns = [
-  { title: "Banco", links: [{ label: "Cuentas", href: "/info/cuentas" }, { label: "Placezum", href: "/info/placezum" }, { label: "Tarjetas", href: "/info/tarjetas" }, { label: "Empresas", href: "/info/empresas" }] },
-  { title: "Institución", links: [{ label: "Noticias", href: "/noticias" }, { label: "Plan 2026", href: "/plan-2026" }, { label: "Seguridad", href: "/info/seguridad" }, { label: "Soporte", href: "/info/soporte" }] },
-  { title: "Legal", links: [{ label: "Términos", href: "/terminos-y-condiciones" }, { label: "Privacidad", href: "/politica-de-privacidad" }, { label: "Developers", href: "/info/developers" }, { label: "Contacto", href: "mailto:soporte@banco.laplaceta.org" }] }
-];
-
 const landingPages = [
   { id: "cuentas", title: "Cuentas", icon: WalletCards, image: "/assets/promos/promo2.png", text: "Consulta saldo, IBAN, actividad reciente y accesos de cuenta sin mezclar formularios en la pantalla principal.", bullets: ["Saldo y movimientos", "Transferencias por popup", "Documentos y extractos"] },
   { id: "placezum", title: "Placezum", icon: QrCode, image: "/assets/promos/placezum-default.png", text: "Pagos rápidos con código temporal, contactos guardados y límites visibles antes de enviar.", bullets: ["Código temporal", "Contactos", "Límite semanal"] },
@@ -198,12 +162,6 @@ const landingPages = [
   { id: "empresas", title: "Empresas", icon: Building2, image: "/assets/promos/mercado-default.png", text: "Panel para nóminas, alta de empresa, actividad y rentabilidad cuando la cuenta lo permite.", bullets: ["Nóminas", "Alta empresa", "Actividad asociada"] },
   { id: "soporte", title: "Soporte", icon: ShieldCheck, image: "/assets/logobanco.jpg", text: "Tickets con contexto de cuenta, tarjeta, inversión o movimiento para explicar mejor cada incidencia.", bullets: ["Estado del ticket", "Historial", "Contexto de cuenta"] },
   { id: "developers", title: "API Developers", icon: Lock, image: "/assets/promos/banco-default.png", text: "Pagos externos con token firmado, captura segura y desglose de IVA automático.", bullets: ["Crear pago", "Consultar estado", "Capturar con IVA"] }
-];
-
-const helpPosts = [
-  { id: "guia-pagos", title: "Cómo enviar un pago sin errores", tag: "Pagos", image: "/assets/promos/placezum-default.png", text: "Revisa IBAN, importe y concepto antes de confirmar. La web separa el formulario en popup para evitar acciones accidentales." },
-  { id: "inversiones-cuenta", title: "Qué cuenta usar para inversiones", tag: "Inversiones", image: "/assets/promos/mercado-default.png", text: "Solo la cuenta de inversión permite operar. Las cuentas empresa muestran alta, capital recibido y rentabilidad asociada." },
-  { id: "ticket-soporte", title: "Cómo abrir un ticket útil", tag: "Soporte", image: "/assets/logobanco.jpg", text: "Incluye cuenta, tarjeta o movimiento relacionado para que la revisión sea más rápida y clara." }
 ];
 
 const PLACETAID_BASE_URL = "https://id.laplaceta.org";
@@ -1273,10 +1231,6 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
         </a>
         <nav className="lp4-links" aria-label="Navegación landing">
           <a href="#modulos">Módulos</a>
-          <a href="/noticias">Noticias</a>
-          <a href="/plan-2026">Plan 2026</a>
-          <a href="/info/developers">Developers</a>
-          <a href="#ayuda">Ayuda</a>
           <a className="lp4-link-cta" href="/login">Acceder</a>
         </nav>
       </header>
@@ -1302,21 +1256,10 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
         </div>
       </section>
 
-      <section className="lp4-strip" id="cuentas" aria-label="Resumen del producto">
-        {landingStats.map((item) => (
-          <article key={item.label}>
-            <strong>{item.value}</strong>
-            <span>{item.label}</span>
-            <p>{item.detail}</p>
-          </article>
-        ))}
-      </section>
-
       <section className="lp4-product" id="modulos">
         <div className="lp4-section-head">
-          <span>Módulos</span>
-          <h2>La información importante vive en subpáginas claras.</h2>
-          <p>La portada resume lo esencial y cada módulo abre una vista útil con imagen, explicación, pasos y ayuda relacionada.</p>
+          <span>Accesos</span>
+          <h2>Elige lo que necesitas.</h2>
         </div>
         <div className="lp4-service-grid lp4-info-grid">
           {landingPages.map((item) => {
@@ -1328,131 +1271,16 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
                 </span>
                 <Icon size={22} />
                 <strong>{item.title}</strong>
-                <p>{item.text}</p>
               </a>
             );
           })}
-        </div>
-      </section>
-
-      <section className="lp4-help lp4-plan-preview" id="plan-2026">
-        <div className="lp4-section-head">
-          <span>Plan 2026</span>
-          <h2>Hoja de ruta estratégica, separada de las noticias.</h2>
-          <p>Infraestructura, gobernanza, pagos y seguridad tienen páginas propias para compartir cada proyecto del plan.</p>
-        </div>
-        <div className="lp4-post-grid lp4-article-grid">
-          {planProjects.slice(0, 3).map((project) => (
-            <a key={project.slug} href={`/plan-2026/${project.slug}`}>
-              <span className="lp4-info-image">
-                <Image src={project.image} alt={project.title} fill sizes="(max-width: 760px) 100vw, 360px" />
-              </span>
-              <b>{project.status}</b>
-              <strong>{project.title}</strong>
-              <p>{project.summary}</p>
-            </a>
-          ))}
-        </div>
-        <a className="lp4-inline-link" href="/plan-2026">Ver Plan 2026 completo</a>
-      </section>
-
-      <section className="lp4-help" id="noticias">
-        <div className="lp4-section-head">
-          <span>Noticias</span>
-          <h2>Comunicados y novedades con enlace propio.</h2>
-          <p>Las noticias explican cambios, guías y avisos operativos. No se mezclan con la hoja de ruta del Plan 2026.</p>
-        </div>
-        <div className="lp4-post-grid lp4-article-grid">
-          {gdlpNews.slice(0, 3).map((post) => (
-            <a key={post.slug} href={`/noticias/${post.slug}`}>
-              <span className="lp4-info-image">
-                <Image src={post.image} alt={post.title} fill sizes="(max-width: 760px) 100vw, 360px" />
-              </span>
-              <b>{post.tag}</b>
-              <strong>{post.title}</strong>
-              <p>{post.summary}</p>
-            </a>
-          ))}
-        </div>
-        <a className="lp4-inline-link" href="/noticias">Ver todas las noticias</a>
-      </section>
-
-      <section className="lp4-showcase">
-        <div className="lp4-card-visual">
-          <Image src="/assets/VIRTUALCARD.jpg" alt="Tarjeta virtual Banco de La Placeta" fill sizes="420px" />
-          <div className="lp4-card-caption">
-            <span>Banco de La Placeta</span>
-            <strong>Tarjetas, pagos y documentos en una banca compacta</strong>
-          </div>
-        </div>
-        <div className="lp4-flow">
-          <span>Cómo se usa</span>
-          <h2>Entra, elige módulo y confirma con contexto.</h2>
-          <p>Las operaciones importantes usan popups y validaciones para que la pantalla principal no se llene de formularios.</p>
-          {landingWorkflow.map((item, index) => (
-            <article key={item.title}>
-              <b>{index + 1}</b>
-              <div>
-                <strong>{item.title}</strong>
-                <p>{item.text}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="lp4-channels" id="ayuda">
-        <div className="lp4-section-head">
-          <span>Ayuda rápida</span>
-          <h2>Accesos útiles sin llenar la portada.</h2>
-        </div>
-        <div className="lp4-channel-grid">
-          {[...channelCards, { title: "Centro de seguridad", text: "Buenas prácticas, límites y validación de operaciones.", icon: ShieldCheck, href: "/info/seguridad" }].map((item) => {
-            const Icon = item.icon;
-            return (
-              <a key={item.title} href={item.href}>
-                <Icon size={22} />
-                <div>
-                  <strong>{item.title}</strong>
-                  <p>{item.text}</p>
-                </div>
-              </a>
-            );
-          })}
-        </div>
-      </section>
-
-      <section className="lp4-developers" id="developers">
-        <div className="lp4-section-head">
-          <span>API para Developers</span>
-          <h2>Pagos externos seguros con IVA integrado.</h2>
-          <p>Implementa Banco de La Placeta en webs y apps externas con pagos firmados, captura contra cuenta GDLP y desglose fiscal automático.</p>
-        </div>
-        <div className="developer-layout">
-          <div className="developer-endpoints">
-            {developerApiCards.map((item) => (
-              <article key={item.path}>
-                <span>{item.method}</span>
-                <strong>{item.title}</strong>
-                <code>{item.path}</code>
-                <p>{item.text}</p>
-              </article>
-            ))}
-          </div>
-          <div className="developer-code">
-            <span>Ejemplo</span>
-            <pre><code>{developerSnippet}</code></pre>
-            <p>El importe enviado es neto. La API calcula IVA 12%, total, token firmado y al capturar mueve el IVA a TGLP.</p>
-            <a className="lp4-inline-link" href="/info/developers">Ver documentación completa</a>
-          </div>
         </div>
       </section>
 
       <section className="lp4-final-cta">
         <div>
           <span>Banco de La Placeta</span>
-          <h2>Accede a tu banca web y continúa donde lo dejaste.</h2>
-          <p>La web está pensada para operar, revisar y administrar con calma desde PC sin perder continuidad con la app.</p>
+          <h2>Accede a tu banca web.</h2>
         </div>
         <a href="/login">Abrir acceso DIP</a>
       </section>
@@ -1464,16 +1292,15 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
           </span>
           <div>
           <strong>Banco de La Placeta</strong>
-            <p>Banca digital en {BANK_SITE_URL.replace("https://", "")}. Web GDLP: {GDLP_SITE_URL.replace("https://", "")} o {GDLP_SITE_URL_NO_WWW.replace("https://", "")}.</p>
+            <p>{BANK_SITE_URL.replace("https://", "")}</p>
           </div>
         </div>
         <div className="lp4-footer-columns">
-          {footerColumns.map((column) => (
-            <nav key={column.title} aria-label={column.title}>
-              <strong>{column.title}</strong>
-              {column.links.map((link) => <a key={link.label} href={link.href}>{link.label}</a>)}
-            </nav>
-          ))}
+          <nav aria-label="Enlaces básicos">
+            <a href="/login">Acceder</a>
+            <a href="/terminos-y-condiciones">Términos</a>
+            <a href="/politica-de-privacidad">Privacidad</a>
+          </nav>
         </div>
       </footer>
     </main>

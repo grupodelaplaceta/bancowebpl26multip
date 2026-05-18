@@ -498,7 +498,7 @@ function BancoPlacetaClient() {
   const userAccounts = useMemo(() => {
     if (!activeUser) return [];
     return accountsForUser(state, activeUser);
-  }, [activeUser, state.accounts]);
+  }, [activeUser, state]);
   const selectedAccount = userAccounts.find((account) => account.id === selectedAccountId) || userAccounts.find((account) => account.id === activeUser?.primaryAccountId) || userAccounts[0];
   const visibleTabs = isAdminUser(activeUser) ? tabs : tabs.filter((item) => !["tributos", "admin"].includes(item.id));
 
@@ -851,6 +851,39 @@ function BancoPlacetaClient() {
     );
   }
 
+  if (!selectedAccount) {
+    return (
+      <main className="app-shell">
+        <header className="topbar">
+          <div className="top-brand">
+            <span className="brand-logo">
+              <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="68px" priority />
+            </span>
+            <div>
+              <p className="eyebrow">Banco de La Placeta</p>
+              <h1>Sin cuentas vinculadas</h1>
+              <span className="top-user">{activeUser.displayName}</span>
+            </div>
+          </div>
+          <button
+            className="icon-button"
+            aria-label="Cerrar sesión"
+            onClick={() => {
+              setActiveUser(null);
+              localStorage.removeItem("placeta-web-dip");
+            }}
+          >
+            <LogOut size={19} />
+          </button>
+        </header>
+        <article className="panel">
+          <SectionTitle icon={ShieldCheck} title="Validación de propiedad" />
+          <p className="muted">No hay ninguna cuenta bancaria vinculada a tu Placeta ID. Cierra sesión o registra una cuenta propia antes de operar.</p>
+        </article>
+      </main>
+    );
+  }
+
   return (
     <main className={`app-shell ${busyMessage ? "is-busy" : ""}`}>
       <header className="topbar">
@@ -906,6 +939,18 @@ function BancoPlacetaClient() {
             <strong>{formatPz(account.balancePz)} Pz</strong>
           </button>
         ))}
+      </section>
+
+      <section className="workspace-head" aria-label="Cuenta activa">
+        <div>
+          <span>Cuenta activa</span>
+          <strong>{selectedAccount.displayName}</strong>
+          <p>{selectedAccount.iban}</p>
+        </div>
+        <div className="workspace-balance">
+          <span>Saldo disponible</span>
+          <strong>{formatMoneyPz(selectedAccount.balancePz)} Pz</strong>
+        </div>
       </section>
 
       {tab === "home" && (
@@ -1117,16 +1162,20 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
       <div className="lp4-login-head">
         <span className={`login-status ${sync}`}>{sync === "online" ? "Servicio conectado" : sync === "offline" ? "Modo sin conexión" : "Sincronizando datos"}</span>
         <h2>{mode === "login" ? "Entrar al banco" : "Crear acceso DIP"}</h2>
-        <p>{mode === "login" ? "Accede con tu identidad GDLP o con tu DIP local." : "Crea un acceso local para operar solo con tus cuentas vinculadas."}</p>
+        <p>{mode === "login" ? "Accede a la plataforma bancaria principal de GDLP." : "Crea un acceso local vinculado a tus cuentas."}</p>
       </div>
       <button type="button" className="placetaid-button" onClick={startPlacetaId}>
         <ShieldCheck size={19} />
         <span>
           <strong>Continuar con PlacetaID</strong>
-          <small>Login o registro automático con identidad GDLP</small>
+          <small>Identidad GDLP verificada</small>
         </span>
       </button>
-      <div className="login-divider"><span>o usa acceso local</span></div>
+      <div className="login-assurance">
+        <span><Lock size={15} /> Sesión protegida</span>
+        <span><WalletCards size={15} /> Cuentas vinculadas</span>
+      </div>
+      <div className="login-divider"><span>Acceso local</span></div>
       <div className="segmented">
         <button type="button" className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")}>Entrar</button>
         <button type="button" className={mode === "register" ? "active" : ""} onClick={() => switchMode("register")}>Registro</button>
@@ -1155,7 +1204,7 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
       {mode === "login" && (
         <button type="button" className="demo-login-button" onClick={fillDemo}>
           <Lock size={16} />
-          Usar demo DIP-A001
+          Demo DIP-A001
         </button>
       )}
     </form>
@@ -1175,44 +1224,17 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
             <div>
               <span>Acceso seguro</span>
               <h1>Tu banco GDLP</h1>
-              <p>Entra con PlacetaID o con tu DIP local. La web valida propiedad antes de mostrar u operar cuentas.</p>
+              <p>Operativa diaria, Placezum, tarjetas, documentos y administración en una sola plataforma.</p>
+            </div>
+            <div className="login-side-grid" aria-label="Ventajas del acceso">
+              <span><CheckCircle2 size={16} /> Acceso unificado</span>
+              <span><CreditCard size={16} /> Tarjetas virtuales</span>
+              <span><QrCode size={16} /> Placezum</span>
+              <span><Download size={16} /> PDFs</span>
             </div>
           </div>
           {loginForm}
         </section>
-      </main>
-    );
-  }
-
-  if (!selectedAccount) {
-    return (
-      <main className="app-shell">
-        <header className="topbar">
-          <div className="top-brand">
-            <span className="brand-logo">
-              <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="68px" priority />
-            </span>
-            <div>
-              <p className="eyebrow">Banco de La Placeta</p>
-              <h1>Sin cuentas vinculadas</h1>
-              <span className="top-user">{activeUser.displayName}</span>
-            </div>
-          </div>
-          <button
-            className="icon-button"
-            aria-label="Cerrar sesión"
-            onClick={() => {
-              setActiveUser(null);
-              localStorage.removeItem("placeta-web-dip");
-            }}
-          >
-            <LogOut size={19} />
-          </button>
-        </header>
-        <article className="panel">
-          <SectionTitle icon={ShieldCheck} title="Validación de propiedad" />
-          <p className="muted">No hay ninguna cuenta bancaria vinculada a tu Placeta ID. Cierra sesión o registra una cuenta propia antes de operar.</p>
-        </article>
       </main>
     );
   }

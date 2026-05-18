@@ -9150,3 +9150,312 @@ select:focus {
     min-height: 38px;
   }
 }
+
+/* Principal banking platform comfort pass */
+.workspace-head {
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .92);
+  box-shadow: 0 8px 22px rgba(36, 20, 76, .06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.workspace-head span,
+.workspace-head p {
+  display: block;
+  margin: 0;
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 850;
+}
+
+.workspace-head strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--ink);
+  font-size: 1.05rem;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.workspace-head p {
+  margin-top: 4px;
+  font-size: .84rem;
+  overflow-wrap: anywhere;
+}
+
+.workspace-balance {
+  flex: 0 0 auto;
+  min-width: 190px;
+  padding: 11px 13px;
+  border-radius: 17px;
+  color: white;
+  background: #3F00D8;
+  text-align: right;
+}
+
+.workspace-balance span,
+.workspace-balance strong {
+  color: white;
+}
+
+.workspace-balance span {
+  opacity: .76;
+}
+
+.workspace-balance strong {
+  font-size: 1.18rem;
+}
+
+.login-side-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.login-side-grid span {
+  min-height: 42px;
+  padding: 10px 11px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 14px;
+  color: white;
+  background: rgba(255,255,255,.12);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .82rem;
+  font-weight: 900;
+}
+
+.login-assurance {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.login-assurance span {
+  min-height: 38px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  color: #2D0A83;
+  background: rgba(63, 0, 216, .065);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-size: .78rem;
+  font-weight: 950;
+}
+
+.login-assurance svg {
+  color: #3F00D8;
+}
+
+.login-only-page {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(63, 0, 216, .20), transparent 30%),
+    radial-gradient(circle at 85% 20%, rgba(183, 121, 18, .13), transparent 28%),
+    linear-gradient(145deg, #ffffff 0%, #f5f2ff 48%, #fbfbff 100%);
+}
+
+.login-only-card {
+  width: min(1060px, 100%);
+  min-height: 640px;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, .72fr);
+  border-radius: 30px;
+  box-shadow: 0 34px 90px rgba(35, 18, 82, .18);
+}
+
+.login-only-side {
+  padding: clamp(28px, 4.5vw, 52px);
+  background:
+    linear-gradient(135deg, rgba(63, 0, 216, .94), rgba(31, 8, 92, .92)),
+    url("/assets/promos/promo1.png") center/cover;
+}
+
+.login-only-side::after {
+  background:
+    linear-gradient(180deg, rgba(63, 0, 216, .30), rgba(25, 8, 72, .72)),
+    rgba(63, 0, 216, .36);
+}
+
+.login-only-page .lp4-login {
+  display: grid;
+  gap: 14px;
+  padding: clamp(24px, 4vw, 42px);
+}
+
+.placetaid-button {
+  min-height: 66px;
+  padding: 12px 14px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+}
+
+.placetaid-button span,
+.placetaid-button strong,
+.placetaid-button small {
+  display: block;
+}
+
+.placetaid-button small {
+  margin-top: 2px;
+  opacity: .78;
+  font-size: .78rem;
+}
+
+.login-divider {
+  min-height: 20px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.segmented {
+  padding: 5px;
+  border-radius: 16px;
+  background: rgba(63, 0, 216, .07);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.segmented button {
+  min-height: 42px;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 950;
+}
+
+.segmented button.active {
+  color: white;
+  background: #3F00D8;
+}
+
+.field {
+  display: grid;
+  gap: 7px;
+}
+
+.field > span:first-child {
+  color: var(--ink-soft);
+  font-size: .82rem;
+  font-weight: 900;
+}
+
+.legal-consent {
+  padding: 11px 12px;
+  border-radius: 14px;
+  background: rgba(63, 0, 216, .055);
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 9px;
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.32;
+}
+
+.legal-consent a {
+  color: #3F00D8;
+  font-weight: 900;
+}
+
+@media (min-width: 761px) {
+  .app-shell {
+    width: min(1240px, 100%);
+    padding-top: 18px;
+  }
+
+  .app-nav {
+    position: sticky;
+    top: 86px;
+    z-index: 7;
+  }
+}
+
+@media (max-width: 760px) {
+  .workspace-head {
+    align-items: stretch;
+    padding: 10px;
+    border-radius: 18px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .workspace-balance {
+    min-width: 0;
+    text-align: left;
+  }
+
+  .workspace-head strong {
+    font-size: .96rem;
+  }
+
+  .workspace-head p {
+    font-size: .76rem;
+  }
+
+  .login-only-page {
+    padding: 10px;
+    place-items: start center;
+  }
+
+  .login-only-card {
+    min-height: 0;
+    border-radius: 22px;
+  }
+
+  .login-only-side {
+    min-height: 210px;
+    padding: 20px;
+    gap: 18px;
+  }
+
+  .login-only-side h1 {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+
+  .login-side-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .login-side-grid span {
+    min-height: 36px;
+    padding: 8px;
+    font-size: .72rem;
+  }
+
+  .login-only-page .lp4-login {
+    padding: 18px;
+    gap: 11px;
+  }
+
+  .login-assurance {
+    grid-template-columns: 1fr;
+  }
+
+  .placetaid-button {
+    width: 100%;
+    min-height: 58px;
+  }
+
+  .login-submit,
+  .demo-login-button {
+    width: 100%;
+    max-width: none;
+  }
+}

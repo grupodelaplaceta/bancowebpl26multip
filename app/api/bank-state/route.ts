@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { normalizeState } from "../../../lib/bank";
+import { demoSeed, normalizeState } from "../../../lib/bank";
+import type { BankState } from "../../../lib/bank";
+import { productionSecret, requiredProductionSecret } from "../../../lib/api-security";
 import { BANK_API_URL } from "../../../lib/site";
 
 export const dynamic = "force-dynamic";
@@ -8,12 +10,37 @@ export const revalidate = 0;
 
 const baseUrl = () => (process.env.PLACETA_API_BASE_URL || BANK_API_URL).replace(/\/$/, "");
 const appId = () => process.env.PLACETA_API_APP_ID || process.env.PLACETA_APP_ID || "org.laplaceta.banco";
-const appSecret = () => process.env.PLACETA_API_SECRET || process.env.PLACETA_APP_SECRET || "dev-secret-change-me";
+const appSecret = () => requiredProductionSecret("PLACETA_API_SECRET", process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET);
 const noStoreHeaders = {
   "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
   "Pragma": "no-cache",
   "Expires": "0"
 };
+
+const localHeaders = { ...noStoreHeaders, "x-placeta-sync-mode": "local" };
+
+declare global {
+  var __placetaBankState: BankState | undefined;
+}
+
+function hasRemoteConfig() {
+  return Boolean(productionSecret(process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET));
+}
+
+function localState() {
+  globalThis.__placetaBankState = normalizeState(globalThis.__placetaBankState || demoSeed());
+  return globalThis.__placetaBankState;
+}
+
+function setLocalState(state: BankState) {
+  globalThis.__placetaBankState = normalizeState(state);
+  return globalThis.__placetaBankState;
+}
+
+function headerSafeError(error: unknown) {
+  const message = error instanceof Error ? error.message : "sync_failed";
+  return message.replace(/[\r\n]/g, " ").slice(0, 180);
+}
 
 function sha256Hex(value: string) {
   return crypto.createHash("sha256").update(value || "", "utf8").digest("hex");
@@ -45,6 +72,7 @@ async function callBankApi(method: "GET" | "PUT", body = "") {
   });
   const text = await response.text();
   const payload = text ? JSON.parse(text) : {};
+  if (!response.ok) throw new Error(payload?.error ? `remote_${response.status}:${payload.error}` : `remote_${response.status}`);
   return NextResponse.json(payload, { status: response.status, headers: noStoreHeaders });
 }
 
@@ -61,19 +89,28 @@ async function readRemoteState() {
 }
 
 export async function GET() {
+  if (!hasRemoteConfig()) {
+    return NextResponse.json(localState(), { status: 200, headers: localHeaders });
+  }
+
   try {
     return await callBankApi("GET");
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "sync_failed" }, { status: 503, headers: noStoreHeaders });
+    return NextResponse.json(localState(), { status: 200, headers: { ...localHeaders, "x-placeta-sync-error": headerSafeError(error) } });
   }
 }
 
 export async function PUT(request: Request) {
+  let rawText = "";
   try {
-    const text = await request.text();
-    const payload = text ? JSON.parse(text) : {};
+    rawText = await request.text();
+    const payload = rawText ? JSON.parse(rawText) : {};
     const nextState = normalizeState(payload.state || payload);
     const baseUpdatedAt = payload.baseUpdatedAt || null;
+
+    if (!hasRemoteConfig()) {
+      return NextResponse.json(setLocalState(nextState), { status: 200, headers: localHeaders });
+    }
 
     if (baseUpdatedAt) {
       const remote = await readRemoteState();
@@ -84,6 +121,11 @@ export async function PUT(request: Request) {
 
     return await callBankApi("PUT", JSON.stringify(nextState));
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "sync_failed" }, { status: 503, headers: noStoreHeaders });
+    try {
+      const payload = rawText ? JSON.parse(rawText) : {};
+      return NextResponse.json(setLocalState(payload.state || payload), { status: 200, headers: { ...localHeaders, "x-placeta-sync-error": headerSafeError(error) } });
+    } catch {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "sync_failed" }, { status: 503, headers: noStoreHeaders });
+    }
   }
 }

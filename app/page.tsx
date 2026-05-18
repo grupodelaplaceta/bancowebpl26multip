@@ -1289,6 +1289,15 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
             <span>{activeSlide.kicker}</span>
             <h1>{activeSlide.title}</h1>
             <p>{activeSlide.subtitle}</p>
+            <div className="lp4-hero-actions" aria-label="Acciones principales">
+              <a href="/login">Entrar al banco</a>
+              <a href="#modulos">Ver módulos</a>
+            </div>
+            <div className="lp4-hero-badges" aria-label="Resumen operativo">
+              <span>DIP</span>
+              <span>Placezum</span>
+              <span>Tarjetas virtuales</span>
+            </div>
           </div>
         </div>
       </section>

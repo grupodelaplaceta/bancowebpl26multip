@@ -216,6 +216,26 @@ export type GdlpSharedNewsItem = {
   updatedAt?: string;
 };
 
+export type DonationRewardStatus = "Available" | "Redeemed" | "Donated";
+
+export type DonationReward = {
+  id: string;
+  dip: string;
+  placetaId: string;
+  amountCents: number;
+  currency: string;
+  points: number;
+  status: DonationRewardStatus;
+  destination?: "Wallet" | "Foundation" | "Merch";
+  merchSku?: string | null;
+  shippingCountry?: string | null;
+  shippingPostalCode?: string | null;
+  shippingRegion?: "ES_PENINSULA" | null;
+  stripePaymentIntentId: string;
+  createdAt: string;
+  updatedAt?: string;
+};
+
 export type TreasuryConfig = {
   operationalTransferTaxPercent: number;
   webBridgeCommissionPercent: number;
@@ -264,6 +284,8 @@ export type BankState = {
   supportTickets: SupportTicket[];
   paymentLinks: PaymentLink[];
   gdlpSharedNews: GdlpSharedNewsItem[];
+  periodicoNews: GdlpSharedNewsItem[];
+  donationRewards: DonationReward[];
   schemaSeedVersion?: number;
   updatedAt?: string | null;
 };
@@ -493,6 +515,8 @@ export function demoSeed(): BankState {
     supportTickets: [],
     paymentLinks: [],
     gdlpSharedNews: [],
+    periodicoNews: [],
+    donationRewards: [],
     promoSlides: [
       { id: "promo-1", title: "BANCO PLACETA", subtitle: "Tu centro financiero seguro, claro y siempre a mano.", action: "Login", imageKey: "bank", assetPath: "promos/banco-default.png" },
       { id: "promo-2", title: "PLACEZUM", subtitle: "Pagos rápidos con IBAN GDLP-APXX-XXX y control total.", action: "Register", imageKey: "placezum", assetPath: "promos/placezum-default.png" },
@@ -543,6 +567,8 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
     supportTickets: dedupeBy(input.supportTickets || [], "id").sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
     paymentLinks: dedupeBy(input.paymentLinks || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     gdlpSharedNews: dedupeBy(input.gdlpSharedNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
+    periodicoNews: dedupeBy(input.periodicoNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
+    donationRewards: dedupeBy(input.donationRewards || [], "id").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
     treasuryConfig: normalizeTreasuryConfig(input.treasuryConfig || {}),
     promoSlides: dedupeBy(input.promoSlides?.length ? input.promoSlides : seed.promoSlides, "id"),
     updatedAt: input.updatedAt || seed.updatedAt

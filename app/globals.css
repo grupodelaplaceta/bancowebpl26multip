@@ -8926,3 +8926,213 @@ select:focus {
     max-width: 320px;
   }
 }
+
+/* Final mobile pass: compact controls and a stronger public landing. */
+.landing-page .bank-simple-carousel {
+  min-height: clamp(500px, 78vh, 760px);
+  border-radius: 0 0 30px 30px;
+}
+
+.landing-page .bank-simple-carousel .lp4-hero-actions {
+  margin-top: 22px;
+}
+
+.landing-page .bank-simple-carousel .lp4-hero-actions a {
+  min-height: 48px;
+  padding: 0 18px;
+}
+
+.landing-page .bank-simple-carousel .lp4-hero-badges {
+  margin-top: 16px;
+}
+
+.landing-page .bank-simple-carousel .lp4-hero-badges span {
+  color: white;
+  background: rgba(255, 255, 255, .16);
+  border-color: rgba(255, 255, 255, .28);
+  backdrop-filter: blur(10px);
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 10px 8px calc(58px + env(safe-area-inset-bottom));
+  }
+
+  .top-actions {
+    gap: 6px;
+  }
+
+  .icon-button {
+    width: 34px;
+    height: 34px;
+    border-radius: 11px;
+  }
+
+  .account-strip {
+    gap: 7px;
+    padding: 6px;
+  }
+
+  .account-chip {
+    flex-basis: 138px;
+    min-height: 50px;
+    padding: 8px 9px;
+    border-radius: 12px;
+  }
+
+  .account-chip span {
+    margin-bottom: 3px;
+    font-size: .72rem;
+  }
+
+  .account-chip strong {
+    font-size: .88rem;
+  }
+
+  .quick-grid,
+  .service-grid,
+  .contact-grid,
+  .admin-action-grid,
+  .hub-action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .quick-grid button,
+  .service-grid button,
+  .contact-grid button,
+  .admin-action-grid button,
+  .hub-action-grid button,
+  .document-grid button {
+    min-height: 54px;
+    padding: 8px;
+    border-radius: 13px;
+    gap: 6px;
+    font-size: .78rem;
+  }
+
+  .admin-action-grid button,
+  .hub-action-grid button,
+  .document-grid button {
+    grid-template-columns: 26px minmax(0, 1fr);
+    text-align: left;
+  }
+
+  .admin-action-grid strong,
+  .hub-action-grid strong,
+  .document-grid strong {
+    font-size: .84rem;
+  }
+
+  .admin-action-grid small,
+  .hub-action-grid small,
+  .document-grid small {
+    display: none;
+  }
+
+  .primary-button,
+  .secondary-button,
+  .ghost-button,
+  .placetaid-button,
+  .demo-login-button,
+  .login-submit,
+  .action-grid button,
+  .card-tier-grid button,
+  .product-type-grid button,
+  .mini-action {
+    min-height: 42px;
+    padding: 8px 10px;
+    border-radius: 13px;
+    font-size: .86rem;
+  }
+
+  .bottom-nav {
+    bottom: max(6px, env(safe-area-inset-bottom));
+    width: min(100% - 12px, 420px);
+    padding: 5px;
+    border-radius: 18px;
+  }
+
+  .bottom-nav button {
+    min-height: 42px;
+    border-radius: 13px;
+    gap: 2px;
+  }
+
+  .bottom-nav button span {
+    font-size: .58rem;
+    line-height: 1;
+  }
+
+  .landing-page .bank-simple-carousel {
+    min-height: 430px;
+    border-radius: 0 0 24px 24px;
+  }
+
+  .landing-page .bank-simple-carousel > img {
+    object-position: 58% center;
+  }
+
+  .landing-page .bank-simple-carousel .lp4-hero-shade {
+    background:
+      linear-gradient(180deg, rgba(11, 5, 32, .30) 0%, rgba(11, 5, 32, .62) 48%, rgba(11, 5, 32, .88) 100%);
+  }
+
+  .landing-page .bank-simple-carousel .lp4-hero-inner,
+  .landing-page .bank-simple-carousel .lp4-hero-inner.landing-only {
+    padding: 88px 16px 30px;
+    align-items: flex-end;
+  }
+
+  .landing-page .bank-simple-carousel .lp4-hero-copy h1 {
+    font-size: clamp(2.15rem, 12vw, 3.35rem);
+  }
+
+  .landing-page .bank-simple-carousel .lp4-hero-copy p {
+    font-size: .98rem;
+    line-height: 1.35;
+  }
+
+  .landing-page .bank-simple-carousel .lp4-hero-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 16px;
+  }
+
+  .landing-page .bank-simple-carousel .lp4-hero-actions a {
+    min-height: 42px;
+    padding: 0 10px;
+    border-radius: 13px;
+    font-size: .84rem;
+  }
+
+  .landing-page .bank-simple-carousel .lp4-hero-badges {
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .landing-page .bank-simple-carousel .lp4-hero-badges span {
+    min-height: 28px;
+    padding: 6px 8px;
+    font-size: .7rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .quick-grid,
+  .service-grid,
+  .contact-grid,
+  .admin-action-grid,
+  .hub-action-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .bottom-nav button span {
+    display: none;
+  }
+
+  .bottom-nav button {
+    min-height: 38px;
+  }
+}

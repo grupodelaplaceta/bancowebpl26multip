@@ -27,7 +27,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Account,
   AccountType,
@@ -38,7 +38,6 @@ import {
   chargeWeeklyTax,
   chargeWeeklyBusinessUsageFees,
   claimRbu,
-  demoSeed,
   DigitalCard,
   emitMoney,
   finalizeState,
@@ -167,6 +166,7 @@ const landingPages = [
 const PLACETAID_BASE_URL = "https://id.laplaceta.org";
 const PLACETAID_SERVICE_NAME = "BancodeLaPlacetaDev";
 const BANK_STATE_POLL_MS = 5000;
+const MIN_PLACETAID_AGE = 18;
 
 type PlacetaIdUserPayload = {
   dip?: string;
@@ -248,6 +248,17 @@ function citizenshipTierFromAge(age?: number | null) {
   return "CiudadaniaPlena";
 }
 
+function verifiedAdultAgeFromPlacetaId(payload: PlacetaIdUserPayload) {
+  const age = payload.edad;
+  if (typeof age !== "number" || !Number.isFinite(age)) {
+    throw new Error("PlacetaID debe verificar tu edad para acceder al banco");
+  }
+  if (age < MIN_PLACETAID_AGE) {
+    throw new Error("Debes tener 18 años o más para acceder al Banco de La Placeta");
+  }
+  return age;
+}
+
 function applyPlacetaIdAge(base: BankState, dip: string, age?: number | null) {
   if (typeof age !== "number" || !Number.isFinite(age)) return base;
   const user = base.users.find((item) => item.dip === dip);
@@ -274,7 +285,7 @@ async function registerPlacetaIdUser(base: BankState, payload: PlacetaIdUserPayl
   const displayName = payload.nombreCompleto || [payload.nombre, payload.apellidos].filter(Boolean).join(" ") || normalizedDip;
   const accountId = `acct-plid-${crypto.randomUUID()}`;
   const createdAt = new Date().toISOString();
-  const verifiedAge = typeof payload.edad === "number" ? payload.edad : null;
+  const verifiedAge = verifiedAdultAgeFromPlacetaId(payload);
   const user: UserProfile = {
     dip: normalizedDip,
     displayName,
@@ -318,71 +329,6 @@ async function registerPlacetaIdUser(base: BankState, payload: PlacetaIdUserPayl
     id: `card-${crypto.randomUUID()}`,
     accountId,
     alias: "PlacetaID Card",
-    tier: verifiedAge !== null && verifiedAge < 18 ? "Child" : "Standard",
-    frozen: false,
-    cardNumber: String(Math.floor(Math.random() * 1000000)).padStart(6, "0"),
-    pin: "0000",
-    released: true
-  };
-  const accounts = base.accounts.map((item) => item.id === AGLDP_ID ? { ...item, balancePz: Math.max(0, item.balancePz - 500) } : item);
-  return {
-    state: finalizeState({
-      ...base,
-      users: [...base.users, user].sort((left, right) => left.displayName.localeCompare(right.displayName)),
-      accounts: [...accounts, account],
-      transactions: [welcome, ...base.transactions],
-      digitalCards: [...base.digitalCards, card]
-    }),
-    user
-  };
-}
-
-async function createLocalRegisteredUser(base: BankState, normalizedDip: string, pin: string, displayName: string) {
-  if (base.users.some((item) => item.dip === normalizedDip)) throw new Error("Ese DIP ya existe");
-  const accountId = `acct-${crypto.randomUUID()}`;
-  const createdAt = new Date().toISOString();
-  const user: UserProfile = {
-    dip: normalizedDip,
-    displayName,
-    placetaId: placetaIdFromDip(normalizedDip),
-    pinHash: await sha256(pin),
-    primaryAccountId: accountId,
-    consentimiento_rgpd: true,
-    consentimiento_rgpd_at: createdAt,
-    createdAt
-  };
-  const account: Account = {
-    id: accountId,
-    displayName: "Cuenta personal",
-    kind: "CITIZEN",
-    balancePz: 500,
-    placetaId: user.placetaId,
-    role: "Citizen",
-    type: "Current",
-    iban: ibanGenerate(accountId),
-    citizenshipTier: "CiudadaniaPlena",
-    complianceStatus: "Clear"
-  };
-  const admin = base.accounts.find((item) => item.id === AGLDP_ID);
-  const welcome: LedgerTransaction = {
-    id: `welcome-${crypto.randomUUID()}`,
-    kind: "WelcomeBonus",
-    fromAccountId: AGLDP_ID,
-    toAccountId: account.id,
-    amountPz: 500,
-    ivaPz: 0,
-    note: "Bono de bienvenida Banco de La Placeta",
-    status: "Settled",
-    createdAt,
-    netAmount: 500,
-    taxAmount: 0,
-    concept: "WELCOME_BONUS",
-    IBAN_Origin: admin?.iban || ibanGenerate(AGLDP_ID)
-  };
-  const card: DigitalCard = {
-    id: `card-${crypto.randomUUID()}`,
-    accountId,
-    alias: "Placeta Black",
     tier: "Standard",
     frozen: false,
     cardNumber: String(Math.floor(Math.random() * 1000000)).padStart(6, "0"),
@@ -415,6 +361,7 @@ function BancoPlacetaClient() {
   const [sync, setSync] = useState<"loading" | "online" | "offline">("loading");
   const [hydrated, setHydrated] = useState(false);
   const [toast, setToast] = useState("");
+  const [authError, setAuthError] = useState("");
   const [busyMessage, setBusyMessage] = useState("");
   const [placetaIdLoading, setPlacetaIdLoading] = useState(() => hasPlacetaIdCallback());
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("default");
@@ -431,11 +378,8 @@ function BancoPlacetaClient() {
 
   useEffect(() => {
     const cached = localStorage.getItem("placeta-web-state");
-    const savedDip = localStorage.getItem("placeta-web-dip");
-    let cachedState: BankState | null = null;
     if (cached) {
-      cachedState = normalizeState(JSON.parse(cached));
-      setState(cachedState);
+      setState(normalizeState(JSON.parse(cached)));
       setHydrated(true);
     }
     fetch(`/api/bank-state?ts=${Date.now()}`, { cache: "no-store" })
@@ -447,20 +391,10 @@ function BancoPlacetaClient() {
         setHydrated(true);
         localStorage.setItem("placeta-web-state", JSON.stringify(remote));
         setSync("online");
-        if (savedDip) {
-          const user = remote.users.find((item) => item.dip === savedDip) || null;
-          setActiveUser(user);
-          if (user) setSelectedAccountId(user.primaryAccountId);
-        }
       })
       .catch(() => {
         setSync("offline");
         setHydrated(true);
-        if (savedDip) {
-          const user = (cachedState || normalizeState(demoSeed())).users.find((item) => item.dip === savedDip) || null;
-          setActiveUser(user);
-          if (user) setSelectedAccountId(user.primaryAccountId);
-        }
       });
   }, []);
 
@@ -778,8 +712,10 @@ function BancoPlacetaClient() {
     setPlacetaIdLoading(true);
     void (async () => {
       try {
+        setAuthError("");
         const placetaUser = parsePlacetaIdUser(rawUser);
         if (!placetaUser?.dip) throw new Error("PlacetaID no devolvió datos de usuario válidos");
+        const verifiedAge = verifiedAdultAgeFromPlacetaId(placetaUser);
         const returnedState = params.get("state") || "";
         const expectedState = localStorage.getItem("placetaidOauthState") || "";
         if (returnedState && expectedState && returnedState !== expectedState) throw new Error("Validación PlacetaID rechazada por state incorrecto");
@@ -792,13 +728,13 @@ function BancoPlacetaClient() {
         const fresh = sync === "online" ? await fetchFreshState(false).catch(() => stateRef.current) : stateRef.current;
         const existing = fresh.users.find((item) => item.dip === normalizedDip);
         if (existing) {
-          const ageChecked = applyPlacetaIdAge(fresh, normalizedDip, placetaUser.edad);
+          const ageChecked = applyPlacetaIdAge(fresh, normalizedDip, verifiedAge);
           const refreshedUser = ageChecked.users.find((item) => item.dip === normalizedDip) || existing;
           if (ageChecked !== fresh) await persist(ageChecked, "Edad verificada con PlacetaID", fresh.updatedAt || null);
           setActiveUser(refreshedUser);
           setSelectedAccountId(refreshedUser.primaryAccountId);
           localStorage.setItem("placeta-web-dip", refreshedUser.dip);
-          setToast(`Sesión iniciada con PlacetaID${typeof placetaUser.edad === "number" ? ` · edad ${placetaUser.edad}` : ""}`);
+          setToast(`Sesión iniciada con PlacetaID · edad ${verifiedAge}`);
         } else {
           const registered = await registerPlacetaIdUser(fresh, placetaUser);
           await persist(registered.state, "Cuenta creada con PlacetaID", fresh.updatedAt || null);
@@ -816,7 +752,21 @@ function BancoPlacetaClient() {
         const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params}` : ""}${window.location.hash}`;
         window.history.replaceState({}, "", cleanUrl);
       } catch (error) {
-        setToast(error instanceof Error ? error.message : "No se pudo iniciar sesión con PlacetaID");
+        const message = error instanceof Error ? error.message : "No se pudo iniciar sesión con PlacetaID";
+        localStorage.removeItem("placetaidToken");
+        localStorage.removeItem("placetaidUser");
+        localStorage.removeItem("placeta-web-dip");
+        setActiveUser(null);
+        setAuthError(message);
+        setToast(message);
+        params.delete("token");
+        params.delete("placetaid_token");
+        params.delete("user");
+        params.delete("platform");
+        params.delete("expires_in");
+        params.delete("state");
+        const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params}` : ""}${window.location.hash}`;
+        window.history.replaceState({}, "", cleanUrl);
       } finally {
         setPlacetaIdLoading(false);
       }
@@ -830,23 +780,9 @@ function BancoPlacetaClient() {
   if (!activeUser) {
     return (
       <LoginScreen
-        state={state}
         sync={sync}
         showLogin={pathname?.startsWith("/login") || false}
-        onLogin={(user) => {
-          setActiveUser(user);
-          setSelectedAccountId(user.primaryAccountId);
-          localStorage.setItem("placeta-web-dip", user.dip);
-        }}
-        onRegister={async (normalizedDip, pin, displayName) => {
-          const fresh = await fetchFreshState(false).catch(() => stateRef.current);
-          const registered = await createLocalRegisteredUser(fresh, normalizedDip, pin, displayName);
-          const saved = await persist(registered.state, "DIP registrado en Banco de La Placeta", fresh.updatedAt || null);
-          if (!saved) throw new Error("No se pudo completar el alta. Reintenta con los datos actualizados.");
-          setActiveUser(registered.user);
-          setSelectedAccountId(registered.user.primaryAccountId);
-          localStorage.setItem("placeta-web-dip", registered.user.dip);
-        }}
+        authError={authError}
       />
     );
   }
@@ -871,6 +807,8 @@ function BancoPlacetaClient() {
             onClick={() => {
               setActiveUser(null);
               localStorage.removeItem("placeta-web-dip");
+              localStorage.removeItem("placetaidToken");
+              localStorage.removeItem("placetaidUser");
             }}
           >
             <LogOut size={19} />
@@ -913,6 +851,8 @@ function BancoPlacetaClient() {
             onClick={() => {
               setActiveUser(null);
               localStorage.removeItem("placeta-web-dip");
+              localStorage.removeItem("placetaidToken");
+              localStorage.removeItem("placetaidUser");
             }}
           >
             <LogOut size={19} />
@@ -1079,15 +1019,7 @@ function PlacetaIdLoadingScreen({ sync }: { sync: "loading" | "online" | "offlin
   );
 }
 
-function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: BankState; sync: string; showLogin: boolean; onLogin: (user: UserProfile) => void; onRegister: (normalizedDip: string, pin: string, displayName: string) => Promise<void> }) {
-  const [mode, setMode] = useState<"login" | "register">("login");
-  const [dip, setDip] = useState("DIP-A001");
-  const [pin, setPin] = useState("1234");
-  const [name, setName] = useState("");
-  const [consent, setConsent] = useState(false);
-  const [showPin, setShowPin] = useState(false);
-  const [error, setError] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: boolean; authError: string }) {
   const [slideIndex, setSlideIndex] = useState(0);
   const activeSlide = landingSlides[slideIndex] ?? landingSlides[0];
 
@@ -1110,104 +1042,26 @@ function LoginScreen({ state, sync, showLogin, onLogin, onRegister }: { state: B
     window.location.href = url.toString();
   }
 
-  async function submit(event: FormEvent) {
-    event.preventDefault();
-    setError("");
-    const compactDip = dip.trim().toUpperCase();
-    const normalizedDip = compactDip.startsWith("DIP-") ? compactDip : `DIP-${compactDip}`;
-    if (mode === "login") {
-      const user = state.users.find((item) => item.dip === normalizedDip);
-      if (!user) return setError("DIP no registrado");
-      if (user.pinHash !== await sha256(pin)) return setError("PIN incorrecto");
-      return onLogin(user);
-    }
-    if (!/^DIP-[A-Z0-9]{4}$/.test(normalizedDip)) return setError("Formato DIP inválido. Usa DIP-XXXX");
-    if (pin.length < 4 || name.trim().length < 2) return setError("Completa nombre y PIN de 4 dígitos");
-    if (!consent) return setError("Debes aceptar los términos y la política de privacidad para registrarte");
-    setSubmitting(true);
-    try {
-      await onRegister(normalizedDip, pin, name.trim());
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "No se pudo completar el alta");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  function switchMode(nextMode: "login" | "register") {
-    setMode(nextMode);
-    setError("");
-    if (nextMode === "login") {
-      setDip("DIP-A001");
-      setPin("1234");
-      setName("");
-      setConsent(false);
-    } else {
-      setDip("DIP-");
-      setPin("");
-    }
-  }
-
-  function fillDemo() {
-    setMode("login");
-    setDip("DIP-A001");
-    setPin("1234");
-    setName("");
-    setConsent(false);
-    setError("");
-  }
-
   const loginForm = (
-    <form id="acceso" className="lp4-login" onSubmit={submit}>
+    <div id="acceso" className="lp4-login">
       <div className="lp4-login-head">
         <span className={`login-status ${sync}`}>{sync === "online" ? "Servicio conectado" : sync === "offline" ? "Modo sin conexión" : "Sincronizando datos"}</span>
-        <h2>{mode === "login" ? "Entrar al banco" : "Crear acceso DIP"}</h2>
-        <p>{mode === "login" ? "Accede a la plataforma bancaria principal de GDLP." : "Crea un acceso local vinculado a tus cuentas."}</p>
+        <h2>Entrar con PlacetaID</h2>
+        <p>El acceso al banco requiere identidad GDLP verificada y mayoría de edad confirmada.</p>
       </div>
       <button type="button" className="placetaid-button" onClick={startPlacetaId}>
         <ShieldCheck size={19} />
         <span>
           <strong>Continuar con PlacetaID</strong>
-          <small>Identidad GDLP verificada</small>
+          <small>Solo mayores de {MIN_PLACETAID_AGE} años</small>
         </span>
       </button>
       <div className="login-assurance">
         <span><Lock size={15} /> Sesión protegida</span>
-        <span><WalletCards size={15} /> Cuentas vinculadas</span>
+        <span><WalletCards size={15} /> Edad verificada</span>
       </div>
-      <div className="login-divider"><span>Acceso local</span></div>
-      <div className="segmented">
-        <button type="button" className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")}>Entrar</button>
-        <button type="button" className={mode === "register" ? "active" : ""} onClick={() => switchMode("register")}>Registro</button>
-      </div>
-      {mode === "register" && <Field label="Nombre" value={name} onChange={setName} placeholder="Tu nombre" />}
-      <Field label="DIP oficial" value={dip} onChange={setDip} placeholder="DIP-XXXX" />
-      <label className="field pin-field">
-        <span>PIN</span>
-        <span className="pin-input-wrap">
-          <input value={pin} onChange={(event) => setPin(event.target.value)} placeholder="1234" type={showPin ? "text" : "password"} inputMode="numeric" autoComplete={mode === "login" ? "current-password" : "new-password"} />
-          <button type="button" aria-label={showPin ? "Ocultar PIN" : "Mostrar PIN"} onClick={() => setShowPin((value) => !value)}>
-            {showPin ? <EyeOff size={18} /> : <Eye size={18} />}
-          </button>
-        </span>
-      </label>
-      {mode === "register" && (
-        <label className="legal-consent">
-          <input type="checkbox" checked={consent} onChange={(event) => setConsent(event.target.checked)} />
-          <span>
-            He leído y acepto los <a href="/terminos-y-condiciones" target="_blank" rel="noreferrer">Términos y Condiciones</a> del Banco de La Placeta y consiento el tratamiento de mis datos de conexión según la <a href="/politica-de-privacidad" target="_blank" rel="noreferrer">Política de Privacidad</a>.
-          </span>
-        </label>
-      )}
-      {error && <p className="form-error">{error}</p>}
-      <button className="primary-button login-submit" type="submit" disabled={submitting}>{submitting ? "Validando..." : mode === "login" ? "Abrir banco" : "Crear DIP"}</button>
-      {mode === "login" && (
-        <button type="button" className="demo-login-button" onClick={fillDemo}>
-          <Lock size={16} />
-          Demo DIP-A001
-        </button>
-      )}
-    </form>
+      {authError && <p className="form-error">{authError}</p>}
+    </div>
   );
 
   if (showLogin) {

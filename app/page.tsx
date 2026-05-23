@@ -65,6 +65,8 @@ import {
   sha256,
   startTimedInvestment,
   PaymentLink,
+  PayrollContract,
+  PayrollPeriod,
   SupportTicket,
   TGLP_ID,
   toggleCard,
@@ -210,7 +212,7 @@ function bankStateFingerprint(state: BankState) {
 }
 
 function isAdminUser(user: UserProfile | null) {
-  return user?.dip === "DIP-A001";
+  return user?.dip === "12345678A";
 }
 
 function accountBelongsTo(user: UserProfile, account: Account | undefined | null) {
@@ -237,7 +239,7 @@ function requireOwnedCard(state: BankState, user: UserProfile, cardId: string) {
 }
 
 function placetaIdFromDip(dip: string) {
-  const compact = dip.toUpperCase().replace(/^DIP-/, "").replace(/[^A-Z0-9-]/g, "");
+  const compact = dip.toUpperCase().replace(/[^A-Z0-9-]/g, "");
   return compact.slice(0, 18) || `PLID-${Date.now().toString().slice(-6)}`;
 }
 
@@ -831,7 +833,7 @@ function BancoPlacetaClient() {
           </span>
           <div>
             <p className="eyebrow">Banco de La Placeta</p>
-            <h1>Banco Placeta</h1>
+            <h1>Banco de La Placeta</h1>
             <span className="top-user">{activeUser.displayName}</span>
           </div>
         </div>
@@ -1765,6 +1767,23 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
   );
 }
 
+function payrollPeriodTotal(period: PayrollPeriod) {
+  return Math.max(0, period.netSalaryPz);
+}
+
+function payrollTenure(startDate: string) {
+  const start = new Date(startDate);
+  if (Number.isNaN(start.getTime())) return "Sin fecha";
+  const now = new Date();
+  let months = (now.getFullYear() - start.getFullYear()) * 12 + now.getMonth() - start.getMonth();
+  if (now.getDate() < start.getDate()) months--;
+  if (months <= 0) return "Menos de 1 mes";
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  if (!years) return `${months} meses`;
+  return `${years} año${years === 1 ? "" : "s"}${rest ? ` y ${rest} meses` : ""}`;
+}
+
 function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankState; user: UserProfile; onPersist: (state: BankState, message: string) => void; onCreateAccount: (type: AccountType, displayName: string, parentAccountId?: string | null, cardTier?: DigitalCard["tier"]) => void }) {
   const userAccounts = state.accounts.filter((account) => account.placetaId === user.placetaId || account.id === user.primaryAccountId);
   const businessAccounts = userAccounts.filter((account) => account.type === "Business");
@@ -1779,6 +1798,16 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
   const [businessId, setBusinessId] = useState(businessAccounts[0]?.id || "");
   const [payrollTargetId, setPayrollTargetId] = useState(payrollTargets[0]?.id || "");
   const [payrollGross, setPayrollGross] = useState(state.treasuryConfig.minimumWeeklySalaryPz);
+  const [payrollRole, setPayrollRole] = useState("Empleado");
+  const [payrollStartDate, setPayrollStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [payrollFrequency, setPayrollFrequency] = useState<PayrollContract["frequency"]>("Weekly");
+  const [payrollPrevious, setPayrollPrevious] = useState(0);
+  const [payrollBonus, setPayrollBonus] = useState(0);
+  const [payrollDeductions, setPayrollDeductions] = useState(0);
+  const [payrollPeriodLabel, setPayrollPeriodLabel] = useState(new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(new Date()));
+  const [payrollPeriodStatus, setPayrollPeriodStatus] = useState<PayrollPeriod["status"]>("Paid");
+  const [payrollNotes, setPayrollNotes] = useState("");
+  const [payrollSearch, setPayrollSearch] = useState("");
   const [ticketSubject, setTicketSubject] = useState("");
   const [ticketMessage, setTicketMessage] = useState("");
   const [ticketAttachments, setTicketAttachments] = useState<string[]>([]);
@@ -1790,10 +1819,18 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
   const [hubModal, setHubModal] = useState<"payroll" | "support" | "accounts" | "documents" | "activity" | "developers" | "links" | null>(null);
   const business = businessAccounts.find((account) => account.id === businessId) || businessAccounts[0];
   const payrollTarget = payrollTargets.find((account) => account.id === payrollTargetId) || payrollTargets[0];
+  const payrollContracts = (state.payrollContracts || []).filter((contract) => businessAccounts.some((account) => account.id === contract.companyAccountId));
+  const payrollPeriods = state.payrollPeriods || [];
+  const visiblePayrollContracts = payrollContracts.filter((contract) => {
+    const text = `${contract.employeeName} ${contract.employeeDip} ${contract.roleTitle} ${contract.status}`.toLowerCase();
+    return !payrollSearch.trim() || text.includes(payrollSearch.trim().toLowerCase());
+  });
+  const selectedContract = payrollContracts.find((contract) => contract.companyAccountId === business?.id && contract.employeeAccountId === payrollTarget?.id && contract.status !== "Ended");
   const workerTax = Math.ceil((payrollGross * state.treasuryConfig.payrollWorkerTaxPercent) / 100);
   const employerTax = Math.ceil((payrollGross * state.treasuryConfig.payrollEmployerTaxPercent) / 100);
   const netSalary = Math.max(0, payrollGross - workerTax);
   const payrollCost = payrollGross + employerTax;
+  const payrollPreviewTotal = Math.max(0, payrollGross + payrollPrevious + payrollBonus - payrollDeductions);
   const attachments = [
     ...userAccounts.slice(0, 4).map((account) => ({ id: `account:${account.id}`, label: `Cuenta · ${account.displayName}` })),
     ...cards.slice(0, 3).map((card) => ({ id: `card:${card.id}`, label: `Tarjeta · ${card.alias}` })),
@@ -1826,10 +1863,68 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
   function submitPayroll() {
     if (!business || !payrollTarget) return;
     if (!accountBelongsTo(user, business) || !accountBelongsTo(user, payrollTarget)) return;
-    onPersist(
-      transferPayrollOrLoan(state, business.id, payrollTarget.id, payrollGross, `Nómina empresa ${business.displayName} -> ${payrollTarget.displayName}`),
-      `Nómina registrada para ${payrollTarget.displayName}`
+    const now = new Date().toISOString();
+    const contract: PayrollContract = selectedContract ? {
+      ...selectedContract,
+      roleTitle: payrollRole.trim() || selectedContract.roleTitle,
+      startDate: payrollStartDate || selectedContract.startDate,
+      frequency: payrollFrequency,
+      grossSalaryPz: payrollGross,
+      status: "Active",
+      salaryHistory: selectedContract.grossSalaryPz === payrollGross ? selectedContract.salaryHistory : [
+        ...selectedContract.salaryHistory,
+        { changedAt: now, previousGrossSalaryPz: selectedContract.grossSalaryPz, newGrossSalaryPz: payrollGross, reason: "Cambio de sueldo desde web bancaria" }
+      ],
+      updatedAt: now
+    } : {
+      id: `payroll-contract-${Date.now()}`,
+      companyAccountId: business.id,
+      employeeAccountId: payrollTarget.id,
+      employeeDip: user.dip,
+      employeeName: payrollTarget.displayName,
+      roleTitle: payrollRole.trim() || "Empleado",
+      startDate: payrollStartDate || now.slice(0, 10),
+      frequency: payrollFrequency,
+      grossSalaryPz: payrollGross,
+      status: "Active",
+      endDate: null,
+      salaryHistory: [{ changedAt: now, previousGrossSalaryPz: 0, newGrossSalaryPz: payrollGross, reason: "Alta inicial desde web bancaria" }],
+      createdAt: now,
+      updatedAt: now
+    };
+    const transferred = transferPayrollOrLoan(state, business.id, payrollTarget.id, payrollPreviewTotal, `Nómina ${payrollPeriodLabel} · ${business.displayName} -> ${payrollTarget.displayName}`);
+    const payrollTransaction = transferred.transactions.find((transaction) =>
+      transaction.kind === "PayrollLoan" &&
+      transaction.fromAccountId === business.id &&
+      transaction.toAccountId === payrollTarget.id
     );
+    const period: PayrollPeriod = {
+      id: `payroll-period-${Date.now()}`,
+      contractId: contract.id,
+      companyAccountId: business.id,
+      employeeAccountId: payrollTarget.id,
+      employeeDip: user.dip,
+      label: payrollPeriodLabel.trim() || new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(new Date()),
+      periodStart: now.slice(0, 10),
+      periodEnd: now.slice(0, 10),
+      grossSalaryPz: payrollPreviewTotal,
+      workerTaxPz: Math.ceil((payrollPreviewTotal * state.treasuryConfig.payrollWorkerTaxPercent) / 100),
+      employerTaxPz: Math.ceil((payrollPreviewTotal * state.treasuryConfig.payrollEmployerTaxPercent) / 100),
+      netSalaryPz: Math.max(0, payrollPreviewTotal - Math.ceil((payrollPreviewTotal * state.treasuryConfig.payrollWorkerTaxPercent) / 100)),
+      status: payrollPeriodStatus,
+      paidAt: payrollPeriodStatus === "Paid" ? now : null,
+      transactionId: payrollTransaction?.id || null,
+      createdAt: now
+    };
+    onPersist({
+      ...transferred,
+      payrollContracts: [contract, ...transferred.payrollContracts.filter((item) => item.id !== contract.id)],
+      payrollPeriods: [period, ...transferred.payrollPeriods]
+    }, `Nómina registrada para ${payrollTarget.displayName}`);
+    setPayrollPrevious(0);
+    setPayrollBonus(0);
+    setPayrollDeductions(0);
+    setPayrollNotes("");
     setHubModal(null);
   }
 
@@ -1959,13 +2054,90 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
               </select>
             </div>
             <Field label={`Nómina bruta semanal · SMI ${formatPz(state.treasuryConfig.minimumWeeklySalaryPz)} Pz`} value={String(payrollGross)} onChange={(value) => setPayrollGross(Number(value) || 0)} type="number" />
+            <div className="field">
+              <span>Periodo de pago</span>
+              <select value={payrollFrequency} onChange={(event) => setPayrollFrequency(event.target.value as PayrollContract["frequency"])}>
+                <option value="Weekly">Semanal</option>
+                <option value="Biweekly">Quincenal</option>
+                <option value="Monthly">Mensual</option>
+              </select>
+            </div>
+            <div className="payroll-form-grid">
+              <Field label="Puesto / contrato" value={payrollRole} onChange={setPayrollRole} />
+              <Field label="Inicio contrato" value={payrollStartDate} onChange={setPayrollStartDate} type="date" />
+              <Field label="Periodo liquidado" value={payrollPeriodLabel} onChange={setPayrollPeriodLabel} />
+              <div className="field">
+                <span>Estado periodo</span>
+                <select value={payrollPeriodStatus} onChange={(event) => setPayrollPeriodStatus(event.target.value as PayrollPeriod["status"])}>
+                  <option value="Pending">Pendiente</option>
+                  <option value="Paid">Pagado</option>
+                  <option value="Cancelled">Anulado</option>
+                </select>
+              </div>
+              <Field label="Abono periodos anteriores" value={String(payrollPrevious)} onChange={(value) => setPayrollPrevious(Number(value) || 0)} type="number" />
+              <Field label="Complementos" value={String(payrollBonus)} onChange={(value) => setPayrollBonus(Number(value) || 0)} type="number" />
+              <Field label="Retenciones / ajustes" value={String(payrollDeductions)} onChange={(value) => setPayrollDeductions(Number(value) || 0)} type="number" />
+              <Field label="Notas" value={payrollNotes} onChange={setPayrollNotes} />
+            </div>
             <div className="payroll-summary">
               <div><span>Trabajador {state.treasuryConfig.payrollWorkerTaxPercent}%</span><strong>-{formatPz(workerTax)} Pz</strong></div>
               <div><span>Empresa {state.treasuryConfig.payrollEmployerTaxPercent}%</span><strong>+{formatPz(employerTax)} Pz</strong></div>
               <div><span>Neto trabajador</span><strong>{formatPz(netSalary)} Pz</strong></div>
               <div><span>Coste empresa</span><strong>{formatPz(payrollCost)} Pz</strong></div>
+              <div><span>Total con ajustes</span><strong>{formatPz(payrollPreviewTotal)} Pz</strong></div>
+              <div><span>Contrato</span><strong>{selectedContract ? `${selectedContract.salaryHistory.length} cambios` : "Nuevo"}</strong></div>
             </div>
             <button className="primary-button" disabled={!business || !payrollTarget || payrollGross < state.treasuryConfig.minimumWeeklySalaryPz} onClick={submitPayroll}>Registrar nómina</button>
+            <div className="payroll-register">
+              <Field label="Buscar contratos" value={payrollSearch} onChange={setPayrollSearch} placeholder="DIP, trabajador, puesto o estado" />
+              {visiblePayrollContracts.length ? visiblePayrollContracts.map((contract) => {
+                const company = state.accounts.find((account) => account.id === contract.companyAccountId);
+                const worker = state.accounts.find((account) => account.id === contract.employeeAccountId);
+                const periods = payrollPeriods.filter((period) => period.contractId === contract.id);
+                const lastPeriod = periods[0];
+                const payrollTxn = lastPeriod?.transactionId ? state.transactions.find((transaction) => transaction.id === lastPeriod.transactionId) : undefined;
+                return (
+                  <article className="payroll-contract-card" key={contract.id}>
+                    <header>
+                      <div>
+                        <strong>{contract.employeeName}</strong>
+                        <span>{contract.employeeDip} · {contract.roleTitle} · {contract.status}</span>
+                      </div>
+                      <b>{formatPz(contract.grossSalaryPz)} Pz</b>
+                    </header>
+                    <div className="payroll-chip-row">
+                      <span>{company?.displayName || "Empresa"}</span>
+                      <span>{worker?.iban || "Sin IBAN"}</span>
+                      <span>Antigüedad {payrollTenure(contract.startDate)}</span>
+                      <span>{contract.salaryHistory.length} cambios sueldo</span>
+                    </div>
+                    {periods.length ? (
+                      <div className="payroll-period-list">
+                        {periods.slice(0, 3).map((period) => (
+                          <div key={period.id}>
+                            <span>{period.label} · {period.status}</span>
+                            <strong>{formatPz(payrollPeriodTotal(period))} Pz</strong>
+                          </div>
+                        ))}
+                      </div>
+                    ) : <p className="muted">Sin periodos liquidados todavía.</p>}
+                    <div className="payroll-card-actions">
+                      <button className="mini-action" onClick={() => {
+                        setBusinessId(contract.companyAccountId);
+                        setPayrollTargetId(contract.employeeAccountId);
+                        setPayrollRole(contract.roleTitle);
+                        setPayrollStartDate(contract.startDate);
+                        setPayrollFrequency(contract.frequency);
+                        setPayrollGross(contract.grossSalaryPz);
+                      }}>Usar contrato</button>
+                      <button className="mini-action" disabled={!payrollTxn || !worker} onClick={() => {
+                        if (payrollTxn && worker) generateBankPdf(worker, { id: `payroll-${lastPeriod?.id || payrollTxn.id}`, title: `Nómina ${lastPeriod?.label || contract.employeeName}`, kind: "LaborContract" }, [payrollTxn]);
+                      }}>PDF nómina</button>
+                    </div>
+                  </article>
+                );
+              }) : <Empty title="Sin contratos" text="Registra la primera nómina para crear el contrato laboral." />}
+            </div>
           </>
         ) : (
           <Empty title="Sin empresa disponible" text="Selecciona o crea una cuenta Empresa para registrar nóminas." />

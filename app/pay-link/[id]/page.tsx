@@ -10,7 +10,7 @@ type SourceKind = "iban" | "card" | "unknown";
 function detectSource(value: string): SourceKind {
   const clean = value.trim().toUpperCase();
   const digits = clean.replace(/\D/g, "");
-  if (clean.startsWith("GDLP") || clean.startsWith("DIP-") || clean.includes("-")) return "iban";
+  if (clean.startsWith("GDLP") || /^\d{8}[A-Z]$/.test(clean.replace(/[\s-]+/g, "")) || clean.includes("-")) return "iban";
   if (digits.length >= 4) return "card";
   return "unknown";
 }

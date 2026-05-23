@@ -19,8 +19,9 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     const cleanCredential = paymentCredential.replace(/\s+/g, "");
     const normalizedCredential = cleanCredential.toUpperCase();
+    const normalizedDip = normalizedCredential.replace(/-/g, "");
     const cardDigits = cleanCredential.replace(/\D/g, "");
-    const looksLikeAccountCredential = normalizedCredential.startsWith("GDLP") || normalizedCredential.startsWith("DIP") || normalizedCredential.includes("-");
+    const looksLikeAccountCredential = normalizedCredential.startsWith("GDLP") || /^\d{8}[A-Z]$/.test(normalizedDip) || normalizedCredential.includes("-");
     const card = !looksLikeAccountCredential && cardDigits.length >= 4
       ? remote.digitalCards.find((item) => item.cardNumber === cardDigits || item.cardNumber.endsWith(cardDigits))
       : undefined;
@@ -38,8 +39,10 @@ export async function POST(request: Request, { params }: { params: { id: string 
       if (!looksLikeAccountCredential && cardDigits.length >= 4) {
         return NextResponse.json({ error: "No encontramos una tarjeta activa con esos dígitos. Revisa el número o usa IBAN GDLP." }, { status: 404, headers: corsHeaders });
       }
+      const dipUser = remote.users.find((user) => user.dip.toUpperCase().replace(/[\s-]+/g, "") === normalizedDip);
       const account = remote.accounts.find((item) =>
         item.id === paymentCredential ||
+        item.id === dipUser?.primaryAccountId ||
         normalizeIban(item.iban) === normalizeIban(paymentCredential) ||
         item.placetaId?.toUpperCase() === normalizedCredential
       );

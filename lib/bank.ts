@@ -200,6 +200,52 @@ export type PaymentLink = {
   transactionId?: string | null;
 };
 
+export type PayrollContractStatus = "Draft" | "Active" | "Paused" | "Ended";
+export type PayrollPeriodStatus = "Pending" | "Paid" | "Cancelled";
+
+export type PayrollSalaryChange = {
+  changedAt: string;
+  previousGrossSalaryPz: number;
+  newGrossSalaryPz: number;
+  reason: string;
+};
+
+export type PayrollContract = {
+  id: string;
+  companyAccountId: string;
+  employeeAccountId: string;
+  employeeDip: string;
+  employeeName: string;
+  roleTitle: string;
+  grossSalaryPz: number;
+  frequency: "Weekly" | "Biweekly" | "Monthly";
+  status: PayrollContractStatus;
+  startDate: string;
+  endDate?: string | null;
+  salaryHistory: PayrollSalaryChange[];
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type PayrollPeriod = {
+  id: string;
+  contractId: string;
+  companyAccountId: string;
+  employeeAccountId: string;
+  employeeDip: string;
+  label: string;
+  periodStart: string;
+  periodEnd: string;
+  grossSalaryPz: number;
+  workerTaxPz: number;
+  employerTaxPz: number;
+  netSalaryPz: number;
+  status: PayrollPeriodStatus;
+  paidAt?: string | null;
+  transactionId?: string | null;
+  createdAt: string;
+};
+
 export type GdlpSharedNewsItem = {
   slug: string;
   title: string;
@@ -283,6 +329,8 @@ export type BankState = {
   complianceFlags: ComplianceFlag[];
   supportTickets: SupportTicket[];
   paymentLinks: PaymentLink[];
+  payrollContracts: PayrollContract[];
+  payrollPeriods: PayrollPeriod[];
   gdlpSharedNews: GdlpSharedNewsItem[];
   periodicoNews: GdlpSharedNewsItem[];
   donationRewards: DonationReward[];
@@ -491,12 +539,12 @@ export function demoSeed(): BankState {
   ];
   return {
     users: [
-      { dip: "DIP-A001", displayName: "Alba Placeta", placetaId: "ALBA-001", pinHash: "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4", primaryAccountId: "u-alba", verifiedAge: 28, createdAt: now },
-      { dip: "DIP-D014", displayName: "Darío Vega", placetaId: "DARIO-014", pinHash: "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4", primaryAccountId: "u-dario", verifiedAge: 34, createdAt: now }
+      { dip: "12345678A", displayName: "Alba Placeta", placetaId: "ALBA-001", pinHash: "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4", primaryAccountId: "u-alba", verifiedAge: 28, createdAt: now },
+      { dip: "87654321D", displayName: "Darío Vega", placetaId: "DARIO-014", pinHash: "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4", primaryAccountId: "u-dario", verifiedAge: 34, createdAt: now }
     ],
     accounts,
     transactions: [
-      txn("txn-demo-1", "WelcomeBonus", AGLDP_ID, "u-alba", 500, 0, "Bono de bienvenida Banco Placeta", "WELCOME_BONUS"),
+      txn("txn-demo-1", "WelcomeBonus", AGLDP_ID, "u-alba", 500, 0, "Bono de bienvenida Banco de La Placeta", "WELCOME_BONUS"),
       txn("txn-demo-2", "Consumption", "u-alba", "biz-market-dario", 36, 5, "Café y reparación · CONSUMO GDLP", "CONSUMO"),
       txn("txn-demo-3", "Rbu", FOUNDATION_RBU_ID, "u-alba", 150, 0, "Renta Básica Universal", "RBU"),
       txn("txn-demo-4", "InvestmentBuy", "u-alba-invest", "biz-market-cristal", 300, 21, "Inversión 60s iniciada: Cristal Escaso", "InvestmentBuy")
@@ -514,11 +562,29 @@ export function demoSeed(): BankState {
     ],
     supportTickets: [],
     paymentLinks: [],
+    payrollContracts: [
+      {
+        id: "payroll-contract-demo",
+        companyAccountId: "u-alba-biz",
+        employeeAccountId: "u-alba",
+        employeeDip: "12345678A",
+        employeeName: "Alba Placeta",
+        roleTitle: "Administración de empresa",
+        startDate: "2026-01-01",
+        frequency: "Weekly",
+        grossSalaryPz: 200,
+        status: "Active",
+        salaryHistory: [{ changedAt: now, previousGrossSalaryPz: 0, newGrossSalaryPz: 200, reason: "Alta inicial" }],
+        createdAt: now,
+        updatedAt: now
+      }
+    ],
+    payrollPeriods: [],
     gdlpSharedNews: [],
     periodicoNews: [],
     donationRewards: [],
     promoSlides: [
-      { id: "promo-1", title: "BANCO PLACETA", subtitle: "Tu centro financiero seguro, claro y siempre a mano.", action: "Login", imageKey: "bank", assetPath: "promos/banco-default.png" },
+      { id: "promo-1", title: "BANCO DE LA PLACETA", subtitle: "Tu centro financiero seguro, claro y siempre a mano.", action: "Login", imageKey: "bank", assetPath: "promos/banco-default.png" },
       { id: "promo-2", title: "PLACEZUM", subtitle: "Pagos rápidos con IBAN GDLP-APXX-XXX y control total.", action: "Register", imageKey: "placezum", assetPath: "promos/placezum-default.png" },
       { id: "promo-3", title: "MERCADO GDLP", subtitle: "Invierte, revisa movimientos y descarga documentos fiscales.", action: "Demo", imageKey: "market", assetPath: "promos/mercado-default.png" }
     ],
@@ -566,6 +632,8 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
     complianceFlags: dedupeBy(input.complianceFlags || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     supportTickets: dedupeBy(input.supportTickets || [], "id").sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
     paymentLinks: dedupeBy(input.paymentLinks || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    payrollContracts: dedupeBy(input.payrollContracts?.length ? input.payrollContracts : seed.payrollContracts, "id").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
+    payrollPeriods: dedupeBy(input.payrollPeriods || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     gdlpSharedNews: dedupeBy(input.gdlpSharedNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
     periodicoNews: dedupeBy(input.periodicoNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
     donationRewards: dedupeBy(input.donationRewards || [], "id").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),

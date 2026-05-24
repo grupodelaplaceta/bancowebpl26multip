@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { BankState, captureDeveloperPayment, createDeveloperPayment, DeveloperPayment, normalizeState } from "../../../lib/bank";
+import { BankState, captureDeveloperPayment, createDeveloperPayment, DeveloperPayment, isOfficialIban, normalizeState } from "../../../lib/bank";
 import { requiredProductionSecret } from "../../../lib/api-security";
 import { BANK_API_URL } from "../../../lib/site";
 
@@ -92,7 +92,7 @@ export async function writeRemoteState(state: BankState) {
 
 export function buildPayment(input: { merchantIban?: string; amountPz?: number; concept?: string }) {
   const merchantIban = String(input.merchantIban || "").trim().toUpperCase();
-  if (!merchantIban.startsWith("GDLP")) throw new Error("merchantIban GDLP requerido");
+  if (!isOfficialIban(merchantIban)) throw new Error("merchantIban GDLP oficial requerido");
   if (!Number.isFinite(input.amountPz) || Number(input.amountPz) <= 0) throw new Error("amountPz inválido");
   return createDeveloperPayment(merchantIban, Number(input.amountPz), input.concept || "Pago externo GDLP");
 }

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { BANK_API_URL } from "../../../lib/site";
+import { BANK_SITE_URL } from "../../../lib/site";
 
 const infoPages = [
   {
@@ -80,7 +80,7 @@ const infoPages = [
       { title: "Capturar", text: "La captura mueve el total desde la cuenta pagadora, abona neto al comercio y separa IVA hacia TGLP." },
       { title: "Tasa semanal", text: "Las empresas liquidan una tasa semanal ajustable por uso de API de pago y enlaces de cobro. Los enlaces de cobro no sustituyen nóminas." }
     ],
-    bullets: [`POST ${BANK_API_URL}/api/developer-payments`, `GET ${BANK_API_URL}/api/developer-payments/{id}`, `POST ${BANK_API_URL}/api/developer-payments/{id}/capture`, "IVA 12% integrado", "Tasa semanal configurable"]
+    bullets: [`POST ${BANK_SITE_URL}/api/developer-payments`, `GET ${BANK_SITE_URL}/api/developer-payments/{id}`, `POST ${BANK_SITE_URL}/api/developer-payments/{id}/capture`, "IVA 12% integrado", "Tasa semanal configurable"]
   },
   {
     slug: "seguridad",

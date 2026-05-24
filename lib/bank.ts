@@ -6,6 +6,7 @@ export const VAT_PERCENT = 12;
 export const MINIMUM_INCOME_SHIELD_PZ = 5;
 export const RBU_COOLDOWN_DAYS = 7;
 export const OFFICIAL_IBAN_PREFIX = "GDLP";
+export const MAX_VIRTUAL_CARDS_PER_ACCOUNT = 3;
 
 export type AccountKind = "TGLP" | "AGLDP" | "CITIZEN";
 export type AccountType = "Current" | "Savings" | "Child" | "Business" | "Investment";
@@ -430,17 +431,33 @@ export function accountTypeLabel(type: AccountType) {
 export function ibanGenerate(seed: string) {
   const normalized = seed.toUpperCase().replace(/[^A-Z0-9]/g, "") || "0000";
   let body = 17;
-  for (const char of normalized) body = (body * 31 + char.charCodeAt(0)) % 1000;
-  const control = ((body * 97) + 13) % 100;
-  return `${OFFICIAL_IBAN_PREFIX}-AP${String(control).padStart(2, "0")}-${String(body).padStart(3, "0")}`;
+  for (const char of normalized) body = (body * 31 + char.charCodeAt(0)) % 10000;
+  const control = ((body * 97) + 13) % 10000;
+  return `${OFFICIAL_IBAN_PREFIX}-${String(control).padStart(4, "0")}-${String(body).padStart(4, "0")}`;
+}
+
+function isWebIban(iban: string) {
+  const match = normalizeIban(iban).match(/^GDLP-(\d{4})-(\d{4})$/);
+  if (!match) return false;
+  return Number(match[1]) === ((Number(match[2]) * 97) + 13) % 10000;
+}
+
+function isAppIban(iban: string) {
+  const match = normalizeIban(iban).match(/^GDLP-AP(\d{2})-(\d{3})$/);
+  if (!match) return false;
+  return Number(match[1]) === ((Number(match[2]) * 97) + 13) % 100;
 }
 
 export function isOfficialIban(iban: string) {
-  const upper = iban.toUpperCase();
-  if (/^GDLP-W\d{3}-\d{4}$/.test(upper)) return true;
-  const match = upper.match(/^GDLP-AP(\d{2})-(\d{3})$/);
-  if (!match) return false;
-  return Number(match[1]) === ((Number(match[2]) * 97) + 13) % 100;
+  return isWebIban(iban) || isAppIban(iban);
+}
+
+function isCrossPlatformTransfer(from: Account, to: Account) {
+  return (isWebIban(from.iban) && isAppIban(to.iban)) || (isAppIban(from.iban) && isWebIban(to.iban));
+}
+
+function bridgeCommission(amountPz: number, from: Account, to: Account, config: TreasuryConfig) {
+  return from.id !== AGLDP_ID && isCrossPlatformTransfer(from, to) ? percentCeil(amountPz, config.webBridgeCommissionPercent) : 0;
 }
 
 export async function sha256(value: string) {
@@ -585,7 +602,7 @@ export function demoSeed(): BankState {
     donationRewards: [],
     promoSlides: [
       { id: "promo-1", title: "BANCO DE LA PLACETA", subtitle: "Tu centro financiero seguro, claro y siempre a mano.", action: "Login", imageKey: "bank", assetPath: "promos/banco-default.png" },
-      { id: "promo-2", title: "PLACEZUM", subtitle: "Pagos rápidos con IBAN GDLP-APXX-XXX y control total.", action: "Register", imageKey: "placezum", assetPath: "promos/placezum-default.png" },
+      { id: "promo-2", title: "PLACEZUM", subtitle: "Pagos rápidos con IBAN GDLP app o web y control total.", action: "Register", imageKey: "placezum", assetPath: "promos/placezum-default.png" },
       { id: "promo-3", title: "MERCADO GDLP", subtitle: "Invierte, revisa movimientos y descarga documentos fiscales.", action: "Demo", imageKey: "market", assetPath: "promos/mercado-default.png" }
     ],
     treasuryConfig: treasuryDefaults,
@@ -616,13 +633,19 @@ function txn(id: string, kind: TransactionKind, fromAccountId: string, toAccount
 export function normalizeState(input: Partial<BankState> | null | undefined): BankState {
   const seed = demoSeed();
   if (!input) return seed;
+  const normalizedAccounts = dedupeBy(input.accounts?.length ? input.accounts : seed.accounts, "id")
+    .map((account) => ({
+      ...account,
+      iban: isOfficialIban(account.iban || "") ? account.iban : ibanGenerate(account.id)
+    }));
+  const ibanByAccountId = new Map(normalizedAccounts.map((account) => [account.id, account.iban]));
   const transactions = dedupeBy(input.transactions?.length ? input.transactions : seed.transactions, "id")
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   return {
     ...seed,
     ...input,
     users: dedupeBy(input.users?.length ? input.users : seed.users, "dip").sort((left, right) => left.displayName.localeCompare(right.displayName)),
-    accounts: dedupeBy(input.accounts?.length ? input.accounts : seed.accounts, "id"),
+    accounts: normalizedAccounts,
     transactions,
     subsidyRequests: dedupeBy(input.subsidyRequests || [], "id"),
     investmentHoldings: dedupeBy(input.investmentHoldings || [], "id"),
@@ -631,7 +654,14 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
     savedContacts: dedupeByComposite(input.savedContacts || [], (contact) => `${contact.ownerPlacetaId}:${contact.accountId}`).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     complianceFlags: dedupeBy(input.complianceFlags || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     supportTickets: dedupeBy(input.supportTickets || [], "id").sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
-    paymentLinks: dedupeBy(input.paymentLinks || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    paymentLinks: dedupeBy(input.paymentLinks || [], "id")
+      .map((link) => ({
+        ...link,
+        targetIban: link.kind === "Payment" && link.targetIban && !isOfficialIban(link.targetIban)
+          ? ibanByAccountId.get(link.creatorAccountId) || link.targetIban
+          : link.targetIban
+      }))
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     payrollContracts: dedupeBy(input.payrollContracts?.length ? input.payrollContracts : seed.payrollContracts, "id").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
     payrollPeriods: dedupeBy(input.payrollPeriods || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     gdlpSharedNews: dedupeBy(input.gdlpSharedNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
@@ -678,7 +708,7 @@ export function transferByIban(state: BankState, fromId: string, targetIban: str
       transactions: applyTransactions(state.transactions, [transaction])
     });
   }
-  const to = accounts.find((item) => item.iban.toUpperCase() === targetIban.toUpperCase());
+  const to = accounts.find((item) => normalizeIban(item.iban) === normalizeIban(targetIban));
   if (!to) throw new Error("IBAN oficial no localizado");
   if (kind === "Consumption" || kind === "Placezum") {
     return transferConsumption(state, fromId, to.id, amountPz, note, kind);
@@ -689,23 +719,31 @@ export function transferByIban(state: BankState, fromId: string, targetIban: str
   if (from.type === "Savings" && from.huchaLocked) throw new Error("Hucha bloqueada: desbloquea la cuenta de ahorro para enviar dinero");
   if (from.type === "Child" && amountPz > (from.sendLimitPz || Number.MAX_SAFE_INTEGER)) throw new Error("Control parental: límite de envío infantil superado");
   const fee = percentCeil(amountPz, state.treasuryConfig.operationalTransferTaxPercent);
-  const totalDebit = amountPz + fee;
+  const bridgeFee = bridgeCommission(amountPz, from, to, state.treasuryConfig);
+  const totalDebit = amountPz + fee + bridgeFee;
   if (from.balancePz < totalDebit) throw new Error("Saldo insuficiente");
   if (from.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada para garantizar tu Renta Básica");
   const tglp = accounts.find((item) => item.id === TGLP_ID);
+  const agldp = accounts.find((item) => item.id === AGLDP_ID);
   from.balancePz -= totalDebit;
   to.balancePz += amountPz;
   if (tglp) tglp.balancePz += fee;
+  if (agldp) agldp.balancePz += bridgeFee;
   const transaction = makeTransaction(kind, from, to.id, amountPz, fee, note || kind);
   const feeTransaction = fee > 0 ? makeTransaction("OperationalFee", from, TGLP_ID, fee, fee, `Tasa operativa ${state.treasuryConfig.operationalTransferTaxPercent}%`) : null;
+  const bridgeTransaction = bridgeFee > 0 ? makeTransaction("OperationalFee", from, AGLDP_ID, bridgeFee, 0, `Comisión puente Web/App ${state.treasuryConfig.webBridgeCommissionPercent}%`) : null;
   if (feeTransaction) {
     feeTransaction.netAmount = 0;
     feeTransaction.concept = "OPERATIONAL_FEE";
   }
+  if (bridgeTransaction) {
+    bridgeTransaction.netAmount = 0;
+    bridgeTransaction.concept = "WEB_APP_BRIDGE_COMMISSION";
+  }
   return finalizeState({
     ...state,
     accounts,
-    transactions: applyTransactions(state.transactions, [transaction, feeTransaction].filter(Boolean) as LedgerTransaction[])
+    transactions: applyTransactions(state.transactions, [transaction, feeTransaction, bridgeTransaction].filter(Boolean) as LedgerTransaction[])
   });
 }
 
@@ -719,15 +757,23 @@ export function transferConsumption(state: BankState, fromId: string, toId: stri
   if (!tglp) throw new Error("Cuenta TGLP no encontrada");
   if (amountPz <= 0) throw new Error("El monto debe ser superior a 0 Pz");
   const iva = percentCeil(amountPz, VAT_PERCENT);
-  const totalDebit = amountPz + iva;
-  if (from.balancePz < totalDebit) throw new Error("Saldo insuficiente para cubrir el IVA del 12%");
+  const bridgeFee = bridgeCommission(amountPz, from, to, state.treasuryConfig);
+  const totalDebit = amountPz + iva + bridgeFee;
+  if (from.balancePz < totalDebit) throw new Error("Saldo insuficiente para cubrir IVA y comisiones");
   if (from.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada para garantizar tu Renta Básica");
+  const agldp = accounts.find((item) => item.id === AGLDP_ID);
   from.balancePz -= totalDebit;
   to.balancePz += amountPz;
   tglp.balancePz += iva;
+  if (agldp) agldp.balancePz += bridgeFee;
   const transaction = makeTransaction(kind, from, to.id, amountPz, iva, note);
   transaction.concept = kind;
-  return finalizeState({ ...state, accounts, transactions: applyTransactions(state.transactions, [transaction]) });
+  const bridgeTransaction = bridgeFee > 0 ? makeTransaction("OperationalFee", from, AGLDP_ID, bridgeFee, 0, `Comisión puente Web/App ${state.treasuryConfig.webBridgeCommissionPercent}%`) : null;
+  if (bridgeTransaction) {
+    bridgeTransaction.netAmount = 0;
+    bridgeTransaction.concept = "WEB_APP_BRIDGE_COMMISSION";
+  }
+  return finalizeState({ ...state, accounts, transactions: applyTransactions(state.transactions, [transaction, bridgeTransaction].filter(Boolean) as LedgerTransaction[]) });
 }
 
 export function transferPayrollOrLoan(state: BankState, fromId: string, toId: string, amountPz: number, note: string) {
@@ -774,6 +820,10 @@ export function claimRbu(state: BankState, accountId: string, amountPz = 150) {
 }
 
 export function issueCard(state: BankState, accountId: string) {
+  const activeVirtualCards = state.digitalCards.filter((card) => card.accountId === accountId && !card.promoPhysical);
+  if (activeVirtualCards.length >= MAX_VIRTUAL_CARDS_PER_ACCOUNT) {
+    throw new Error(`Límite de ${MAX_VIRTUAL_CARDS_PER_ACCOUNT} tarjetas virtuales por cuenta`);
+  }
   const card: DigitalCard = {
     id: makeId("card"),
     accountId,
@@ -1236,21 +1286,32 @@ export function captureDeveloperPayment(state: BankState, payment: DeveloperPaym
   if (!merchant) throw new Error("IBAN de comercio no encontrado");
   if (!tglp) throw new Error("Cuenta TGLP no encontrada");
   if (customer.balancePz < payment.totalPz) throw new Error("Saldo insuficiente para pago con IVA");
-  if (customer.balancePz - payment.totalPz < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Pago bloqueado por escudo de renta mínima");
   const accounts = state.accounts.map((account) => ({ ...account }));
   const nextCustomer = accounts.find((account) => account.id === customer.id)!;
   const nextMerchant = accounts.find((account) => account.id === merchant.id)!;
   const nextTglp = accounts.find((account) => account.id === TGLP_ID)!;
-  nextCustomer.balancePz -= payment.totalPz;
+  const nextAgldp = accounts.find((account) => account.id === AGLDP_ID);
+  const bridgeFee = bridgeCommission(payment.amountPz, nextCustomer, nextMerchant, state.treasuryConfig);
+  const totalDebit = payment.totalPz + bridgeFee;
+  if (customer.balancePz < totalDebit) throw new Error("Saldo insuficiente para pago, IVA y comisiones");
+  if (customer.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Pago bloqueado por escudo de renta mínima");
+  nextCustomer.balancePz -= totalDebit;
   nextMerchant.balancePz += payment.amountPz;
   nextTglp.balancePz += payment.ivaPz;
+  if (nextAgldp) nextAgldp.balancePz += bridgeFee;
   const transaction = makeTransaction("Consumption", nextCustomer, nextMerchant.id, payment.amountPz, payment.ivaPz, `Pago developer: ${payment.concept}`);
   transaction.concept = "DEVELOPER_PAYMENT";
   transaction.originalTransactionId = payment.id;
   transaction.netAmount = payment.amountPz;
   transaction.taxAmount = payment.ivaPz;
+  const bridgeTransaction = bridgeFee > 0 ? makeTransaction("OperationalFee", nextCustomer, AGLDP_ID, bridgeFee, 0, `Comisión puente Web/App ${state.treasuryConfig.webBridgeCommissionPercent}%`) : null;
+  if (bridgeTransaction) {
+    bridgeTransaction.netAmount = 0;
+    bridgeTransaction.concept = "WEB_APP_BRIDGE_COMMISSION";
+    bridgeTransaction.originalTransactionId = payment.id;
+  }
   return {
-    state: finalizeState({ ...state, accounts, transactions: applyTransactions(state.transactions, [transaction]) }),
+    state: finalizeState({ ...state, accounts, transactions: applyTransactions(state.transactions, [transaction, bridgeTransaction].filter(Boolean) as LedgerTransaction[]) }),
     payment: { ...payment, status: "Paid" as const, customerAccountId, paidAt: transaction.createdAt, transactionId: transaction.id }
   };
 }
@@ -1297,25 +1358,35 @@ export function capturePaymentLink(state: BankState, linkId: string, payerAccoun
   const tglp = state.accounts.find((account) => account.id === TGLP_ID);
   if (link.ivaPz > 0 && !tglp) throw new Error("Cuenta TGLP no encontrada");
   if (payer.id === target.id) throw new Error("No puedes pagarte el enlace con la misma cuenta");
-  if (payer.balancePz < link.totalPz) throw new Error("Saldo insuficiente");
-  if (payer.balancePz - link.totalPz < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada por escudo de renta mínima");
   const accounts = state.accounts.map((account) => ({ ...account }));
   const nextPayer = accounts.find((account) => account.id === payer.id)!;
   const nextTarget = accounts.find((account) => account.id === target.id)!;
   const nextTglp = accounts.find((account) => account.id === TGLP_ID);
-  nextPayer.balancePz -= link.totalPz;
+  const nextAgldp = accounts.find((account) => account.id === AGLDP_ID);
+  const bridgeFee = bridgeCommission(link.amountPz, nextPayer, nextTarget, state.treasuryConfig);
+  const totalDebit = link.totalPz + bridgeFee;
+  if (payer.balancePz < totalDebit) throw new Error("Saldo insuficiente");
+  if (payer.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada por escudo de renta mínima");
+  nextPayer.balancePz -= totalDebit;
   nextTarget.balancePz += link.amountPz;
   if (nextTglp && link.ivaPz > 0) nextTglp.balancePz += link.ivaPz;
+  if (nextAgldp) nextAgldp.balancePz += bridgeFee;
   const transaction = makeTransaction(link.kind === "Payment" ? "Consumption" : "Placezum", nextPayer, nextTarget.id, link.amountPz, link.ivaPz, `${link.kind === "Payment" ? "Pago enlace" : "Envío enlace"}: ${link.concept}`);
   transaction.concept = link.kind === "Payment" ? "PAYMENT_LINK" : "PLACETA_SEND_LINK";
   transaction.originalTransactionId = link.id;
   transaction.netAmount = link.amountPz;
   transaction.taxAmount = link.ivaPz;
+  const bridgeTransaction = bridgeFee > 0 ? makeTransaction("OperationalFee", nextPayer, AGLDP_ID, bridgeFee, 0, `Comisión puente Web/App ${state.treasuryConfig.webBridgeCommissionPercent}%`) : null;
+  if (bridgeTransaction) {
+    bridgeTransaction.netAmount = 0;
+    bridgeTransaction.concept = "WEB_APP_BRIDGE_COMMISSION";
+    bridgeTransaction.originalTransactionId = link.id;
+  }
   const usedAt = transaction.createdAt;
   return finalizeState({
     ...state,
     accounts,
-    transactions: applyTransactions(state.transactions, [transaction]),
+    transactions: applyTransactions(state.transactions, [transaction, bridgeTransaction].filter(Boolean) as LedgerTransaction[]),
     paymentLinks: (state.paymentLinks || []).map((item) => item.id === link.id ? {
       ...item,
       status: "Paid",

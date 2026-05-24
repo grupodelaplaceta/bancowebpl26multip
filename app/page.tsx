@@ -55,6 +55,7 @@ import {
   investmentRiskLimits,
   investmentRiskProfile,
   LedgerTransaction,
+  MAX_VIRTUAL_CARDS_PER_ACCOUNT,
   investmentResultRows,
   normalizeState,
   payPlacezum,
@@ -78,7 +79,7 @@ import {
   VAT_PERCENT
 } from "../lib/bank";
 import { generateBankPdf } from "../lib/pdf";
-import { BANK_API_URL, BANK_SITE_URL } from "../lib/site";
+import { BANK_SITE_URL } from "../lib/site";
 import type { WebDocumentKind } from "../lib/pdf";
 
 type Tab = "home" | "placezum" | "market" | "hub" | "tributos" | "admin";
@@ -114,38 +115,38 @@ const landingSlides = [
 ];
 
 const developerApiCards = [
-  { title: "Crear pago", method: "POST", path: `${BANK_API_URL}/api/developer-payments`, text: "Genera un pago firmado con importe neto, IVA y total a cobrar." },
-  { title: "Consultar pago", method: "GET", path: `${BANK_API_URL}/api/developer-payments/{id}?token=...`, text: "Valida el token y recupera la ficha del pago para checkout externo." },
-  { title: "Capturar pago", method: "POST", path: `${BANK_API_URL}/api/developer-payments/{id}/capture`, text: "Carga la cuenta pagadora, abona al comercio y separa el IVA hacia TGLP." }
+  { title: "Crear pago", method: "POST", path: `${BANK_SITE_URL}/api/developer-payments`, text: "Genera un pago firmado con importe neto, IVA y total a cobrar." },
+  { title: "Consultar pago", method: "GET", path: `${BANK_SITE_URL}/api/developer-payments/{id}?token=...`, text: "Valida el token y recupera la ficha del pago para checkout externo." },
+  { title: "Capturar pago", method: "POST", path: `${BANK_SITE_URL}/api/developer-payments/{id}/capture`, text: "Carga la cuenta pagadora, abona al comercio y separa el IVA hacia TGLP." }
 ];
 
 const developerImplementationPack = {
-  create: `const createResponse = await fetch("${BANK_API_URL}/api/developer-payments", {
+  create: `const createResponse = await fetch("${BANK_SITE_URL}/api/developer-payments", {
   method: "POST",
   headers: {
     "content-type": "application/json",
     "x-api-key": "TU_API_KEY"
   },
   body: JSON.stringify({
-    merchantIban: "GDLP-AP00-000",
+    merchantIban: "GDLP-0013-0000",
     amountPz: 250,
     concept: "Pedido web #1042"
   })
 });
 
 const { payment, token, checkoutUrl } = await createResponse.json();`,
-  captureIban: `const captureResponse = await fetch(\`${BANK_API_URL}/api/developer-payments/\${payment.id}/capture\`, {
+  captureIban: `const captureResponse = await fetch(\`${BANK_SITE_URL}/api/developer-payments/\${payment.id}/capture\`, {
   method: "POST",
   headers: { "content-type": "application/json" },
   body: JSON.stringify({
     token,
-    paymentCredential: "GDLP-AP00-000",
+    paymentCredential: "GDLP-0013-0000",
     verificationAccepted: payment.totalPz > 500
   })
 });
 
 const confirmation = await captureResponse.json();`,
-  captureCard: `const cardCapture = await fetch(\`${BANK_API_URL}/api/developer-payments/\${payment.id}/capture\`, {
+  captureCard: `const cardCapture = await fetch(\`${BANK_SITE_URL}/api/developer-payments/\${payment.id}/capture\`, {
   method: "POST",
   headers: { "content-type": "application/json" },
   body: JSON.stringify({
@@ -1200,8 +1201,10 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
   const [iban, setIban] = useState(accounts.find((item) => item.id !== account.id && item.kind === "CITIZEN")?.iban || "");
   const [amount, setAmount] = useState(25);
   const [note, setNote] = useState("Pago GDLP");
-  const [activePopup, setActivePopup] = useState<"transfer" | "cards" | "account" | null>(null);
+  const [activePopup, setActivePopup] = useState<"transfer" | "cards" | "account" | "promocard" | null>(null);
   const history = transactionsFor(account.id, transactions).slice(0, 8);
+  const virtualCardCount = cards.filter((card) => !card.promoPhysical).length;
+  const canIssueVirtualCard = virtualCardCount < MAX_VIRTUAL_CARDS_PER_ACCOUNT;
 
   return (
     <section className="screen-grid">
@@ -1260,7 +1263,22 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
           ))}
           {!cards.length && <Empty title="Sin tarjetas" text="Emite una tarjeta virtual para esta cuenta." />}
         </div>
-        <button className="primary-button" onClick={onIssueCard}>Emitir tarjeta virtual</button>
+        <button className="primary-button" disabled={!canIssueVirtualCard} onClick={onIssueCard}>
+          Emitir tarjeta virtual ({virtualCardCount}/{MAX_VIRTUAL_CARDS_PER_ACCOUNT})
+        </button>
+        {!canIssueVirtualCard && <small>Límite de tarjetas virtuales alcanzado para esta cuenta.</small>}
+        <button className="secondary-button" onClick={() => setActivePopup("promocard")}>Solicitar Promo Card</button>
+      </Modal>
+
+      <Modal title="Promo Card" open={activePopup === "promocard"} onClose={() => setActivePopup("cards")}>
+        <div className="contact-resolver resolved">
+          <div>
+            <strong>Función próximamente</strong>
+            <span>La Promo Card física aún está en fabricación. Cuando esté lista podrás solicitarla y vincularla a esta cuenta desde aquí.</span>
+          </div>
+          <CreditCard size={22} />
+        </div>
+        <button className="primary-button" onClick={() => setActivePopup("cards")}>Entendido</button>
       </Modal>
 
       <Modal title="Crear cuenta" open={activePopup === "account"} onClose={() => setActivePopup(null)}>
@@ -1414,7 +1432,7 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
           ))}
         </div>
         <div className="direct-pay-box">
-          <Field label="Código Placezum, IBAN, Placeta ID o nombre" value={payTargetQuery} onChange={setPayTargetQuery} placeholder="12345 o GDLP-APXX-XXX" />
+          <Field label="Código Placezum, IBAN, Placeta ID o nombre" value={payTargetQuery} onChange={setPayTargetQuery} placeholder="12345, GDLP-APXX-XXX o GDLP-XXXX-XXXX" />
           <div className={`contact-resolver ${payTarget ? "resolved" : ""}`}>
             <div>
               <strong>{payTarget?.displayName || "Busca a quien recibe"}</strong>
@@ -1452,10 +1470,10 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
 
       <Modal title="Favoritos Placezum" open={activeModal === "contacts"} onClose={() => setActiveModal(null)}>
         <div className="contact-add">
-          <Field label="Guardar favorito por IBAN, Placeta ID o nombre" value={contactQuery} onChange={setContactQuery} placeholder="GDLP-APXX-XXX" />
+          <Field label="Guardar favorito por IBAN, Placeta ID o nombre" value={contactQuery} onChange={setContactQuery} placeholder="GDLP-APXX-XXX o GDLP-XXXX-XXXX" />
           <div className={`contact-resolver ${resolvedContact ? "resolved" : ""}`}>
             <div>
-              <strong>{resolvedContact?.displayName || "Introduce una cuenta de la app"}</strong>
+              <strong>{resolvedContact?.displayName || "Introduce una cuenta app o web"}</strong>
               <span>{resolvedContact ? `${resolvedContact.iban} · código ${generatePlacezumCode(resolvedContact)}` : "Guardar es opcional: solo sirve para repetir pagos más rápido"}</span>
             </div>
             <button className="mini-action" disabled={!resolvedContact} onClick={() => {

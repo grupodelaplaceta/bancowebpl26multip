@@ -18,6 +18,7 @@ const noStoreHeaders = {
 };
 
 const localHeaders = { ...noStoreHeaders, "x-placeta-sync-mode": "local" };
+const allowLocalFallback = () => process.env.NODE_ENV !== "production" || process.env.PLACETA_ALLOW_LOCAL_BANK_STATE === "true";
 
 declare global {
   var __placetaBankState: BankState | undefined;
@@ -90,12 +91,18 @@ async function readRemoteState() {
 
 export async function GET() {
   if (!hasRemoteConfig()) {
+    if (!allowLocalFallback()) {
+      return NextResponse.json({ error: "missing_remote_bank_config" }, { status: 503, headers: noStoreHeaders });
+    }
     return NextResponse.json(localState(), { status: 200, headers: localHeaders });
   }
 
   try {
     return await callBankApi("GET");
   } catch (error) {
+    if (!allowLocalFallback()) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "sync_failed" }, { status: 503, headers: noStoreHeaders });
+    }
     return NextResponse.json(localState(), { status: 200, headers: { ...localHeaders, "x-placeta-sync-error": headerSafeError(error) } });
   }
 }
@@ -109,6 +116,9 @@ export async function PUT(request: Request) {
     const baseUpdatedAt = payload.baseUpdatedAt || null;
 
     if (!hasRemoteConfig()) {
+      if (!allowLocalFallback()) {
+        return NextResponse.json({ error: "missing_remote_bank_config" }, { status: 503, headers: noStoreHeaders });
+      }
       return NextResponse.json(setLocalState(nextState), { status: 200, headers: localHeaders });
     }
 
@@ -121,6 +131,9 @@ export async function PUT(request: Request) {
 
     return await callBankApi("PUT", JSON.stringify(nextState));
   } catch (error) {
+    if (!allowLocalFallback()) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "sync_failed" }, { status: 503, headers: noStoreHeaders });
+    }
     try {
       const payload = rawText ? JSON.parse(rawText) : {};
       return NextResponse.json(setLocalState(payload.state || payload), { status: 200, headers: { ...localHeaders, "x-placeta-sync-error": headerSafeError(error) } });

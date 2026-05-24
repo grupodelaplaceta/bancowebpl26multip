@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { bankApiUrl } from "../../../lib/site";
+import { bankUrl } from "../../../lib/site";
 import { buildPayment, corsHeaders, requireDeveloperKey, signPayment } from "./crypto";
 
 export async function OPTIONS() {
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       payment,
       token: signPayment(payment),
-      checkoutUrl: bankApiUrl(`/api/developer-payments/${payment.id}`),
+      checkoutUrl: bankUrl(`/api/developer-payments/${payment.id}`),
       ivaPercent: 12
     }, { headers: corsHeaders });
   } catch (error) {

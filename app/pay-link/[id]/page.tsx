@@ -138,7 +138,7 @@ export default function PaymentLinkPage({ params }: { params: { id: string } }) 
                     setVerificationAccepted(false);
                     setError("");
                   }}
-                  placeholder="GDLP-APXX-XXX o tarjeta"
+                  placeholder="GDLP app/web o tarjeta"
                 />
               </div>
               <small>{sourceCopy(sourceKind, paymentCredential)}</small>

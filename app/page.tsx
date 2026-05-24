@@ -1811,7 +1811,6 @@ function payrollTenure(startDate: string) {
 function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankState; user: UserProfile; onPersist: (state: BankState, message: string) => void; onCreateAccount: (type: AccountType, displayName: string, parentAccountId?: string | null, cardTier?: DigitalCard["tier"]) => void }) {
   const userAccounts = state.accounts.filter((account) => account.placetaId === user.placetaId || account.id === user.primaryAccountId);
   const businessAccounts = userAccounts.filter((account) => account.type === "Business");
-  const payrollTargets = userAccounts.filter((account) => account.type === "Current");
   const totalBalance = userAccounts.reduce((sum, account) => sum + account.balancePz, 0);
   const cards = state.digitalCards.filter((card) => userAccounts.some((account) => account.id === card.accountId));
   const recent = state.transactions
@@ -1820,7 +1819,8 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
   const pendingInvestments = pendingInvestmentOperations(state).filter((operation) => userAccounts.some((account) => account.id === operation.accountId));
   const tickets = (state.supportTickets || []).filter((ticket) => ticket.ownerDip === user.dip).sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
   const [businessId, setBusinessId] = useState(businessAccounts[0]?.id || "");
-  const [payrollTargetId, setPayrollTargetId] = useState(payrollTargets[0]?.id || "");
+  const [payrollEmployeeDip, setPayrollEmployeeDip] = useState("");
+  const [payrollContactAccountId, setPayrollContactAccountId] = useState("");
   const [payrollGross, setPayrollGross] = useState(state.treasuryConfig.minimumWeeklySalaryPz);
   const [payrollRole, setPayrollRole] = useState("Empleado");
   const [payrollStartDate, setPayrollStartDate] = useState(new Date().toISOString().slice(0, 10));
@@ -1842,7 +1842,22 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
   const [lastLinkUrl, setLastLinkUrl] = useState("");
   const [hubModal, setHubModal] = useState<"payroll" | "support" | "accounts" | "documents" | "activity" | "developers" | "links" | null>(null);
   const business = businessAccounts.find((account) => account.id === businessId) || businessAccounts[0];
-  const payrollTarget = payrollTargets.find((account) => account.id === payrollTargetId) || payrollTargets[0];
+  const payrollContactOptions = (state.savedContacts || [])
+    .filter((contact) => contact.ownerPlacetaId === user.placetaId)
+    .map((contact) => {
+      const account = state.accounts.find((item) => item.id === contact.accountId);
+      const profile = account ? state.users.find((item) => item.primaryAccountId === account.id || item.placetaId === account.placetaId) : undefined;
+      return account && profile && account.type === "Current" ? { contact, account, profile } : null;
+    })
+    .filter((item): item is NonNullable<typeof item> => Boolean(item));
+  const selectedPayrollContact = payrollContactOptions.find((item) => item.account.id === payrollContactAccountId);
+  const normalizedPayrollDip = payrollEmployeeDip.trim().toUpperCase();
+  const manualPayrollProfile = normalizedPayrollDip ? state.users.find((profile) => profile.dip.toUpperCase() === normalizedPayrollDip) : undefined;
+  const payrollWorkerProfile = selectedPayrollContact?.profile || manualPayrollProfile;
+  const payrollTarget = selectedPayrollContact?.account || (payrollWorkerProfile ? state.accounts.find((account) =>
+    account.type === "Current" && (account.id === payrollWorkerProfile.primaryAccountId || account.placetaId === payrollWorkerProfile.placetaId)
+  ) : undefined);
+  const payrollTargetDip = selectedPayrollContact?.profile.dip || payrollWorkerProfile?.dip || normalizedPayrollDip;
   const payrollContracts = (state.payrollContracts || []).filter((contract) => businessAccounts.some((account) => account.id === contract.companyAccountId));
   const payrollPeriods = state.payrollPeriods || [];
   const visiblePayrollContracts = payrollContracts.filter((contract) => {
@@ -1886,7 +1901,7 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
 
   function submitPayroll() {
     if (!business || !payrollTarget) return;
-    if (!accountBelongsTo(user, business) || !accountBelongsTo(user, payrollTarget)) return;
+    if (!accountBelongsTo(user, business) || !payrollTargetDip) return;
     const now = new Date().toISOString();
     const contract: PayrollContract = selectedContract ? {
       ...selectedContract,
@@ -1904,8 +1919,8 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
       id: `payroll-contract-${Date.now()}`,
       companyAccountId: business.id,
       employeeAccountId: payrollTarget.id,
-      employeeDip: user.dip,
-      employeeName: payrollTarget.displayName,
+      employeeDip: payrollTargetDip,
+      employeeName: payrollWorkerProfile?.displayName || payrollTarget.displayName,
       roleTitle: payrollRole.trim() || "Empleado",
       startDate: payrollStartDate || now.slice(0, 10),
       frequency: payrollFrequency,
@@ -1927,7 +1942,7 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
       contractId: contract.id,
       companyAccountId: business.id,
       employeeAccountId: payrollTarget.id,
-      employeeDip: user.dip,
+      employeeDip: payrollTargetDip,
       label: payrollPeriodLabel.trim() || new Intl.DateTimeFormat("es-ES", { month: "long", year: "numeric" }).format(new Date()),
       periodStart: now.slice(0, 10),
       periodEnd: now.slice(0, 10),
@@ -1944,7 +1959,7 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
       ...transferred,
       payrollContracts: [contract, ...transferred.payrollContracts.filter((item) => item.id !== contract.id)],
       payrollPeriods: [period, ...transferred.payrollPeriods]
-    }, `Nómina registrada para ${payrollTarget.displayName}`);
+    }, `Nómina registrada para ${contract.employeeName}`);
     setPayrollPrevious(0);
     setPayrollBonus(0);
     setPayrollDeductions(0);
@@ -2063,7 +2078,7 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
 
       <Modal title="Administración de nóminas" open={hubModal === "payroll"} onClose={() => setHubModal(null)}>
         <SectionTitle icon={Building2} title="Administración de nóminas" />
-        {businessAccounts.length && payrollTargets.length ? (
+        {businessAccounts.length ? (
           <>
             <div className="field">
               <span>Empresa origen</span>
@@ -2072,10 +2087,25 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
               </select>
             </div>
             <div className="field">
-              <span>Trabajador / cuenta destino</span>
-              <select value={payrollTarget?.id || ""} onChange={(event) => setPayrollTargetId(event.target.value)}>
-                {payrollTargets.map((account) => <option key={account.id} value={account.id}>{account.displayName} · {account.iban}</option>)}
+              <span>Trabajador desde contacto guardado</span>
+              <select value={payrollContactAccountId} onChange={(event) => {
+                const accountId = event.target.value;
+                const selected = payrollContactOptions.find((item) => item.account.id === accountId);
+                setPayrollContactAccountId(accountId);
+                if (selected) setPayrollEmployeeDip(selected.profile.dip);
+              }}>
+                <option value="">Sin contacto, introducir DIP</option>
+                {payrollContactOptions.map(({ account, profile }) => <option key={account.id} value={account.id}>{profile.displayName} · {profile.dip} · {account.iban}</option>)}
               </select>
+            </div>
+            <Field label="DIP trabajador obligatorio" value={payrollEmployeeDip} onChange={(value) => {
+              setPayrollContactAccountId("");
+              setPayrollEmployeeDip(value.toUpperCase());
+            }} placeholder="DIP manual o cargado desde contacto" />
+            <div className="payroll-summary">
+              <div><span>Trabajador verificado</span><strong>{payrollTarget ? payrollTarget.displayName : "Pendiente"}</strong></div>
+              <div><span>DIP alta</span><strong>{payrollTargetDip || "Obligatorio"}</strong></div>
+              <div><span>Cuenta destino</span><strong>{payrollTarget?.iban || "Sin cuenta corriente"}</strong></div>
             </div>
             <Field label={`Nómina bruta semanal · SMI ${formatPz(state.treasuryConfig.minimumWeeklySalaryPz)} Pz`} value={String(payrollGross)} onChange={(value) => setPayrollGross(Number(value) || 0)} type="number" />
             <div className="field">
@@ -2111,7 +2141,7 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
               <div><span>Total con ajustes</span><strong>{formatPz(payrollPreviewTotal)} Pz</strong></div>
               <div><span>Contrato</span><strong>{selectedContract ? `${selectedContract.salaryHistory.length} cambios` : "Nuevo"}</strong></div>
             </div>
-            <button className="primary-button" disabled={!business || !payrollTarget || payrollGross < state.treasuryConfig.minimumWeeklySalaryPz} onClick={submitPayroll}>Registrar nómina</button>
+            <button className="primary-button" disabled={!business || !payrollTarget || !payrollTargetDip || payrollGross < state.treasuryConfig.minimumWeeklySalaryPz} onClick={submitPayroll}>Registrar nómina</button>
             <div className="payroll-register">
               <Field label="Buscar contratos" value={payrollSearch} onChange={setPayrollSearch} placeholder="DIP, trabajador, puesto o estado" />
               {visiblePayrollContracts.length ? visiblePayrollContracts.map((contract) => {
@@ -2148,12 +2178,16 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
                     <div className="payroll-card-actions">
                       <button className="mini-action" onClick={() => {
                         setBusinessId(contract.companyAccountId);
-                        setPayrollTargetId(contract.employeeAccountId);
+                        setPayrollContactAccountId("");
+                        setPayrollEmployeeDip(contract.employeeDip);
                         setPayrollRole(contract.roleTitle);
                         setPayrollStartDate(contract.startDate);
                         setPayrollFrequency(contract.frequency);
                         setPayrollGross(contract.grossSalaryPz);
                       }}>Usar contrato</button>
+                      <button className="mini-action" disabled={!worker} onClick={() => {
+                        if (worker) generateBankPdf(worker, { id: `alta-${contract.id}`, title: `Alta laboral ${contract.employeeName}`, kind: "LaborContract" }, payrollTxn ? [payrollTxn] : []);
+                      }}>PDF alta</button>
                       <button className="mini-action" disabled={!payrollTxn || !worker} onClick={() => {
                         if (payrollTxn && worker) generateBankPdf(worker, { id: `payroll-${lastPeriod?.id || payrollTxn.id}`, title: `Nómina ${lastPeriod?.label || contract.employeeName}`, kind: "LaborContract" }, [payrollTxn]);
                       }}>PDF nómina</button>

@@ -110,23 +110,28 @@ function drawPaymentReceipt(ops: string[], account: Account, document: PdfDocume
   }
   const iva = txn.kind === "Consumption" || txn.ivaPz > 0 ? Math.max(txn.ivaPz, txn.taxAmount) : 0;
   const adminFee = iva > 0 ? 0 : Math.max(txn.taxAmount, txn.ivaPz);
-  roundRect(ops, 42, 144, 511, 108, 14, soft, border);
+  const signedNet = txn.toAccountId === account.id ? txn.netAmount : -Math.max(txn.amountPz + adminFee + iva, txn.netAmount);
+  roundRect(ops, 42, 144, 511, 116, 14, soft, border);
   label(ops, "ID Transacción", txn.id, 60, 170);
+  label(ops, "Tipo / estado", `${txn.kind} · ${txn.status}`, 324, 170);
   label(ops, "Fecha/Hora", formatDateTime(txn.createdAt), 60, 214);
-  label(ops, "IP de Origen", "No registrada en cliente", 324, 214);
-  text(ops, "Cuentas intervinientes", 42, 292, 14, ink, true);
-  row(ops, "Ordenante (DIP)", account.placetaId || txn.fromAccountId, 54, 322);
-  row(ops, "Beneficiario", txn.toAccountId, 54, 350);
-  row(ops, "IBAN origen", txn.IBAN_Origin, 54, 378);
-  line(ops, 42, 410, 553, 410);
-  text(ops, "Desglose financiero", 42, 442, 14, ink, true);
-  money(ops, "Importe bruto (gross_amount)", txn.amountPz, 54, 474);
-  money(ops, "Tasa transferencia admin retenida (máx. 12%)", adminFee, 54, 504, adminFee > 0);
-  money(ops, "IVA desglosado obligatorio 12%", iva, 54, 534);
-  money(ops, "Importe neto acreditado", txn.netAmount, 54, 572, false, true);
-  roundRect(ops, 42, 628, 511, 78, 12, soft, border);
-  text(ops, "Base normativa", 58, 654, 14, ink, true);
-  wrapped(ops, "Capítulos III y IV de la Normativa Unificada (Banco de La Placeta, Banca y Capital). Justificante inmutable de transferencia o pago con desglose fiscal y marcadores de seguridad.", 58, 676, 92, 9.5);
+  label(ops, "CSV operación", verificationCode(document, account), 324, 214);
+  text(ops, "Detalle de transferencia", 42, 294, 14, ink, true);
+  row(ops, "Ordenante", txn.fromAccountId, 54, 324);
+  row(ops, "Beneficiario", txn.toAccountId, 54, 352);
+  row(ops, "IBAN origen", txn.IBAN_Origin || "No informado", 54, 380);
+  row(ops, "Concepto", txn.concept || txn.note, 54, 408);
+  row(ops, "Referencia original", txn.originalTransactionId || "Movimiento principal", 54, 436);
+  line(ops, 42, 468, 553, 468);
+  text(ops, "Desglose financiero", 42, 500, 14, ink, true);
+  money(ops, "Importe bruto ordenado", txn.amountPz, 54, 532);
+  money(ops, "Comisión / tasa operativa", adminFee, 54, 562, adminFee > 0);
+  money(ops, "IVA retenido", iva, 54, 592, iva > 0);
+  money(ops, "Importe neto acreditado", txn.netAmount, 54, 622, false, true);
+  money(ops, "Impacto en esta cuenta", Math.abs(signedNet), 54, 652, signedNet < 0);
+  roundRect(ops, 42, 694, 511, 52, 12, soft, border);
+  text(ops, "Base normativa", 58, 718, 14, ink, true);
+  wrapped(ops, "Justificante inmutable de transferencia, Placezum, enlace de pago o pago con desglose fiscal, comisiones y marcadores de seguridad internos.", 58, 738, 92, 9.5);
   footer(ops, document, account);
 }
 
@@ -182,28 +187,31 @@ function drawInvestmentLiquidation(ops: string[], account: Account, document: Pd
 }
 
 function drawLaborContract(ops: string[], account: Account, document: PdfDocumentInput, txn?: LedgerTransaction) {
-  header(ops, "BANCO DE LA PLACETA", "CONTRATO DE RELACIÓN LABORAL REGISTRADO", document);
+  header(ops, "BANCO DE LA PLACETA", txn ? "NÓMINA Y RELACIÓN LABORAL REGISTRADA" : "CERTIFICADO DE ALTA LABORAL", document);
   const gross = txn?.amountPz || 200;
   const workerRetention = Math.floor(gross * 20 / 200);
   const employerContribution = Math.floor(gross * 20 / 200);
   const net = gross - workerRetention;
-  text(ops, "Partes contratantes", 42, 158, 14, ink, true);
+  text(ops, txn ? "Partes contratantes" : "Alta registrada", 42, 158, 14, ink, true);
   row(ops, "Empresa/Asociación", account.type === "Business" ? account.id : txn?.fromAccountId || "ASOC-GDLP", 54, 190);
   row(ops, "Empleado DIP", account.placetaId || txn?.toAccountId || account.id, 54, 218);
   row(ops, "Rol verificado", account.citizenshipTier || "CiudadaniaPlena", 54, 246);
-  roundRect(ops, 42, 292, 511, 162, 14, soft, border);
-  money(ops, "Sueldo bruto semanal", gross, 58, 324);
+  roundRect(ops, 42, 292, 511, 176, 14, soft, border);
+  money(ops, txn ? "Sueldo bruto liquidado" : "Sueldo bruto semanal pactado", gross, 58, 324);
   row(ops, "Cumple SMI vigente", String(gross >= 150), 58, 354);
-  row(ops, "Cotización total", "20% entre empresa y trabajador", 58, 384);
-  money(ops, "Retención trabajador", workerRetention, 58, 414, true);
-  money(ops, "Aportación patronal", employerContribution, 300, 414);
-  money(ops, "Sueldo neto semanal", net, 58, 444, false, true);
-  line(ops, 42, 492, 553, 492);
-  text(ops, "Protección de datos laborales", 42, 528, 14, ink, true);
-  row(ops, "Responsable datos", `Delegado_Datos_${account.id.slice(0, 8)}`, 54, 560);
-  row(ops, "Registro actividades", "Inscrito_En_Log_Central", 54, 588);
-  wrapped(ops, "Cláusula RGPD: la organización empleadora designa responsable del tratamiento de datos reales y conserva trazabilidad del contrato en el log central del Banco de La Placeta.", 54, 628, 92, 9.5);
-  wrapped(ops, "Base normativa: Disposiciones de Empresas y Asociaciones / Capítulo IV (Salario Mínimo Interprofesional).", 54, 700, 92, 9.5);
+  row(ops, "Estado de alta", txn ? "Alta con periodo liquidado" : "Alta laboral registrada sin liquidación", 58, 384);
+  row(ops, "Cotización total", "20% entre empresa y trabajador", 58, 414);
+  money(ops, "Retención trabajador", workerRetention, 58, 444, true);
+  money(ops, "Aportación patronal", employerContribution, 300, 444);
+  money(ops, txn ? "Sueldo neto abonado" : "Sueldo neto previsto", net, 58, 466, false, true);
+  line(ops, 42, 504, 553, 504);
+  text(ops, "Trazabilidad del alta", 42, 538, 14, ink, true);
+  row(ops, "Registro laboral", document.id, 54, 570);
+  row(ops, "Cuenta trabajador", account.iban, 54, 598);
+  row(ops, "Responsable datos", `Delegado_Datos_${account.id.slice(0, 8)}`, 54, 626);
+  row(ops, "Registro actividades", "Inscrito_En_Log_Central", 54, 654);
+  wrapped(ops, "Cláusula RGPD: la organización empleadora conserva trazabilidad del alta, periodos y pagos en el registro central del Banco de La Placeta.", 54, 690, 92, 9.5);
+  wrapped(ops, "Base normativa: Disposiciones de Empresas y Asociaciones / Capítulo IV (Salario Mínimo Interprofesional).", 54, 740, 92, 9.5);
   footer(ops, document, account);
 }
 

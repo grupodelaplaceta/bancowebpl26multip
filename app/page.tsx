@@ -30,6 +30,8 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Account,
+  accountTypeAccountLimit,
+  accountTypeBalanceLimit,
   AccountType,
   accountTypeLabel,
   AGLDP_ID,
@@ -908,6 +910,7 @@ function BancoPlacetaClient() {
           accounts={state.accounts}
           transactions={state.transactions}
           cards={state.digitalCards.filter((card) => card.accountId === selectedAccount.id)}
+          config={state.treasuryConfig}
           onTransfer={(iban, amount, note) => runOperation((fresh) => transferByIban(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id, iban, amount, note, "Consumption"), "Transferencia GDLP ejecutada")}
           onRbu={() => runOperation((fresh) => claimRbu(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id), "RBU abonada")}
           onIssueCard={() => runOperation((fresh) => issueCard(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id), "Tarjeta digital emitida")}
@@ -1192,11 +1195,12 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
   );
 }
 
-function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu, onIssueCard, onToggleCard, onCreateAccount }: {
+function HomeScreen({ account, accounts, transactions, cards, config, onTransfer, onRbu, onIssueCard, onToggleCard, onCreateAccount }: {
   account: Account;
   accounts: Account[];
   transactions: LedgerTransaction[];
   cards: DigitalCard[];
+  config: BankState["treasuryConfig"];
   onTransfer: (iban: string, amount: number, note: string) => void;
   onRbu: () => void;
   onIssueCard: () => void;
@@ -1288,7 +1292,7 @@ function HomeScreen({ account, accounts, transactions, cards, onTransfer, onRbu,
       </Modal>
 
       <Modal title="Crear cuenta" open={activePopup === "account"} onClose={() => setActivePopup(null)}>
-        <AccountCreationForm parentAccount={account} onCreate={(type, displayName, parentAccountId, cardTier) => {
+        <AccountCreationForm parentAccount={account} config={config} onCreate={(type, displayName, parentAccountId, cardTier) => {
           onCreateAccount(type, displayName, parentAccountId, cardTier);
           setActivePopup(null);
         }} />
@@ -1307,7 +1311,7 @@ const accountProductCopy: Record<AccountType, string> = {
   Investment: "Cartera separada para activos del mercado GDLP."
 };
 
-function AccountCreationForm({ parentAccount, onCreate }: { parentAccount: Account; onCreate: (type: AccountType, displayName: string, parentAccountId?: string | null, cardTier?: DigitalCard["tier"]) => void }) {
+function AccountCreationForm({ parentAccount, config, onCreate }: { parentAccount: Account; config: BankState["treasuryConfig"]; onCreate: (type: AccountType, displayName: string, parentAccountId?: string | null, cardTier?: DigitalCard["tier"]) => void }) {
   const [displayName, setDisplayName] = useState("");
   const [type, setType] = useState<AccountType>("Current");
   const [cardTier, setCardTier] = useState<DigitalCard["tier"]>("Standard");
@@ -1335,6 +1339,7 @@ function AccountCreationForm({ parentAccount, onCreate }: { parentAccount: Accou
         <strong>{suggestedName}</strong>
         <span>{accountProductCopy[type]}</span>
         <small>{type === "Child" ? `Cuenta tutora: ${parentAccount.displayName} · Tarjeta Child` : `Tarjeta ${cardTier} · Alta sin saldo inicial`}</small>
+        <small>Límite: {accountTypeAccountLimit(config, type)} cuentas · saldo máximo {formatPz(accountTypeBalanceLimit(config, type))} Pz</small>
       </div>
       {type !== "Child" && (
         <div className="card-tier-grid" aria-label="Tipo de tarjeta">
@@ -2216,7 +2221,7 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
         {primaryAccount && (
           <div className="account-create-panel">
             <SectionTitle icon={Sparkles} title="Dar de alta producto" />
-            <AccountCreationForm parentAccount={primaryAccount} onCreate={onCreateAccount} />
+            <AccountCreationForm parentAccount={primaryAccount} config={state.treasuryConfig} onCreate={onCreateAccount} />
           </div>
         )}
       </Modal>

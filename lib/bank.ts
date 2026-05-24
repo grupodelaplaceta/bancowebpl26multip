@@ -299,6 +299,16 @@ export type TreasuryConfig = {
   auditDailyTransferLimitPz: number;
   personalDeclarationThresholdPz: number;
   institutionalDeclarationThresholdPz: number;
+  maxCurrentAccounts: number;
+  maxSavingsAccounts: number;
+  maxChildAccounts: number;
+  maxBusinessAccounts: number;
+  maxInvestmentAccounts: number;
+  maxCurrentBalancePz: number;
+  maxSavingsBalancePz: number;
+  maxChildBalancePz: number;
+  maxBusinessBalancePz: number;
+  maxInvestmentBalancePz: number;
   savingsInterestAnnualPercent: number;
   juniorSavingsInterestAnnualPercent: number;
   lateTaxInterestAnnualPercent: number;
@@ -360,6 +370,16 @@ export const treasuryDefaults: TreasuryConfig = {
   auditDailyTransferLimitPz: 5000,
   personalDeclarationThresholdPz: 500000,
   institutionalDeclarationThresholdPz: 10000000,
+  maxCurrentAccounts: 2,
+  maxSavingsAccounts: 3,
+  maxChildAccounts: 4,
+  maxBusinessAccounts: 2,
+  maxInvestmentAccounts: 2,
+  maxCurrentBalancePz: 500000,
+  maxSavingsBalancePz: 1000000,
+  maxChildBalancePz: 5000,
+  maxBusinessBalancePz: 10000000,
+  maxInvestmentBalancePz: 250000,
   savingsInterestAnnualPercent: 2,
   juniorSavingsInterestAnnualPercent: 3,
   lateTaxInterestAnnualPercent: 12,
@@ -398,6 +418,16 @@ export function normalizeTreasuryConfig(config: Partial<TreasuryConfig> = {}): T
     minimumWeeklySalaryPz: clamp(next.minimumWeeklySalaryPz, 1, 10000),
     payrollWorkerTaxPercent: clamp(next.payrollWorkerTaxPercent, 0, 35),
     payrollEmployerTaxPercent: clamp(next.payrollEmployerTaxPercent, 0, 35),
+    maxCurrentAccounts: Math.floor(clamp(next.maxCurrentAccounts, 0, 25)),
+    maxSavingsAccounts: Math.floor(clamp(next.maxSavingsAccounts, 0, 25)),
+    maxChildAccounts: Math.floor(clamp(next.maxChildAccounts, 0, 25)),
+    maxBusinessAccounts: Math.floor(clamp(next.maxBusinessAccounts, 0, 25)),
+    maxInvestmentAccounts: Math.floor(clamp(next.maxInvestmentAccounts, 0, 25)),
+    maxCurrentBalancePz: clamp(next.maxCurrentBalancePz, 0, 100000000),
+    maxSavingsBalancePz: clamp(next.maxSavingsBalancePz, 0, 100000000),
+    maxChildBalancePz: clamp(next.maxChildBalancePz, 0, 100000000),
+    maxBusinessBalancePz: clamp(next.maxBusinessBalancePz, 0, 100000000),
+    maxInvestmentBalancePz: clamp(next.maxInvestmentBalancePz, 0, 100000000),
     savingsInterestAnnualPercent: clamp(next.savingsInterestAnnualPercent, 0, 12),
     juniorSavingsInterestAnnualPercent: clamp(next.juniorSavingsInterestAnnualPercent, 0, 12),
     lateTaxInterestAnnualPercent: clamp(next.lateTaxInterestAnnualPercent, 0, 100),
@@ -460,6 +490,42 @@ function bridgeCommission(amountPz: number, from: Account, to: Account, config: 
   return from.id !== AGLDP_ID && isCrossPlatformTransfer(from, to) ? percentCeil(amountPz, config.webBridgeCommissionPercent) : 0;
 }
 
+export function accountTypeAccountLimit(config: TreasuryConfig, type: AccountType) {
+  return {
+    Current: config.maxCurrentAccounts,
+    Savings: config.maxSavingsAccounts,
+    Child: config.maxChildAccounts,
+    Business: config.maxBusinessAccounts,
+    Investment: config.maxInvestmentAccounts
+  }[type];
+}
+
+export function accountTypeBalanceLimit(config: TreasuryConfig, type: AccountType) {
+  return {
+    Current: config.maxCurrentBalancePz,
+    Savings: config.maxSavingsBalancePz,
+    Child: config.maxChildBalancePz,
+    Business: config.maxBusinessBalancePz,
+    Investment: config.maxInvestmentBalancePz
+  }[type];
+}
+
+function enforceAccountTypeCountLimit(accounts: Account[], ownerPlacetaId: string, type: AccountType, config: TreasuryConfig) {
+  const limit = accountTypeAccountLimit(config, type);
+  if (limit <= 0) throw new Error(`Alta bloqueada: ${accountTypeLabel(type)} no permite nuevas cuentas`);
+  const count = accounts.filter((account) => account.kind === "CITIZEN" && account.placetaId === ownerPlacetaId && account.type === type).length;
+  if (count >= limit) throw new Error(`Límite de ${limit} cuentas ${accountTypeLabel(type)} por PlacetaID`);
+}
+
+function enforceBalanceLimit(account: Account, incomingPz: number, config: TreasuryConfig) {
+  if (account.kind !== "CITIZEN") return;
+  const limit = accountTypeBalanceLimit(config, account.type);
+  if (limit <= 0) throw new Error(`Saldo bloqueado: ${accountTypeLabel(account.type)} no admite saldo`);
+  if (account.balancePz + incomingPz > limit) {
+    throw new Error(`Límite de saldo ${accountTypeLabel(account.type)} superado: máximo ${formatPz(limit)} Pz`);
+  }
+}
+
 export async function sha256(value: string) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -470,6 +536,8 @@ export function makeId(prefix: string) {
 }
 
 export function createBankAccount(state: BankState, ownerPlacetaId: string, displayName: string, type: AccountType, parentAccountId?: string | null, cardTier: DigitalCard["tier"] = type === "Child" ? "Child" : "Standard") {
+  const config = normalizeTreasuryConfig(state.treasuryConfig);
+  enforceAccountTypeCountLimit(state.accounts, ownerPlacetaId, type, config);
   const id = makeId("acct");
   const account: Account = {
     id,
@@ -723,6 +791,7 @@ export function transferByIban(state: BankState, fromId: string, targetIban: str
   const totalDebit = amountPz + fee + bridgeFee;
   if (from.balancePz < totalDebit) throw new Error("Saldo insuficiente");
   if (from.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada para garantizar tu Renta Básica");
+  enforceBalanceLimit(to, amountPz, state.treasuryConfig);
   const tglp = accounts.find((item) => item.id === TGLP_ID);
   const agldp = accounts.find((item) => item.id === AGLDP_ID);
   from.balancePz -= totalDebit;
@@ -761,6 +830,7 @@ export function transferConsumption(state: BankState, fromId: string, toId: stri
   const totalDebit = amountPz + iva + bridgeFee;
   if (from.balancePz < totalDebit) throw new Error("Saldo insuficiente para cubrir IVA y comisiones");
   if (from.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada para garantizar tu Renta Básica");
+  enforceBalanceLimit(to, amountPz, state.treasuryConfig);
   const agldp = accounts.find((item) => item.id === AGLDP_ID);
   from.balancePz -= totalDebit;
   to.balancePz += amountPz;
@@ -792,6 +862,7 @@ export function transferPayrollOrLoan(state: BankState, fromId: string, toId: st
   const totalDebit = amountPz + employerTax;
   if (from.balancePz < totalDebit) throw new Error("Saldo insuficiente para nómina bruta y tributo empresarial");
   if (from.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada para garantizar tu Renta Básica");
+  enforceBalanceLimit(to, netSalary, state.treasuryConfig);
   from.balancePz -= totalDebit;
   to.balancePz += netSalary;
   tglp.balancePz += workerTax + employerTax;
@@ -812,6 +883,7 @@ export function claimRbu(state: BankState, accountId: string, amountPz = 150) {
     if (Date.now() < last.getTime() + RBU_COOLDOWN_DAYS * 86400000) throw new Error("La RBU solo puede reclamarse una vez cada 7 días");
   }
   if (fund.balancePz < amountPz) throw new Error("Fundación Banco de La Placeta no tiene saldo suficiente");
+  enforceBalanceLimit(account, amountPz, state.treasuryConfig);
   fund.balancePz -= amountPz;
   account.balancePz += amountPz;
   account.lastRbuClaim = new Date().toISOString().slice(0, 10);
@@ -1032,6 +1104,7 @@ function simpleTransfer(state: BankState, fromId: string, toId: string, amountPz
   const totalDebit = amountPz + fee;
   if (from.balancePz < totalDebit) throw new Error("Saldo insuficiente");
   if (!bypassShield && from.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada para garantizar tu Renta Básica");
+  enforceBalanceLimit(to, amountPz, state.treasuryConfig);
   from.balancePz -= totalDebit;
   to.balancePz += amountPz;
   const tglp = accounts.find((item) => item.id === TGLP_ID);
@@ -1102,6 +1175,7 @@ export function settleTimedInvestment(state: BankState, operationId: string, use
   const commission = wins ? percentCeil(resultAmount, state.treasuryConfig.investmentGainCommissionPercent) : 0;
   const netReturn = Math.max(0, grossReturn - profitTax - commission);
   if (company.balancePz < grossReturn) throw new Error("La empresa no tiene liquidez para liquidar la inversión");
+  enforceBalanceLimit(investor, netReturn, state.treasuryConfig);
   company.balancePz -= grossReturn;
   investor.balancePz += netReturn;
   tglp.balancePz += profitTax;
@@ -1295,6 +1369,7 @@ export function captureDeveloperPayment(state: BankState, payment: DeveloperPaym
   const totalDebit = payment.totalPz + bridgeFee;
   if (customer.balancePz < totalDebit) throw new Error("Saldo insuficiente para pago, IVA y comisiones");
   if (customer.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Pago bloqueado por escudo de renta mínima");
+  enforceBalanceLimit(nextMerchant, payment.amountPz, state.treasuryConfig);
   nextCustomer.balancePz -= totalDebit;
   nextMerchant.balancePz += payment.amountPz;
   nextTglp.balancePz += payment.ivaPz;
@@ -1367,6 +1442,7 @@ export function capturePaymentLink(state: BankState, linkId: string, payerAccoun
   const totalDebit = link.totalPz + bridgeFee;
   if (payer.balancePz < totalDebit) throw new Error("Saldo insuficiente");
   if (payer.balancePz - totalDebit < MINIMUM_INCOME_SHIELD_PZ) throw new Error("Operación bloqueada por escudo de renta mínima");
+  enforceBalanceLimit(nextTarget, link.amountPz, state.treasuryConfig);
   nextPayer.balancePz -= totalDebit;
   nextTarget.balancePz += link.amountPz;
   if (nextTglp && link.ivaPz > 0) nextTglp.balancePz += link.ivaPz;

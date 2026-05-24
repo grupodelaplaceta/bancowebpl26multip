@@ -8,7 +8,8 @@ import { BANK_API_URL } from "../../../lib/site";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-const baseUrl = () => (process.env.PLACETA_API_BASE_URL || BANK_API_URL).replace(/\/$/, "");
+const configuredBaseUrl = () => (process.env.PLACETA_API_BASE_URL || BANK_API_URL).replace(/\/$/, "");
+const baseUrls = () => Array.from(new Set([configuredBaseUrl(), BANK_API_URL.replace(/\/$/, "")].filter(Boolean)));
 const appId = () => process.env.PLACETA_API_APP_ID || process.env.PLACETA_APP_ID || "org.laplaceta.banco";
 const appSecret = () => requiredProductionSecret("PLACETA_API_SECRET", process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET);
 const noStoreHeaders = {
@@ -88,29 +89,46 @@ function signedHeaders(method: string, path: string, body: string, request?: Req
 
 async function callBankApi(method: "GET" | "PUT", body = "", request?: Request) {
   const path = "/api/state";
-  const url = method === "GET" ? `${baseUrl()}${path}?ts=${Date.now()}` : `${baseUrl()}${path}`;
-  const response = await fetch(url, {
-    method,
-    headers: signedHeaders(method, path, body, request),
-    body: method === "PUT" ? body : undefined,
-    cache: "no-store"
-  });
-  const text = await response.text();
-  const payload = parseRemoteJson(text, response.status);
-  if (!response.ok) throw new Error(payload?.error ? `remote_${response.status}:${payload.error}` : `remote_${response.status}`);
-  return NextResponse.json(payload, { status: response.status, headers: noStoreHeaders });
+  let lastError: unknown = null;
+  for (const remoteBaseUrl of baseUrls()) {
+    try {
+      const url = method === "GET" ? `${remoteBaseUrl}${path}?ts=${Date.now()}` : `${remoteBaseUrl}${path}`;
+      const response = await fetch(url, {
+        method,
+        headers: signedHeaders(method, path, body, request),
+        body: method === "PUT" ? body : undefined,
+        cache: "no-store"
+      });
+      const text = await response.text();
+      const payload = parseRemoteJson(text, response.status);
+      if (!response.ok) throw new Error(payload?.error ? `remote_${response.status}:${payload.error}` : `remote_${response.status}`);
+      return NextResponse.json(payload, { status: response.status, headers: noStoreHeaders });
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("remote_state_unavailable");
 }
 
 async function readRemoteState(request?: Request) {
   const path = "/api/state";
-  const response = await fetch(`${baseUrl()}${path}?ts=${Date.now()}`, {
-    method: "GET",
-    headers: signedHeaders("GET", path, "", request),
-    cache: "no-store"
-  });
-  const text = await response.text();
-  if (!response.ok) throw new Error(text || "remote_state_unavailable");
-  return normalizeState(parseRemoteJson(text, response.status));
+  let lastError: unknown = null;
+  for (const remoteBaseUrl of baseUrls()) {
+    try {
+      const response = await fetch(`${remoteBaseUrl}${path}?ts=${Date.now()}`, {
+        method: "GET",
+        headers: signedHeaders("GET", path, "", request),
+        cache: "no-store"
+      });
+      const text = await response.text();
+      const payload = parseRemoteJson(text, response.status);
+      if (!response.ok) throw new Error(payload?.error ? `remote_${response.status}:${payload.error}` : text || "remote_state_unavailable");
+      return normalizeState(payload);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("remote_state_unavailable");
 }
 
 export async function GET(request: Request) {

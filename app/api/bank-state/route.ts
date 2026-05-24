@@ -48,6 +48,16 @@ function headerSafeError(error: unknown) {
   return message.replace(/[\r\n]/g, " ").slice(0, 180);
 }
 
+function parseRemoteJson(text: string, status: number) {
+  if (!text.trim()) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    const preview = text.replace(/\s+/g, " ").trim().slice(0, 160);
+    throw new Error(`remote_${status}:non_json_response:${preview || "empty"}`);
+  }
+}
+
 function sha256Hex(value: string) {
   return crypto.createHash("sha256").update(value || "", "utf8").digest("hex");
 }
@@ -86,7 +96,7 @@ async function callBankApi(method: "GET" | "PUT", body = "", request?: Request) 
     cache: "no-store"
   });
   const text = await response.text();
-  const payload = text ? JSON.parse(text) : {};
+  const payload = parseRemoteJson(text, response.status);
   if (!response.ok) throw new Error(payload?.error ? `remote_${response.status}:${payload.error}` : `remote_${response.status}`);
   return NextResponse.json(payload, { status: response.status, headers: noStoreHeaders });
 }
@@ -100,7 +110,7 @@ async function readRemoteState(request?: Request) {
   });
   const text = await response.text();
   if (!response.ok) throw new Error(text || "remote_state_unavailable");
-  return normalizeState(text ? JSON.parse(text) : null);
+  return normalizeState(parseRemoteJson(text, response.status));
 }
 
 export async function GET(request: Request) {

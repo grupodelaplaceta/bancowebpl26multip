@@ -1145,32 +1145,30 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
 
       <section className="lp4-hero bank-simple-carousel">
         <div className="web-carousel-frame">
-          <Image src={activeSlide.image} alt={activeSlide.title} fill priority sizes="100vw" unoptimized />
+          <Image src={activeSlide.image} alt="" fill priority sizes="100vw" unoptimized />
         </div>
-        <div className="lp4-hero-shade" />
-        <div className="lp4-hero-inner landing-only">
-          <div className="lp4-hero-copy">
-            <span>{activeSlide.kicker}</span>
-            <h1>{activeSlide.title}</h1>
-            <p>{activeSlide.subtitle}</p>
-            <div className="lp4-hero-actions" aria-label="Acciones principales">
-              <a href="/login">Entrar al banco</a>
-              <a href="#modulos">Ver módulos</a>
-            </div>
-            <div className="lp4-hero-badges" aria-label="Resumen operativo">
-              <span>DIP</span>
-              <span>Placezum</span>
-              <span>Tarjetas virtuales</span>
-            </div>
-          </div>
-          <div className="web-carousel-status" aria-label="Imagen activa del carrusel">
-            {webCarouselSlides.map((slide, index) => (
-              <button key={slide.title} type="button" className={index === slideIndex ? "active" : ""} onClick={() => setSlideIndex(index)}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <strong>{slide.kicker}</strong>
-              </button>
-            ))}
-          </div>
+        <div className="web-carousel-dots" aria-label="Fotos del carrusel">
+          {webCarouselSlides.map((slide, index) => (
+            <button key={slide.title} type="button" className={index === slideIndex ? "active" : ""} onClick={() => setSlideIndex(index)} aria-label={`Ver foto ${index + 1}`} />
+          ))}
+        </div>
+      </section>
+
+      <section className="bank-public-intro">
+        <div>
+          <span>Banca web oficial</span>
+          <h1>Banco de La Placeta</h1>
+          <p>Cuentas GDLP, pagos Placezum, tarjetas virtuales, PDFs firmados, nóminas por DIP y soporte operativo desde una web clara, moderna y preparada para escritorio.</p>
+        </div>
+        <div className="bank-public-actions" aria-label="Acciones principales">
+          <a href="/login">Entrar al banco</a>
+          <a href="#modulos">Ver módulos</a>
+        </div>
+        <div className="bank-public-metrics" aria-label="Resumen del servicio">
+          <span><strong>GDLP</strong><small>IBAN web y app</small></span>
+          <span><strong>PDF</strong><small>Justificantes</small></span>
+          <span><strong>DIP</strong><small>Identidad verificada</small></span>
+          <span><strong>IVA</strong><small>Desglose automático</small></span>
         </div>
       </section>
 

@@ -8770,18 +8770,19 @@ select:focus {
   }
 }
 
-/* Banco landing carousel: image + text only. */
+/* Banco landing carousel: photos only. */
 .landing-page .bank-simple-carousel {
-  min-height: clamp(420px, 72vh, 760px);
+  min-height: clamp(360px, 58vh, 620px);
+  margin: 0 auto;
   background: #0b1020;
+  overflow: hidden;
 }
 .landing-page .bank-simple-carousel .web-carousel-frame {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
-  background:
-    linear-gradient(135deg, #0b1020, #16112a 48%, #10201a);
+  background: #0b1020;
   overflow: hidden;
 }
 .landing-page .bank-simple-carousel .web-carousel-frame > img {
@@ -8791,69 +8792,113 @@ select:focus {
   object-fit: contain;
   object-position: center;
   opacity: 1 !important;
-  filter: saturate(1.03) contrast(1.02) brightness(.88) !important;
+  filter: none !important;
 }
-.landing-page .bank-simple-carousel .lp4-hero-shade {
-  background:
-    linear-gradient(90deg, rgba(8, 12, 24, .88) 0%, rgba(8, 12, 24, .55) 48%, rgba(8, 12, 24, .24) 100%),
-    linear-gradient(180deg, rgba(0, 0, 0, .08), rgba(0, 0, 0, .46));
+.web-carousel-dots {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  z-index: 2;
+  transform: translateX(-50%);
+  display: inline-flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 999px;
+  background: rgba(9, 13, 26, .56);
+  backdrop-filter: blur(12px);
 }
-.landing-page .bank-simple-carousel .lp4-hero-inner,
-.landing-page .bank-simple-carousel .lp4-hero-inner.landing-only {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 28px;
-  max-width: 1180px;
-  min-height: inherit;
-  padding-bottom: clamp(40px, 8vw, 82px);
+.web-carousel-dots button {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 999px;
+  background: rgba(255,255,255,.48);
 }
-.landing-page .bank-simple-carousel .lp4-hero-copy {
-  max-width: 720px;
+.web-carousel-dots button.active {
+  width: 28px;
+  background: #FFD36E;
 }
-.landing-page .bank-simple-carousel .lp4-hero-copy > span,
-.landing-page .bank-simple-carousel .lp4-hero-copy h1,
-.landing-page .bank-simple-carousel .lp4-hero-copy p {
-  color: white;
-  text-shadow: 0 12px 34px rgba(0, 0, 0, .34);
-}
-.landing-page .bank-simple-carousel .lp4-hero-copy h1 {
-  margin-bottom: 12px;
-}
-.landing-page .bank-simple-carousel .lp4-hero-copy p {
-  max-width: 620px;
-}
-.web-carousel-status {
-  width: min(360px, 34vw);
+.bank-public-intro {
+  width: min(1180px, calc(100% - 32px));
+  margin: clamp(18px, 4vw, 34px) auto clamp(34px, 6vw, 68px);
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 22px;
+  align-items: end;
+}
+.bank-public-intro > div:first-child {
+  max-width: 780px;
+}
+.bank-public-intro span,
+.lp4-section-head > span {
+  color: #1f7665;
+  font-size: .78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+.bank-public-intro h1 {
+  margin: 8px 0 0;
+  color: #10201a;
+  font-size: clamp(2.45rem, 7vw, 5.8rem);
+  line-height: .9;
+}
+.bank-public-intro p {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: clamp(1rem, 2vw, 1.18rem);
+  font-weight: 760;
+  line-height: 1.55;
+}
+.bank-public-actions {
+  display: inline-flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+.bank-public-actions a {
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 950;
+  text-decoration: none;
+}
+.bank-public-actions a:first-child {
+  color: white;
+  background: #10201a;
+}
+.bank-public-actions a + a {
+  color: #10201a;
+  border: 1px solid rgba(16,32,26,.16);
+  background: #fff;
+}
+.bank-public-metrics {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
 }
-.web-carousel-status button {
-  min-height: 62px;
-  padding: 12px 14px;
-  border: 1px solid rgba(255,255,255,.18);
+.bank-public-metrics span {
+  min-height: 74px;
+  padding: 14px;
+  border: 1px solid rgba(23,19,34,.08);
   border-radius: 8px;
-  color: rgba(255,255,255,.76);
-  background: rgba(255,255,255,.08);
-  backdrop-filter: blur(16px);
-  display: grid;
-  grid-template-columns: 44px 1fr;
-  gap: 12px;
-  align-items: center;
-  text-align: left;
+  background: #fff;
+  text-transform: none;
 }
-.web-carousel-status button.active {
-  color: white;
-  border-color: rgba(255, 211, 110, .72);
-  background: rgba(255,255,255,.16);
+.bank-public-metrics strong,
+.bank-public-metrics small {
+  display: block;
 }
-.web-carousel-status span {
-  color: #FFD36E;
-  font-weight: 950;
+.bank-public-metrics strong {
+  color: #10201a;
+  font-size: 1.25rem;
 }
-.web-carousel-status strong {
-  color: inherit;
-  font-size: .9rem;
+.bank-public-metrics small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-weight: 760;
 }
 .lp4-section-head p {
   max-width: 760px;
@@ -8894,6 +8939,14 @@ select:focus {
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 14px 36px rgba(23,19,34,.06);
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.bank-ops-grid article:hover,
+.lp4-info-grid a:hover,
+.account-health-grid div:hover {
+  transform: translateY(-2px);
+  border-color: rgba(31,118,101,.24);
+  box-shadow: 0 18px 44px rgba(23,19,34,.09);
 }
 .bank-ops-grid strong {
   display: block;
@@ -8949,6 +9002,70 @@ select:focus {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, #1f7665, #FFD36E);
+}
+
+/* General web polish */
+.landing-page,
+.app-shell {
+  background:
+    linear-gradient(180deg, rgba(31,118,101,.055), rgba(255,255,255,0) 260px),
+    #f5f6fa;
+}
+.lp4-nav {
+  border-bottom: 1px solid rgba(23,19,34,.08);
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(18px);
+}
+.lp4-info-grid a,
+.service-grid button,
+.document-grid button,
+.hub-action-grid button,
+.admin-action-grid button,
+.quick-grid button {
+  border-radius: 8px !important;
+}
+.panel,
+.hub-panel,
+.admin-panel,
+.history-panel,
+.split-panel,
+.market-funds-panel,
+.modal-panel {
+  border-color: rgba(23,19,34,.08) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 12px 34px rgba(23,19,34,.055) !important;
+}
+.section-title {
+  color: #10201a;
+}
+.section-title svg {
+  color: #1f7665;
+}
+.field input,
+.field select,
+.field textarea,
+select,
+input {
+  border-radius: 8px !important;
+}
+.primary-button {
+  border-radius: 8px !important;
+  background: #10201a !important;
+}
+.secondary-button,
+.ghost-button,
+.mini-action {
+  border-radius: 8px !important;
+}
+.transaction-row,
+.account-row,
+.payroll-contract-card,
+.payroll-period-list div {
+  border-radius: 8px !important;
+}
+.toast,
+.action-progress {
+  border-radius: 8px;
 }
 
 /* Refined bank login */
@@ -9130,28 +9247,8 @@ select:focus {
 
 /* Final mobile pass: compact controls and a stronger public landing. */
 .landing-page .bank-simple-carousel {
-  min-height: clamp(500px, 78vh, 760px);
+  min-height: clamp(360px, 58vh, 620px);
   border-radius: 0 0 30px 30px;
-}
-
-.landing-page .bank-simple-carousel .lp4-hero-actions {
-  margin-top: 22px;
-}
-
-.landing-page .bank-simple-carousel .lp4-hero-actions a {
-  min-height: 48px;
-  padding: 0 18px;
-}
-
-.landing-page .bank-simple-carousel .lp4-hero-badges {
-  margin-top: 16px;
-}
-
-.landing-page .bank-simple-carousel .lp4-hero-badges span {
-  color: white;
-  background: rgba(255, 255, 255, .16);
-  border-color: rgba(255, 255, 255, .28);
-  backdrop-filter: blur(10px);
 }
 
 @media (max-width: 760px) {
@@ -9286,76 +9383,22 @@ select:focus {
     object-position: center;
   }
 
-  .landing-page .bank-simple-carousel .lp4-hero-shade {
-    background:
-      linear-gradient(180deg, rgba(11, 5, 32, .30) 0%, rgba(11, 5, 32, .62) 48%, rgba(11, 5, 32, .88) 100%);
-  }
-
-  .landing-page .bank-simple-carousel .lp4-hero-inner,
-  .landing-page .bank-simple-carousel .lp4-hero-inner.landing-only {
-    padding: 88px 16px 30px;
-    align-items: flex-end;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-  }
-
-  .web-carousel-status {
-    width: 100%;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
-  }
-
-  .web-carousel-status button {
-    min-height: 44px;
-    padding: 8px;
-    grid-template-columns: 1fr;
-    gap: 2px;
-  }
-
-  .web-carousel-status strong {
-    display: none;
-  }
-
   .bank-ops-grid,
-  .account-health-grid {
+  .account-health-grid,
+  .bank-public-metrics {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .landing-page .bank-simple-carousel .lp4-hero-copy h1 {
-    font-size: clamp(2.15rem, 12vw, 3.35rem);
+  .bank-public-intro {
+    grid-template-columns: 1fr;
   }
 
-  .landing-page .bank-simple-carousel .lp4-hero-copy p {
-    font-size: .98rem;
-    line-height: 1.35;
+  .bank-public-actions {
+    justify-content: stretch;
   }
 
-  .landing-page .bank-simple-carousel .lp4-hero-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    justify-items: center;
-    gap: 8px;
-    margin-top: 16px;
-  }
-
-  .landing-page .bank-simple-carousel .lp4-hero-actions a {
-    min-height: 42px;
-    padding: 0 10px;
-    border-radius: 13px;
-    font-size: .84rem;
-    width: min(100%, 142px);
-  }
-
-  .landing-page .bank-simple-carousel .lp4-hero-badges {
-    gap: 6px;
-    margin-top: 10px;
-  }
-
-  .landing-page .bank-simple-carousel .lp4-hero-badges span {
-    min-height: 28px;
-    padding: 6px 8px;
-    font-size: .7rem;
+  .bank-public-actions a {
+    flex: 1;
   }
 }
 

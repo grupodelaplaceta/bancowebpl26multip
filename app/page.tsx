@@ -193,12 +193,6 @@ function parsePlacetaIdUser(value: string): PlacetaIdUserPayload | null {
   return null;
 }
 
-function hasPlacetaIdCallback() {
-  if (typeof window === "undefined") return false;
-  const params = new URLSearchParams(window.location.search);
-  return Boolean((params.get("placetaid_token") || params.get("token")) && params.get("user"));
-}
-
 function bankStateFingerprint(state: BankState) {
   return JSON.stringify({
     updatedAt: state.updatedAt || "",
@@ -366,7 +360,7 @@ function BancoPlacetaClient() {
   const [toast, setToast] = useState("");
   const [authError, setAuthError] = useState("");
   const [busyMessage, setBusyMessage] = useState("");
-  const [placetaIdLoading, setPlacetaIdLoading] = useState(() => hasPlacetaIdCallback());
+  const [placetaIdLoading, setPlacetaIdLoading] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("default");
   const [notificationNow, setNotificationNow] = useState(0);
   const stateRef = useRef<BankState>(state);
@@ -379,13 +373,24 @@ function BancoPlacetaClient() {
   const placetaIdCallbackHandledRef = useRef(false);
   const lastRemoteFingerprintRef = useRef("");
 
+  const bankStateHeaders = useCallback((json = false) => {
+    const headers: Record<string, string> = json ? { "content-type": "application/json" } : {};
+    const token = typeof window !== "undefined" ? sessionStorage.getItem("placetaid-token") || "" : "";
+    if (token) headers.Authorization = `Bearer ${token}`;
+    return headers;
+  }, []);
+
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const callbackToken = params.get("placetaid_token") || params.get("token");
+    if (callbackToken) sessionStorage.setItem("placetaid-token", callbackToken);
+
     const cached = localStorage.getItem("placeta-web-state");
     if (cached) {
       setState(normalizeState(JSON.parse(cached)));
       setHydrated(true);
     }
-    fetch(`/api/bank-state?ts=${Date.now()}`, { cache: "no-store" })
+    fetch(`/api/bank-state?ts=${Date.now()}`, { headers: bankStateHeaders(), cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Servicio no disponible");
         const remote = normalizeState(await response.json());
@@ -399,7 +404,7 @@ function BancoPlacetaClient() {
         setSync("offline");
         setHydrated(true);
       });
-  }, []);
+  }, [bankStateHeaders]);
 
   useEffect(() => {
     if (hydrated) localStorage.setItem("placeta-web-state", JSON.stringify(normalizeState(state)));
@@ -473,7 +478,7 @@ function BancoPlacetaClient() {
     if (persistInFlightRef.current || operationInFlightRef.current || remoteRefreshInFlightRef.current) return;
     remoteRefreshInFlightRef.current = true;
     try {
-      const response = await fetch(`/api/bank-state?ts=${Date.now()}`, { cache: "no-store" });
+      const response = await fetch(`/api/bank-state?ts=${Date.now()}`, { headers: bankStateHeaders(), cache: "no-store" });
       if (!response.ok) throw new Error("Servicio no disponible");
       const remote = normalizeState(await response.json());
       const current = stateRef.current;
@@ -494,7 +499,7 @@ function BancoPlacetaClient() {
     } finally {
       remoteRefreshInFlightRef.current = false;
     }
-  }, []);
+  }, [bankStateHeaders]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -609,7 +614,7 @@ function BancoPlacetaClient() {
   }
 
   async function fetchFreshState(applyToUi = true) {
-    const response = await fetch(`/api/bank-state?ts=${Date.now()}`, { cache: "no-store" });
+    const response = await fetch(`/api/bank-state?ts=${Date.now()}`, { headers: bankStateHeaders(), cache: "no-store" });
     if (!response.ok) throw new Error("No se pudo leer el estado remoto");
     const remote = normalizeState(await response.json());
     if (applyToUi) {
@@ -634,7 +639,7 @@ function BancoPlacetaClient() {
     try {
       const response = await fetch("/api/bank-state", {
         method: "PUT",
-        headers: { "content-type": "application/json" },
+        headers: bankStateHeaders(true),
         body: JSON.stringify({ state: normalizedNext, baseUpdatedAt })
       });
       setSync(response.ok ? "online" : "offline");
@@ -661,7 +666,7 @@ function BancoPlacetaClient() {
       persistInFlightRef.current = false;
       setBusyMessage("");
     }
-  }, [silentRemoteRefresh]);
+  }, [bankStateHeaders, silentRemoteRefresh]);
 
   async function runOperation(operation: (fresh: BankState) => BankState, message: string) {
     if (!activeUser) return;
@@ -713,6 +718,7 @@ function BancoPlacetaClient() {
 
     placetaIdCallbackHandledRef.current = true;
     setPlacetaIdLoading(true);
+    sessionStorage.setItem("placetaid-token", token);
     void (async () => {
       try {
         setAuthError("");
@@ -728,7 +734,7 @@ function BancoPlacetaClient() {
         localStorage.setItem("placetaidService", PLACETAID_SERVICE_NAME);
         localStorage.removeItem("placetaidOauthState");
 
-        const fresh = sync === "online" ? await fetchFreshState(false).catch(() => stateRef.current) : stateRef.current;
+        const fresh = await fetchFreshState(false).catch(() => stateRef.current);
         const existing = fresh.users.find((item) => item.dip === normalizedDip);
         if (existing) {
           const ageChecked = applyPlacetaIdAge(fresh, normalizedDip, verifiedAge);

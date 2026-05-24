@@ -24,8 +24,13 @@ declare global {
   var __placetaBankState: BankState | undefined;
 }
 
-function hasRemoteConfig() {
-  return Boolean(productionSecret(process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET));
+function bearerToken(request: Request) {
+  const auth = request.headers.get("authorization") || "";
+  return auth.startsWith("Bearer ") ? auth : "";
+}
+
+function hasRemoteConfig(request?: Request) {
+  return Boolean(productionSecret(process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET) || (request && bearerToken(request)));
 }
 
 function localState() {
@@ -47,7 +52,16 @@ function sha256Hex(value: string) {
   return crypto.createHash("sha256").update(value || "", "utf8").digest("hex");
 }
 
-function signedHeaders(method: string, path: string, body: string) {
+function signedHeaders(method: string, path: string, body: string, request?: Request): Record<string, string> {
+  const bearer = request ? bearerToken(request) : "";
+  if (bearer) {
+    return {
+      "content-type": "application/json",
+      "x-placeta-app-id": appId(),
+      Authorization: bearer
+    };
+  }
+
   const timestamp = String(Date.now());
   const nonce = crypto.randomUUID();
   const bodyHash = sha256Hex(body);
@@ -62,12 +76,12 @@ function signedHeaders(method: string, path: string, body: string) {
   };
 }
 
-async function callBankApi(method: "GET" | "PUT", body = "") {
+async function callBankApi(method: "GET" | "PUT", body = "", request?: Request) {
   const path = "/api/state";
   const url = method === "GET" ? `${baseUrl()}${path}?ts=${Date.now()}` : `${baseUrl()}${path}`;
   const response = await fetch(url, {
     method,
-    headers: signedHeaders(method, path, body),
+    headers: signedHeaders(method, path, body, request),
     body: method === "PUT" ? body : undefined,
     cache: "no-store"
   });
@@ -77,11 +91,11 @@ async function callBankApi(method: "GET" | "PUT", body = "") {
   return NextResponse.json(payload, { status: response.status, headers: noStoreHeaders });
 }
 
-async function readRemoteState() {
+async function readRemoteState(request?: Request) {
   const path = "/api/state";
   const response = await fetch(`${baseUrl()}${path}?ts=${Date.now()}`, {
     method: "GET",
-    headers: signedHeaders("GET", path, ""),
+    headers: signedHeaders("GET", path, "", request),
     cache: "no-store"
   });
   const text = await response.text();
@@ -89,8 +103,8 @@ async function readRemoteState() {
   return normalizeState(text ? JSON.parse(text) : null);
 }
 
-export async function GET() {
-  if (!hasRemoteConfig()) {
+export async function GET(request: Request) {
+  if (!hasRemoteConfig(request)) {
     if (!allowLocalFallback()) {
       return NextResponse.json({ error: "missing_remote_bank_config" }, { status: 503, headers: noStoreHeaders });
     }
@@ -98,7 +112,7 @@ export async function GET() {
   }
 
   try {
-    return await callBankApi("GET");
+    return await callBankApi("GET", "", request);
   } catch (error) {
     if (!allowLocalFallback()) {
       return NextResponse.json({ error: error instanceof Error ? error.message : "sync_failed" }, { status: 503, headers: noStoreHeaders });
@@ -115,7 +129,7 @@ export async function PUT(request: Request) {
     const nextState = normalizeState(payload.state || payload);
     const baseUpdatedAt = payload.baseUpdatedAt || null;
 
-    if (!hasRemoteConfig()) {
+    if (!hasRemoteConfig(request)) {
       if (!allowLocalFallback()) {
         return NextResponse.json({ error: "missing_remote_bank_config" }, { status: 503, headers: noStoreHeaders });
       }
@@ -123,13 +137,13 @@ export async function PUT(request: Request) {
     }
 
     if (baseUpdatedAt) {
-      const remote = await readRemoteState();
+      const remote = await readRemoteState(request);
       if (remote.updatedAt && remote.updatedAt !== baseUpdatedAt) {
         return NextResponse.json({ error: "state_conflict", remote }, { status: 409, headers: noStoreHeaders });
       }
     }
 
-    return await callBankApi("PUT", JSON.stringify(nextState));
+    return await callBankApi("PUT", JSON.stringify(nextState), request);
   } catch (error) {
     if (!allowLocalFallback()) {
       return NextResponse.json({ error: error instanceof Error ? error.message : "sync_failed" }, { status: 503, headers: noStoreHeaders });

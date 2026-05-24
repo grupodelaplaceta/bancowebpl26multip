@@ -10,11 +10,12 @@ const infoPages = [
     summary: "Consulta saldo, IBAN, actividad y documentos desde una vista pensada para operar sin mezclar acciones incompatibles.",
     image: "/assets/promos/promo2.png",
     sections: [
-      { title: "Qué puedes consultar", text: "La cuenta muestra saldo, estado, IBAN, movimientos recientes y accesos a transferencias o documentos cuando corresponda." },
-      { title: "Cómo se opera", text: "Las acciones sensibles se abren en ventanas separadas. Antes de guardar se revisa importe, origen, destino y concepto." },
-      { title: "Cuándo usarla", text: "Úsala para revisar actividad diaria, descargar justificantes y preparar pagos desde escritorio." }
+      { title: "Qué puedes consultar", text: "La cuenta muestra saldo, estado, IBAN, límites por tipo, movimientos recientes, tarjetas asociadas y accesos a transferencias o documentos cuando corresponda." },
+      { title: "Cómo se opera", text: "Las acciones sensibles se abren en ventanas separadas. Antes de guardar se revisa importe, origen, destino, concepto y límites de saldo para evitar operaciones inválidas." },
+      { title: "Cuándo usarla", text: "Úsala para revisar actividad diaria, descargar justificantes, preparar pagos desde escritorio y comprobar si el producto está cerca de su límite de saldo." },
+      { title: "Límites por producto", text: "La web y la app comparten límites de número de cuentas y saldo máximo por tipo: corriente, ahorro, infantil, empresa e inversión." }
     ],
-    bullets: ["Saldo e IBAN siempre visibles", "Transferencias con confirmación", "Extractos y certificados desde Hub", "Sin formularios permanentes ocupando la pantalla"]
+    bullets: ["Saldo e IBAN siempre visibles", "Transferencias con confirmación", "Límites por tipo de cuenta", "Extractos y certificados desde Hub", "Sin formularios permanentes ocupando la pantalla"]
   },
   {
     slug: "placezum",
@@ -23,9 +24,10 @@ const infoPages = [
     summary: "Placezum permite pagar y recibir con código temporal, contactos guardados y límite semanal visible antes de enviar.",
     image: "/assets/promos/placezum-default.png",
     sections: [
-      { title: "Recibir", text: "La web muestra un código temporal y datos de cuenta para que otra persona pueda identificar el destino." },
-      { title: "Pagar", text: "Elige contacto, importe y confirma. La interfaz avisa del cupo disponible para reducir errores." },
-      { title: "Contactos", text: "Guarda contactos por IBAN, Placeta ID o nombre para operar más rápido sin escribirlo cada vez." }
+      { title: "Recibir", text: "La web muestra un código temporal y datos de cuenta para que otra persona pueda identificar el destino sin exponer más información de la necesaria." },
+      { title: "Pagar", text: "Elige contacto, importe y confirma. La interfaz avisa del cupo disponible y el motor valida saldo, límites y comisiones antes de asentar el movimiento." },
+      { title: "Contactos", text: "Guarda contactos por IBAN, Placeta ID o nombre para operar más rápido sin escribirlo cada vez." },
+      { title: "Web y app", text: "Las cuentas creadas en app y web pueden operar en ambas plataformas; solo cambia el prefijo del IBAN y la posible comisión puente cuando cruza plataforma." }
     ],
     bullets: ["Código renovable", "Contactos guardados", "Cupo semanal", "Validación de cuenta antes de enviar"]
   },
@@ -36,11 +38,12 @@ const infoPages = [
     summary: "Controla tarjetas virtuales, estado de bloqueo y datos principales usando los assets originales de Banco de La Placeta.",
     image: "/assets/promocard.jpg",
     sections: [
-      { title: "Tarjeta virtual", text: "Permite operar desde web con numeración y PIN visibles solo cuando el usuario los solicita." },
-      { title: "Control de estado", text: "Puedes congelar o activar una tarjeta para evitar uso accidental." },
+      { title: "Tarjeta virtual", text: "Permite operar desde web con numeración y PIN visibles dentro del panel de tarjetas, no mezclados con movimientos ni soporte." },
+      { title: "Control de estado", text: "Puedes congelar o activar una tarjeta para evitar uso accidental. La cuenta mantiene un límite de tarjetas virtuales para reducir duplicados." },
+      { title: "Promo Card", text: "La Promo Card física aparece como función próxima y no permite alta real hasta que el producto esté preparado." },
       { title: "Uso recomendado", text: "Mantén las tarjetas separadas de pagos, documentos y soporte para no saturar el panel inicial." }
     ],
-    bullets: ["Emitir tarjeta", "Congelar o activar", "Ver PIN cuando toca", "Diseño consistente con la app"]
+    bullets: ["Emitir tarjeta", "Límite de virtuales", "Congelar o activar", "Ver PIN cuando toca", "Promo Card en fabricación"]
   },
   {
     slug: "empresas",
@@ -49,11 +52,12 @@ const infoPages = [
     summary: "Las cuentas empresa agrupan nóminas, alta, actividad asociada y rentabilidad cuando el perfil lo permite.",
     image: "/assets/promos/mercado-default.png",
     sections: [
-      { title: "Alta y datos", text: "La vista empresa debe mostrar la información del alta y el estado administrativo sin esconder datos importantes." },
-      { title: "Nóminas", text: "El módulo de empresa concentra pagos recurrentes y operaciones laborales en un panel más claro que la pantalla principal." },
+      { title: "Alta y datos", text: "La vista empresa muestra información del alta, estado administrativo, saldo, actividad y límites institucionales sin esconder datos importantes." },
+      { title: "Nóminas", text: "El módulo de empresa concentra contratos por DIP, contactos guardados, periodos pendientes y pagos laborales con retención de trabajador y empresa separadas." },
+      { title: "PDF laboral", text: "Cada contrato puede descargar PDF de alta aunque todavía no exista nómina pagada. Los recibos de nómina incluyen desglose bruto, neto y tributos." },
       { title: "Rentabilidad", text: "Si la empresa participa en inversiones, la rentabilidad se interpreta desde el punto de vista de la empresa." }
     ],
-    bullets: ["Panel separado", "Nóminas", "Actividad vinculada", "Rentabilidad por empresa"]
+    bullets: ["Panel separado", "Nóminas por DIP", "PDF de alta", "Actividad vinculada", "Rentabilidad por empresa"]
   },
   {
     slug: "soporte",
@@ -62,8 +66,9 @@ const infoPages = [
     summary: "Un ticket útil explica qué cuenta, tarjeta, inversión o movimiento está relacionado con la incidencia.",
     image: "/assets/logobanco.jpg",
     sections: [
-      { title: "Qué incluir", text: "Describe el problema, cuenta afectada, importe si existe y momento aproximado de la operación." },
+      { title: "Qué incluir", text: "Describe el problema, cuenta afectada, importe si existe, enlace de pago si aplica y momento aproximado de la operación." },
       { title: "Seguimiento", text: "El estado del ticket aparece en Hub y las notificaciones web pueden avisar de cambios relevantes." },
+      { title: "Adjuntos de contexto", text: "La incidencia puede referirse a cuenta, tarjeta, inversión o movimiento para que administración revise sin pedir datos repetidos." },
       { title: "Cuándo abrirlo", text: "Úsalo para operaciones dudosas, documentos, tarjetas, enlaces de pago o incidencias con sincronización." }
     ],
     bullets: ["Asunto claro", "Contexto de cuenta", "Historial de estado", "Seguimiento desde web"]

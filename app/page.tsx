@@ -95,24 +95,43 @@ const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
   { id: "admin", label: "Admin", icon: Landmark }
 ];
 
-const landingSlides = [
+const webCarouselSlides = [
   {
     title: "Banco de La Placeta",
-    kicker: "Banca digital",
-    subtitle: "Cuentas, pagos y tarjetas virtuales en una interfaz clara.",
-    image: "/assets/promos/promo1.png"
+    kicker: "Banca web oficial",
+    subtitle: "Cuentas GDLP, pagos Placezum, documentos firmados y operativa diaria desde una interfaz clara y trazable.",
+    image: "/assets/logobanco.jpg"
   },
   {
-    title: "Pagos rápidos",
-    kicker: "Placezum",
-    subtitle: "Envía, recibe y revisa movimientos sin perderte entre pantallas.",
-    image: "/assets/promos/promo2.png"
+    title: "Operativa diaria sin ruido",
+    kicker: "Cuentas y tarjetas",
+    subtitle: "Consulta saldo, límites, IBAN, tarjetas virtuales y últimos movimientos con acciones separadas y seguras.",
+    image: "/assets/VIRTUALCARD.jpg"
   },
   {
-    title: "Gestión completa",
-    kicker: "Empresas",
-    subtitle: "Nóminas, documentos, soporte y administración en módulos separados.",
-    image: "/assets/promos/mercado-default.png"
+    title: "Pagos y documentación",
+    kicker: "Placezum y PDF",
+    subtitle: "Justificantes, extractos, certificados, nóminas y enlaces de pago preparados para revisar y descargar.",
+    image: "/assets/actu.jpg"
+  }
+];
+
+const landingFeatureBlocks = [
+  {
+    title: "Control de cuentas",
+    text: "Cada producto muestra saldo, límite por tipo, IBAN, estado fiscal y accesos relevantes. Las altas respetan límites de número de cuentas y saldo máximo por tipo."
+  },
+  {
+    title: "Pagos con trazabilidad",
+    text: "Transferencias, Placezum y enlaces separan importe, IVA, comisiones puente Web/App y estado de liquidación para que el movimiento sea auditable."
+  },
+  {
+    title: "Documentación bancaria",
+    text: "Extractos, justificantes de pago, certificados de solvencia y altas laborales se generan como PDF con CSV interno y datos del movimiento."
+  },
+  {
+    title: "Empresas y nóminas",
+    text: "Las cuentas empresa concentran nóminas, contratos por DIP, periodos pendientes, PDFs de alta y pagos laborales con retenciones separadas."
   }
 ];
 
@@ -160,12 +179,12 @@ const confirmation = await captureResponse.json();`,
 };
 
 const landingPages = [
-  { id: "cuentas", title: "Cuentas", icon: WalletCards, image: "/assets/promos/promo2.png", text: "Consulta saldo, IBAN, actividad reciente y accesos de cuenta sin mezclar formularios en la pantalla principal.", bullets: ["Saldo y movimientos", "Transferencias por popup", "Documentos y extractos"] },
+  { id: "cuentas", title: "Cuentas", icon: WalletCards, image: "/assets/promos/promo2.png", text: "Consulta saldo, IBAN, límites, actividad reciente y accesos de cuenta sin mezclar formularios en la pantalla principal.", bullets: ["Saldo y movimientos", "Límites por tipo", "Documentos y extractos"] },
   { id: "placezum", title: "Placezum", icon: QrCode, image: "/assets/promos/placezum-default.png", text: "Pagos rápidos con código temporal, contactos guardados y límites visibles antes de enviar.", bullets: ["Código temporal", "Contactos", "Límite semanal"] },
-  { id: "tarjetas", title: "Tarjetas virtuales", icon: CreditCard, image: "/assets/VIRTUALCARD.jpg", text: "Gestiona tarjetas virtuales con estado claro y acciones separadas. No se emiten tarjetas físicas desde la web.", bullets: ["Emitir tarjeta virtual", "Congelar o activar", "PIN y numeración"] },
-  { id: "empresas", title: "Empresas", icon: Building2, image: "/assets/promos/mercado-default.png", text: "Panel para nóminas, alta de empresa, actividad y rentabilidad cuando la cuenta lo permite.", bullets: ["Nóminas", "Alta empresa", "Actividad asociada"] },
+  { id: "tarjetas", title: "Tarjetas virtuales", icon: CreditCard, image: "/assets/VIRTUALCARD.jpg", text: "Gestiona tarjetas virtuales con estado claro, límite por cuenta y acciones separadas. La Promo Card física aparece como función próxima.", bullets: ["Emitir tarjeta virtual", "Congelar o activar", "Límite por cuenta"] },
+  { id: "empresas", title: "Empresas", icon: Building2, image: "/assets/promos/mercado-default.png", text: "Panel para nóminas por DIP, alta de empresa, actividad y rentabilidad cuando la cuenta lo permite.", bullets: ["Nóminas por DIP", "Alta laboral PDF", "Actividad asociada"] },
   { id: "soporte", title: "Soporte", icon: ShieldCheck, image: "/assets/logobanco.jpg", text: "Tickets con contexto de cuenta, tarjeta, inversión o movimiento para explicar mejor cada incidencia.", bullets: ["Estado del ticket", "Historial", "Contexto de cuenta"] },
-  { id: "developers", title: "API Developers", icon: Lock, image: "/assets/promos/banco-default.png", text: "Pagos externos con token firmado, captura segura y desglose de IVA automático.", bullets: ["Crear pago", "Consultar estado", "Capturar con IVA"] }
+  { id: "developers", title: "API Developers", icon: Lock, image: "/assets/promos/banco-default.png", text: "Pagos externos con token firmado, captura segura, enlaces de pago y desglose de IVA automático.", bullets: ["Crear pago", "Consultar estado", "Capturar con IVA"] }
 ];
 
 const PLACETAID_BASE_URL = "https://id.laplaceta.org";
@@ -1033,11 +1052,11 @@ function PlacetaIdLoadingScreen({ sync }: { sync: "loading" | "online" | "offlin
 
 function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: boolean; authError: string }) {
   const [slideIndex, setSlideIndex] = useState(0);
-  const activeSlide = landingSlides[slideIndex] ?? landingSlides[0];
+  const activeSlide = webCarouselSlides[slideIndex] ?? webCarouselSlides[0];
 
   useEffect(() => {
     if (showLogin) return;
-    const timer = window.setInterval(() => setSlideIndex((value) => (value + 1) % landingSlides.length), 6500);
+    const timer = window.setInterval(() => setSlideIndex((value) => (value + 1) % webCarouselSlides.length), 6500);
     return () => window.clearInterval(timer);
   }, [showLogin]);
 
@@ -1119,12 +1138,15 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
         </a>
         <nav className="lp4-links" aria-label="Navegación landing">
           <a href="#modulos">Módulos</a>
+          <a href="#operativa">Operativa</a>
           <a className="lp4-link-cta" href="/login">Acceder</a>
         </nav>
       </header>
 
       <section className="lp4-hero bank-simple-carousel">
-        <Image src={activeSlide.image} alt={activeSlide.title} fill priority sizes="100vw" />
+        <div className="web-carousel-frame">
+          <Image src={activeSlide.image} alt={activeSlide.title} fill priority sizes="100vw" unoptimized />
+        </div>
         <div className="lp4-hero-shade" />
         <div className="lp4-hero-inner landing-only">
           <div className="lp4-hero-copy">
@@ -1141,13 +1163,22 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
               <span>Tarjetas virtuales</span>
             </div>
           </div>
+          <div className="web-carousel-status" aria-label="Imagen activa del carrusel">
+            {webCarouselSlides.map((slide, index) => (
+              <button key={slide.title} type="button" className={index === slideIndex ? "active" : ""} onClick={() => setSlideIndex(index)}>
+                <span>{String(index + 1).padStart(2, "0")}</span>
+                <strong>{slide.kicker}</strong>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
       <section className="lp4-product" id="modulos">
         <div className="lp4-section-head">
           <span>Accesos</span>
-          <h2>Elige lo que necesitas.</h2>
+          <h2>Todo lo que esperas de una banca web.</h2>
+          <p>La web se organiza por tareas: consultar, pagar, justificar, contratar, invertir y resolver incidencias. Cada módulo enseña información suficiente antes de pedirte una acción.</p>
         </div>
         <div className="lp4-service-grid lp4-info-grid">
           {landingPages.map((item) => {
@@ -1159,16 +1190,34 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
                 </span>
                 <Icon size={22} />
                 <strong>{item.title}</strong>
+                <small>{item.text}</small>
+                <em>{item.bullets.join(" · ")}</em>
               </a>
             );
           })}
         </div>
       </section>
 
+      <section className="bank-ops-section" id="operativa">
+        <div className="lp4-section-head">
+          <span>Operativa</span>
+          <h2>Diseñado para entender tu dinero.</h2>
+          <p>Las acciones críticas viven en modales o paneles dedicados para reducir errores: transferencias, tarjetas, nóminas, documentos, soporte y configuración administrativa.</p>
+        </div>
+        <div className="bank-ops-grid">
+          {landingFeatureBlocks.map((item) => (
+            <article key={item.title}>
+              <strong>{item.title}</strong>
+              <p>{item.text}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
       <section className="lp4-final-cta">
         <div>
           <span>Banco de La Placeta</span>
-          <h2>Accede a tu banca web.</h2>
+          <h2>Accede a tu banca web con identidad verificada.</h2>
         </div>
         <a href="/login">Abrir acceso DIP</a>
       </section>
@@ -1215,6 +1264,10 @@ function HomeScreen({ account, accounts, transactions, cards, config, onTransfer
   const history = transactionsFor(account.id, transactions).slice(0, 8);
   const virtualCardCount = cards.filter((card) => !card.promoPhysical).length;
   const canIssueVirtualCard = virtualCardCount < MAX_VIRTUAL_CARDS_PER_ACCOUNT;
+  const typeBalanceLimit = accountTypeBalanceLimit(config, account.type);
+  const balanceUsage = typeBalanceLimit > 0 ? Math.min(100, Math.round((Math.max(0, account.balancePz) / typeBalanceLimit) * 100)) : 0;
+  const incomingCount = history.filter((transaction) => transaction.toAccountId === account.id).length;
+  const outgoingCount = history.filter((transaction) => transaction.fromAccountId === account.id).length;
 
   return (
     <section className="screen-grid">
@@ -1227,6 +1280,35 @@ function HomeScreen({ account, accounts, transactions, cards, config, onTransfer
         </div>
         <strong>{showBalance ? `${formatMoneyPz(account.balancePz)} Pz` : "••••••"}</strong>
         <p>{account.iban}</p>
+      </article>
+
+      <article className="panel account-insight-panel">
+        <SectionTitle icon={ShieldCheck} title="Estado de cuenta" />
+        <div className="account-health-grid">
+          <div>
+            <span>Tipo</span>
+            <strong>{accountTypeLabel(account.type)}</strong>
+            <small>{account.complianceStatus || "Clear"}</small>
+          </div>
+          <div>
+            <span>Límite saldo</span>
+            <strong>{formatPz(typeBalanceLimit)} Pz</strong>
+            <small>{balanceUsage}% utilizado</small>
+          </div>
+          <div>
+            <span>Movimientos</span>
+            <strong>{history.length}</strong>
+            <small>{incomingCount} entradas · {outgoingCount} salidas</small>
+          </div>
+          <div>
+            <span>Tarjetas</span>
+            <strong>{virtualCardCount}/{MAX_VIRTUAL_CARDS_PER_ACCOUNT}</strong>
+            <small>{cards.filter((card) => !card.frozen).length} activas</small>
+          </div>
+        </div>
+        <div className="account-limit-bar" aria-label={`Uso de saldo ${balanceUsage}%`}>
+          <span style={{ width: `${balanceUsage}%` }} />
+        </div>
       </article>
 
       <div className="quick-grid">
@@ -1242,8 +1324,8 @@ function HomeScreen({ account, accounts, transactions, cards, config, onTransfer
         <div className="service-grid">
           <button onClick={() => setActivePopup("transfer")}><CircleDollarSign size={22} /><strong>Transferir</strong><span>Enviar Pz por IBAN</span></button>
           <button onClick={() => setActivePopup("cards")}><CreditCard size={22} /><strong>Tarjetas virtuales</strong><span>{cards.length ? `${cards.length} vinculadas` : "Emitir una nueva"}</span></button>
-          <button onClick={() => setActivePopup("account")}><Landmark size={22} /><strong>Nueva cuenta</strong><span>Crear IBAN GDLP automático</span></button>
-          <button onClick={onRbu}><Sparkles size={22} /><strong>RBU</strong><span>Abono disponible</span></button>
+          <button onClick={() => setActivePopup("account")}><Landmark size={22} /><strong>Nueva cuenta</strong><span>Alta con límites por tipo</span></button>
+          <button onClick={onRbu}><Sparkles size={22} /><strong>RBU</strong><span>Desde Fundación</span></button>
         </div>
       </article>
 

@@ -30,7 +30,7 @@ function sanitizeItem(input: Partial<GdlpSharedNewsItem>): GdlpSharedNewsItem {
   const title = text(input.title, "Noticia GDLP").slice(0, 140);
   const slug = text(input.slug, title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")).slice(0, 120);
   const summary = text(input.summary || input.body?.[0] || title).slice(0, 320);
-  const image = text(input.image || input.images?.[0] || "/assets/promos/promo1.png");
+  const image = text(input.image || input.images?.[0] || "/assets/promoscarrusel/1.jpg");
   const body = list(input.body).length ? list(input.body).slice(0, 24) : [summary];
   const videos = list(input.videos).slice(0, 8);
   return {

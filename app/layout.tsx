@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { BANK_SITE_URL } from "../lib/site";
+import AccessibilityPanel from "./components/AccessibilityPanel";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -42,7 +43,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        <AccessibilityPanel />
+        <div id="contenido-principal">{children}</div>
+      </body>
     </html>
   );
 }

@@ -30,7 +30,7 @@ export const gdlpNews: GdlpNewsItem[] = [
     tag: "Comunicado",
     summary: "El Grupo de La Placeta estrena portal central para altas, normativa, noticias y mapa del ecosistema.",
     date: "17/05/2026",
-    image: "/assets/promos/promo1.png",
+    image: "/assets/promoscarrusel/1.jpg",
     body: [
       "El portal institucional concentra la información pública del ecosistema y separa la comunicación oficial de las herramientas operativas del banco.",
       "Las noticias se publican como comunicados independientes, con URL propia para consulta posterior y difusión directa.",
@@ -44,7 +44,7 @@ export const gdlpNews: GdlpNewsItem[] = [
     tag: "Ayuda",
     summary: "Toda nueva incorporación debe aceptar el aviso de simulación y el consentimiento RGPD antes de recibir DIP.",
     date: "17/05/2026",
-    image: "/assets/promos/banco-default.png",
+    image: "/assets/promoscarrusel/2.jpg",
     body: [
       "El alta distingue entre identidad, consentimiento y acceso operativo. El DIP identifica al miembro dentro del entorno de rol.",
       "Antes de activar una cuenta, el usuario debe comprender la naturaleza ficticia del ecosistema y aceptar el tratamiento mínimo de datos.",
@@ -57,7 +57,7 @@ export const gdlpNews: GdlpNewsItem[] = [
     tag: "Ecosistema",
     summary: "Las empresas de rol pueden solicitar conexión al módulo de pagos del Banco con IVA simulado por defecto.",
     date: "17/05/2026",
-    image: "/assets/promos/mercado-default.png",
+    image: "/assets/actu.jpg",
     body: [
       "El SDK de pagos permite que comercios internos creen cobros firmados y los capturen desde una cuenta GDLP.",
       "Cada pago separa importe neto, IVA simulado y trazabilidad para que la administración pueda revisar actividad.",
@@ -70,7 +70,7 @@ export const gdlpNews: GdlpNewsItem[] = [
     tag: "Comunicado",
     summary: "El acceso al ecosistema se unifica mediante DIP, contraseña y autenticador para proteger la identidad interna.",
     date: "17/05/2026",
-    image: "/assets/promos/placezum-default.png",
+    image: "/assets/promoscarrusel/2.jpg",
     body: [
       "PlacetaID actúa como identidad común para iniciar sesión en los servicios del ecosistema.",
       "La banca web puede registrar o reconocer una identidad existente y mantener la sesión asociada al DIP.",
@@ -86,7 +86,7 @@ export const planProjects: PlanProject[] = [
     tag: "MongoDB y APIs",
     summary: "Consolidación de PlacetaID, API Gateway y estado centralizado para reducir sistemas manuales.",
     status: "Primer semestre",
-    image: "/assets/promos/promo2.png",
+    image: "/assets/promoscarrusel/1.jpg",
     body: [
       "La infraestructura core agrupa los servicios mínimos que sostienen identidad, estado bancario y comunicaciones entre módulos.",
       "El proyecto prioriza consistencia de datos, endpoints más claros y persistencia robusta para evitar divergencias entre web y app.",
@@ -100,7 +100,7 @@ export const planProjects: PlanProject[] = [
     tag: "Fiscalidad automática",
     summary: "IVA, tasas, IRM y alertas de acumulación calculadas por backend y revisables desde paneles autorizados.",
     status: "En diseño",
-    image: "/assets/promos/banco-default.png",
+    image: "/assets/logobanco.jpg",
     body: [
       "La gobernanza económica busca que los cálculos fiscales simulados sean trazables y revisables desde roles autorizados.",
       "El alcance incluye reglas de IVA, tasas operativas, expedientes y límites configurables por administración.",
@@ -114,7 +114,7 @@ export const planProjects: PlanProject[] = [
     tag: "Pagos y webhooks",
     summary: "Checkout seguro para empresas internas, enlaces de cobro de un solo uso y eventos en tiempo real.",
     status: "Piloto técnico",
-    image: "/assets/promos/mercado-default.png",
+    image: "/assets/actu.jpg",
     body: [
       "El SDK comercial conecta tiendas y servicios internos con pagos firmados del Banco de La Placeta.",
       "La hoja de ruta contempla enlaces de cobro, captura de pagos, eventos de confirmación y desglose fiscal simulado.",
@@ -128,7 +128,7 @@ export const planProjects: PlanProject[] = [
     tag: "Inversiones +18",
     summary: "Operaciones asíncronas, control de edad, límites por riesgo y retención fiscal automática sobre beneficio.",
     status: "Marco normativo",
-    image: "/assets/promos/mercado-default.png",
+    image: "/assets/actu.jpg",
     body: [
       "El mercado regulado separa las cuentas ordinarias de la operativa de inversión y añade restricciones por edad y riesgo.",
       "El proyecto incluye límites por operación, liquidación asíncrona y visualización clara del perfil de riesgo.",
@@ -142,7 +142,7 @@ export const planProjects: PlanProject[] = [
     tag: "RGPD / LOPDGDD",
     summary: "Trazabilidad de cambios, baja con anonimización contable y controles para proteger el ecosistema.",
     status: "Prioridad 2026",
-    image: "/assets/promos/promo1.png",
+    image: "/assets/promoscarrusel/1.jpg",
     body: [
       "Seguridad y privacidad define cómo registrar cambios relevantes sin exponer más datos de los necesarios.",
       "El proyecto contempla logs, baja de usuario, anonimización de historial y revisión de consentimiento.",

@@ -82,9 +82,142 @@ button:active { transform: translateY(1px) scale(.99); }
 button:disabled {
   cursor: not-allowed;
 }
-button:focus-visible, input:focus-visible {
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible {
   outline: 3px solid rgba(63, 0, 216, .24);
   outline-offset: 2px;
+}
+
+.skip-link {
+  position: fixed;
+  left: 12px;
+  top: 12px;
+  z-index: 400;
+  min-height: 42px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: #fff;
+  background: #3F00D8;
+  font-weight: 900;
+  text-decoration: none;
+  transform: translateY(-140%);
+  box-shadow: 0 14px 34px rgba(23, 19, 34, .2);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+.accessibility-panel {
+  position: fixed;
+  right: 14px;
+  bottom: calc(var(--nav-h) + 18px);
+  z-index: 260;
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.accessibility-toggle,
+.accessibility-options {
+  pointer-events: auto;
+}
+
+.accessibility-toggle {
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid rgba(63, 0, 216, .18);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #fff;
+  background: #3F00D8;
+  box-shadow: 0 16px 38px rgba(35, 18, 82, .22);
+  font-weight: 950;
+}
+
+.accessibility-options {
+  width: min(360px, calc(100vw - 24px));
+  padding: 14px;
+  border: 1px solid rgba(63, 0, 216, .16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .96);
+  box-shadow: 0 24px 70px rgba(35, 18, 82, .18);
+  backdrop-filter: blur(18px);
+}
+
+.accessibility-options header {
+  display: grid;
+  gap: 3px;
+  margin-bottom: 10px;
+}
+
+.accessibility-options header strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.accessibility-options header span {
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 850;
+}
+
+.accessibility-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.accessibility-grid button {
+  min-height: 92px;
+  padding: 10px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  border-radius: 14px;
+  background: #f7f4ff;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+  text-align: left;
+}
+
+.accessibility-grid button.active {
+  color: #fff;
+  background: #3F00D8;
+  border-color: #3F00D8;
+}
+
+.accessibility-grid button svg {
+  color: currentColor;
+}
+
+.accessibility-grid button strong,
+.accessibility-grid button small {
+  display: block;
+}
+
+.accessibility-grid button strong {
+  font-size: .84rem;
+  line-height: 1.12;
+}
+
+.accessibility-grid button small {
+  margin-top: 3px;
+  color: inherit;
+  opacity: .78;
+  font-size: .72rem;
+  line-height: 1.22;
+}
+
+.accessibility-reset {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 9px;
+  border-radius: 12px;
+  color: #3F00D8;
+  background: rgba(63, 0, 216, .08);
+  font-weight: 900;
 }
 
 .app-shell {
@@ -9666,7 +9799,7 @@ input {
   padding: clamp(28px, 4.5vw, 52px);
   background:
     linear-gradient(135deg, rgba(63, 0, 216, .94), rgba(31, 8, 92, .92)),
-    url("/assets/promos/promo1.png") center/cover;
+    url("/assets/promoscarrusel/1.jpg") center/cover;
 }
 
 .login-only-side::after {
@@ -9848,5 +9981,477 @@ input {
   .demo-login-button {
     width: 100%;
     max-width: none;
+  }
+}
+
+html[data-a11y-text="large"] body {
+  font-size: 17px;
+}
+
+html[data-a11y-spacing="wide"] body,
+html[data-a11y-spacing="wide"] p,
+html[data-a11y-spacing="wide"] small,
+html[data-a11y-spacing="wide"] span,
+html[data-a11y-spacing="wide"] li {
+  line-height: 1.7;
+}
+
+html[data-a11y-spacing="wide"] .panel,
+html[data-a11y-spacing="wide"] .hub-panel,
+html[data-a11y-spacing="wide"] .admin-panel,
+html[data-a11y-spacing="wide"] .lp4-info-grid a,
+html[data-a11y-spacing="wide"] .bank-ops-grid article {
+  gap: 14px;
+}
+
+html[data-a11y-links="underlined"] a,
+html[data-a11y-links="underlined"] .lp4-links a,
+html[data-a11y-links="underlined"] .bank-public-actions a {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+html[data-a11y-focus="strong"] button:focus-visible,
+html[data-a11y-focus="strong"] input:focus-visible,
+html[data-a11y-focus="strong"] select:focus-visible,
+html[data-a11y-focus="strong"] textarea:focus-visible,
+html[data-a11y-focus="strong"] a:focus-visible {
+  outline: 4px solid #FFD36E;
+  outline-offset: 4px;
+  box-shadow: 0 0 0 8px rgba(63, 0, 216, .28);
+}
+
+html[data-a11y-motion="reduced"] *,
+html[data-a11y-motion="reduced"] *::before,
+html[data-a11y-motion="reduced"] *::after {
+  animation-duration: .001ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: .001ms !important;
+}
+
+html[data-a11y-contrast="true"] {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #ffffff;
+  --ink: #05000f;
+  --ink-soft: #05000f;
+  --muted: #1d1530;
+  --line: rgba(5, 0, 15, .32);
+  --line-strong: rgba(5, 0, 15, .62);
+  --brand: #2A006E;
+  --android-bg: #ffffff;
+  --android-surface: #ffffff;
+  --android-surface-2: #ffffff;
+  --android-ink: #05000f;
+  --android-muted: #1d1530;
+  --android-line: rgba(5, 0, 15, .32);
+}
+
+html[data-a11y-contrast="true"] body,
+html[data-a11y-contrast="true"] .landing-page,
+html[data-a11y-contrast="true"] .app-shell,
+html[data-a11y-contrast="true"] .login-only-page,
+html[data-a11y-contrast="true"] .legal-page,
+html[data-a11y-contrast="true"] .info-page,
+html[data-a11y-contrast="true"] .content-page {
+  color: #05000f;
+  background: #ffffff !important;
+}
+
+html[data-a11y-contrast="true"] .topbar,
+html[data-a11y-contrast="true"] .lp4-nav,
+html[data-a11y-contrast="true"] .info-nav,
+html[data-a11y-contrast="true"] .hero-card,
+html[data-a11y-contrast="true"] .placezum-card,
+html[data-a11y-contrast="true"] .lp4-hero,
+html[data-a11y-contrast="true"] .lp4-final-cta,
+html[data-a11y-contrast="true"] .metric-card,
+html[data-a11y-contrast="true"] .primary-button,
+html[data-a11y-contrast="true"] .accessibility-toggle {
+  color: #ffffff !important;
+  background: #2A006E !important;
+  border-color: #2A006E !important;
+  box-shadow: none !important;
+}
+
+html[data-a11y-contrast="true"] .panel,
+html[data-a11y-contrast="true"] .hub-panel,
+html[data-a11y-contrast="true"] .admin-panel,
+html[data-a11y-contrast="true"] .modal-panel,
+html[data-a11y-contrast="true"] .lp4-info-grid a,
+html[data-a11y-contrast="true"] .bank-public-intro,
+html[data-a11y-contrast="true"] .bank-public-metrics span,
+html[data-a11y-contrast="true"] .bank-ops-grid article,
+html[data-a11y-contrast="true"] .android-beta-section,
+html[data-a11y-contrast="true"] .accessibility-options {
+  color: #05000f !important;
+  background: #ffffff !important;
+  border: 2px solid #05000f !important;
+  box-shadow: none !important;
+}
+
+html[data-a11y-contrast="true"] .muted,
+html[data-a11y-contrast="true"] small,
+html[data-a11y-contrast="true"] .bank-public-intro p,
+html[data-a11y-contrast="true"] .lp4-section-head p,
+html[data-a11y-contrast="true"] .lp4-info-grid a small {
+  color: #1d1530 !important;
+}
+
+/* Public home refresh: scalable, photo-led and aligned to the Banco accent. */
+.landing-page {
+  --home-accent: #3F00D8;
+  --home-ink: #171322;
+  --home-muted: #625a70;
+  background:
+    linear-gradient(180deg, rgba(63, 0, 216, .07), rgba(255, 255, 255, 0) 430px),
+    #f7f6fb;
+}
+
+.landing-page .lp4-nav {
+  width: min(1180px, calc(100% - 24px));
+  min-height: 70px;
+  margin: 10px auto 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .88) !important;
+  box-shadow: 0 18px 46px rgba(35, 18, 82, .10);
+  backdrop-filter: blur(18px);
+}
+
+.landing-page .lp4-brand,
+.landing-page .lp4-brand strong,
+.landing-page .lp4-brand small,
+.landing-page .lp4-links a {
+  color: var(--home-ink);
+}
+
+.landing-page .lp4-logo {
+  width: 52px;
+  height: 52px;
+}
+
+.landing-page .lp4-links {
+  gap: 8px;
+}
+
+.landing-page .lp4-links a {
+  min-height: 40px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-weight: 900;
+}
+
+.landing-page .lp4-links a:hover {
+  color: var(--home-accent);
+  background: rgba(63, 0, 216, .07);
+  border-color: rgba(63, 0, 216, .13);
+}
+
+.landing-page .lp4-links .lp4-link-cta {
+  color: #fff;
+  background: var(--home-accent);
+  border-color: var(--home-accent);
+}
+
+.landing-page .bank-simple-carousel {
+  position: relative;
+  width: min(1180px, calc(100% - 24px));
+  min-height: 0;
+  aspect-ratio: 1024 / 500;
+  margin: 16px auto 0;
+  border: 1px solid rgba(63, 0, 216, .12);
+  border-radius: 28px;
+  background: #160044;
+  box-shadow: 0 28px 80px rgba(35, 18, 82, .20);
+  overflow: hidden;
+}
+
+.landing-page .bank-simple-carousel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(23, 19, 34, 0) 62%, rgba(23, 19, 34, .22)),
+    radial-gradient(circle at 12% 12%, rgba(255,255,255,.12), transparent 26%);
+}
+
+.landing-page .bank-simple-carousel .web-carousel-frame {
+  background: #160044;
+}
+
+.landing-page .bank-simple-carousel .web-carousel-frame > img {
+  object-fit: contain !important;
+  animation: bank-carousel-breathe 7s ease-in-out infinite alternate;
+}
+
+.web-carousel-dots {
+  bottom: 14px;
+  z-index: 3;
+  background: rgba(255,255,255,.22);
+  border: 1px solid rgba(255,255,255,.24);
+  box-shadow: 0 10px 30px rgba(23, 19, 34, .18);
+}
+
+.web-carousel-dots button {
+  background: rgba(255,255,255,.62);
+}
+
+.web-carousel-dots button.active {
+  background: #fff;
+}
+
+.bank-public-intro {
+  width: min(1180px, calc(100% - 24px));
+  margin: 22px auto 54px;
+  padding: 22px;
+  grid-template-columns: minmax(0, .98fr) minmax(250px, .42fr);
+  gap: 18px;
+  align-items: stretch;
+  border: 1px solid rgba(63, 0, 216, .10);
+  border-radius: 26px;
+  background: rgba(255,255,255,.82);
+  box-shadow: 0 18px 54px rgba(35, 18, 82, .09);
+  backdrop-filter: blur(16px);
+}
+
+.bank-public-intro h1 {
+  max-width: 720px;
+  font-size: 4.35rem;
+  line-height: .92;
+}
+
+.bank-public-intro p {
+  max-width: 720px;
+  color: var(--home-muted);
+  font-size: 1.05rem;
+}
+
+.bank-public-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: end;
+}
+
+.bank-public-actions a {
+  min-height: 52px;
+  border-radius: 16px;
+}
+
+.bank-public-actions a:first-child {
+  background: var(--home-accent);
+  box-shadow: 0 16px 36px rgba(63, 0, 216, .22);
+}
+
+.bank-public-actions a + a {
+  color: var(--home-accent);
+  border-color: rgba(63, 0, 216, .16);
+  background: rgba(63, 0, 216, .06);
+}
+
+.bank-public-metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.bank-public-metrics span,
+.bank-ops-grid article,
+.lp4-info-grid a,
+.android-beta-section {
+  border-color: rgba(63, 0, 216, .10);
+  border-radius: 20px;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 16px 44px rgba(35, 18, 82, .07);
+}
+
+.bank-public-metrics span {
+  min-height: 86px;
+  display: grid;
+  align-content: center;
+}
+
+.bank-public-metrics strong {
+  color: var(--home-accent);
+}
+
+.lp4-product,
+.bank-ops-section {
+  width: min(1180px, calc(100% - 24px));
+  margin-bottom: 54px;
+}
+
+.lp4-section-head h2 {
+  color: var(--home-ink);
+  font-size: 2.35rem;
+  line-height: 1;
+}
+
+.lp4-section-head p {
+  color: var(--home-muted);
+  font-size: 1rem;
+}
+
+.lp4-info-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.lp4-info-grid a {
+  min-height: 360px;
+  padding: 14px;
+  align-content: start;
+  overflow: hidden;
+}
+
+.lp4-info-grid a:hover,
+.bank-ops-grid article:hover,
+.android-beta-section:hover {
+  transform: translateY(-4px);
+  border-color: rgba(63, 0, 216, .22);
+  box-shadow: 0 24px 66px rgba(35, 18, 82, .12);
+}
+
+.lp4-info-image {
+  height: 150px;
+  margin: -2px -2px 12px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: rgba(63, 0, 216, .08);
+}
+
+.lp4-info-image img {
+  object-fit: cover;
+  transition: transform .4s ease;
+}
+
+.lp4-info-grid a:hover .lp4-info-image img {
+  transform: scale(1.04);
+}
+
+.lp4-info-grid svg {
+  width: 34px;
+  height: 34px;
+  padding: 7px;
+  border-radius: 12px;
+  color: #fff;
+  background: var(--home-accent);
+}
+
+.lp4-info-grid a strong {
+  color: var(--home-ink);
+  font-size: 1.13rem;
+}
+
+.lp4-info-grid a small,
+.lp4-info-grid a em {
+  color: var(--home-muted);
+}
+
+.lp4-info-grid a em {
+  color: var(--home-accent);
+}
+
+.bank-ops-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.bank-ops-grid article {
+  min-height: 210px;
+  padding: 20px;
+}
+
+.android-beta-section {
+  border-radius: 26px;
+  background:
+    linear-gradient(135deg, rgba(63,0,216,.10), rgba(255,255,255,.82)),
+    rgba(255,255,255,.92);
+}
+
+@keyframes bank-carousel-breathe {
+  from { transform: scale(1); }
+  to { transform: scale(1.018); }
+}
+
+@media (max-width: 980px) {
+  .landing-page .lp4-nav,
+  .landing-page .bank-simple-carousel,
+  .bank-public-intro,
+  .lp4-product,
+  .bank-ops-section,
+  .android-beta-section {
+    width: min(100% - 18px, 1180px);
+  }
+
+  .bank-public-intro {
+    grid-template-columns: 1fr;
+  }
+
+  .bank-public-intro h1 {
+    font-size: 3.2rem;
+  }
+
+  .lp4-info-grid,
+  .bank-ops-grid,
+  .bank-public-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-page .lp4-nav {
+    position: sticky;
+    top: 8px;
+    z-index: 20;
+    min-height: 62px;
+    border-radius: 18px;
+  }
+
+  .landing-page .lp4-links a:not(.lp4-link-cta) {
+    display: none;
+  }
+
+  .landing-page .bank-simple-carousel {
+    aspect-ratio: 1024 / 500;
+    border-radius: 20px;
+  }
+
+  .bank-public-intro {
+    margin-top: 12px;
+    padding: 16px;
+    border-radius: 20px;
+  }
+
+  .bank-public-intro h1 {
+    font-size: 2.35rem;
+  }
+
+  .bank-public-intro p,
+  .lp4-section-head p {
+    font-size: .96rem;
+  }
+
+  .lp4-section-head h2 {
+    font-size: 1.75rem;
+  }
+
+  .lp4-info-grid,
+  .bank-ops-grid,
+  .bank-public-metrics,
+  .android-beta-section {
+    grid-template-columns: 1fr;
+  }
+
+  .lp4-info-grid a {
+    min-height: 0;
+  }
+
+  .lp4-info-image {
+    height: 138px;
   }
 }

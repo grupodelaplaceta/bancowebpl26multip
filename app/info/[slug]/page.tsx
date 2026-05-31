@@ -8,7 +8,7 @@ const infoPages = [
     tag: "Cuentas",
     title: "Cuentas digitales de Banco de La Placeta",
     summary: "Consulta saldo, IBAN, actividad y documentos desde una vista pensada para operar sin mezclar acciones incompatibles.",
-    image: "/assets/promos/promo2.png",
+    image: "/assets/promoscarrusel/1.jpg",
     sections: [
       { title: "Qué puedes consultar", text: "La cuenta muestra saldo, estado, IBAN, límites por tipo, movimientos recientes, tarjetas asociadas y accesos a transferencias o documentos cuando corresponda." },
       { title: "Cómo se opera", text: "Las acciones sensibles se abren en ventanas separadas. Antes de guardar se revisa importe, origen, destino, concepto y límites de saldo para evitar operaciones inválidas." },
@@ -22,7 +22,7 @@ const infoPages = [
     tag: "Pagos",
     title: "Placezum para pagos rápidos",
     summary: "Placezum permite pagar y recibir con código temporal, contactos guardados y límite semanal visible antes de enviar.",
-    image: "/assets/promos/placezum-default.png",
+    image: "/assets/promoscarrusel/2.jpg",
     sections: [
       { title: "Recibir", text: "La web muestra un código temporal y datos de cuenta para que otra persona pueda identificar el destino sin exponer más información de la necesaria." },
       { title: "Pagar", text: "Elige contacto, importe y confirma. La interfaz avisa del cupo disponible y el motor valida saldo, límites y comisiones antes de asentar el movimiento." },
@@ -50,7 +50,7 @@ const infoPages = [
     tag: "Empresas",
     title: "Cuentas empresa y gestión operativa",
     summary: "Las cuentas empresa agrupan nóminas, alta, actividad asociada y rentabilidad cuando el perfil lo permite.",
-    image: "/assets/promos/mercado-default.png",
+    image: "/assets/actu.jpg",
     sections: [
       { title: "Alta y datos", text: "La vista empresa muestra información del alta, estado administrativo, saldo, actividad y límites institucionales sin esconder datos importantes." },
       { title: "Nóminas", text: "El módulo de empresa concentra contratos por DIP, contactos guardados, periodos pendientes y pagos laborales con retención de trabajador y empresa separadas." },
@@ -78,7 +78,7 @@ const infoPages = [
     tag: "API",
     title: "API para Developers y pagos externos",
     summary: "Integra pagos externos con token firmado, captura de un solo uso y separación automática del IVA.",
-    image: "/assets/promos/banco-default.png",
+    image: "/assets/promocard.jpg",
     sections: [
       { title: "Crear un pago", text: "El comercio envía cuenta destino, importe neto y concepto. La API calcula IVA y total." },
       { title: "Consultar estado", text: "La URL firmada permite recuperar el estado antes de mostrar el checkout." },
@@ -92,7 +92,7 @@ const infoPages = [
     tag: "Seguridad",
     title: "Seguridad operativa y coherencia entre sesiones",
     summary: "La web prioriza contexto, trazabilidad y confirmaciones para evitar duplicados o operaciones incoherentes entre dispositivos.",
-    image: "/assets/promos/promo1.png",
+    image: "/assets/promoscarrusel/1.jpg",
     sections: [
       { title: "Origen y destino", text: "Cada operación debe conservar cuenta origen, cuenta destino, concepto, estado y fecha." },
       { title: "Sin duplicados", text: "Las acciones sensibles se validan contra el estado más reciente antes de persistir." },
@@ -105,7 +105,7 @@ const infoPages = [
     tag: "Pagos",
     title: "Cómo enviar un pago sin errores",
     summary: "Una buena operación empieza revisando importe, cuenta destino y concepto antes de confirmar.",
-    image: "/assets/promos/placezum-default.png",
+    image: "/assets/promoscarrusel/2.jpg",
     sections: [
       { title: "Antes de enviar", text: "Comprueba IBAN o contacto, importe, concepto y límite disponible." },
       { title: "Durante la confirmación", text: "La web separa el formulario en popup para que no pulses una acción por accidente." },
@@ -118,7 +118,7 @@ const infoPages = [
     tag: "Inversiones",
     title: "Qué cuenta usar para inversiones",
     summary: "Solo una cuenta compatible debe mostrar herramientas de inversión; una cuenta normal debe explicar que no aplica.",
-    image: "/assets/promos/mercado-default.png",
+    image: "/assets/actu.jpg",
     sections: [
       { title: "Cuenta de inversión", text: "Muestra mercado, límites diarios por empresa, riesgo, operaciones pendientes y resultados." },
       { title: "Cuenta empresa", text: "Muestra alta, capital recibido, margen y rentabilidad desde el punto de vista empresarial." },

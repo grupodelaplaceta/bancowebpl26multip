@@ -283,6 +283,15 @@ export type DonationReward = {
   updatedAt?: string;
 };
 
+export type AndroidBetaSignup = {
+  id: string;
+  name: string;
+  contact: string;
+  channel: "email" | "whatsapp";
+  status: "Registered" | "Invited";
+  createdAt: string;
+};
+
 export type TreasuryConfig = {
   operationalTransferTaxPercent: number;
   webBridgeCommissionPercent: number;
@@ -345,6 +354,7 @@ export type BankState = {
   gdlpSharedNews: GdlpSharedNewsItem[];
   periodicoNews: GdlpSharedNewsItem[];
   donationRewards: DonationReward[];
+  androidBetaSignups: AndroidBetaSignup[];
   schemaSeedVersion?: number;
   updatedAt?: string | null;
 };
@@ -668,6 +678,7 @@ export function demoSeed(): BankState {
     gdlpSharedNews: [],
     periodicoNews: [],
     donationRewards: [],
+    androidBetaSignups: [],
     promoSlides: [
       { id: "promo-1", title: "BANCO DE LA PLACETA", subtitle: "Tu centro financiero seguro, claro y siempre a mano.", action: "Login", imageKey: "bank", assetPath: "promos/banco-default.png" },
       { id: "promo-2", title: "PLACEZUM", subtitle: "Pagos rápidos con IBAN GDLP app o web y control total.", action: "Register", imageKey: "placezum", assetPath: "promos/placezum-default.png" },
@@ -735,6 +746,7 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
     gdlpSharedNews: dedupeBy(input.gdlpSharedNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
     periodicoNews: dedupeBy(input.periodicoNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
     donationRewards: dedupeBy(input.donationRewards || [], "id").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
+    androidBetaSignups: dedupeBy(input.androidBetaSignups || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     treasuryConfig: normalizeTreasuryConfig(input.treasuryConfig || {}),
     promoSlides: dedupeBy(input.promoSlides?.length ? input.promoSlides : seed.promoSlides, "id"),
     updatedAt: input.updatedAt || seed.updatedAt

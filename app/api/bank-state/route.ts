@@ -102,7 +102,7 @@ async function callBankApi(method: "GET" | "PUT", body = "", request?: Request) 
       const text = await response.text();
       const payload = parseRemoteJson(text, response.status);
       if (!response.ok) throw new Error(payload?.error ? `remote_${response.status}:${payload.error}` : `remote_${response.status}`);
-      return NextResponse.json(payload, { status: response.status, headers: noStoreHeaders });
+      return NextResponse.json(normalizeState(payload), { status: response.status, headers: noStoreHeaders });
     } catch (error) {
       lastError = error;
     }

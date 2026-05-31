@@ -8960,6 +8960,102 @@ select:focus {
   font-weight: 720;
   line-height: 1.5;
 }
+.android-beta-section {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto clamp(34px, 6vw, 68px);
+  padding: clamp(18px, 3vw, 28px);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 420px);
+  gap: 18px;
+  align-items: center;
+  border: 1px solid rgba(23,19,34,.08);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(63,0,216,.08), rgba(31,118,101,.08)),
+    #fff;
+  box-shadow: 0 14px 36px rgba(23,19,34,.06);
+}
+.android-beta-copy {
+  min-width: 0;
+}
+.android-beta-copy > span {
+  color: #1f7665;
+  font-size: .78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+.android-beta-copy h2 {
+  margin: 8px 0 0;
+  color: #10201a;
+  font-size: clamp(1.8rem, 4vw, 3.4rem);
+  line-height: .95;
+}
+.android-beta-copy p {
+  max-width: 650px;
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-weight: 760;
+  line-height: 1.55;
+}
+.android-beta-points {
+  margin-top: 18px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.android-beta-points span {
+  min-height: 38px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(31,118,101,.16);
+  border-radius: 8px;
+  color: #10201a;
+  background: rgba(255,255,255,.78);
+  font-weight: 900;
+}
+.android-beta-form {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  border-radius: 8px;
+  background: rgba(255,255,255,.9);
+}
+.android-beta-form label {
+  display: grid;
+  gap: 6px;
+}
+.android-beta-form label span {
+  color: var(--muted);
+  font-size: .82rem;
+  font-weight: 900;
+}
+.android-beta-form input {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid rgba(63, 0, 216, .14);
+  border-radius: 8px;
+  background: #f8f6ff;
+  color: var(--ink);
+}
+.android-beta-channel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.android-beta-status {
+  min-height: 20px;
+  margin: 0;
+  color: #1f7665;
+  font-size: .88rem;
+  font-weight: 850;
+  line-height: 1.35;
+  opacity: 0;
+}
+.android-beta-status.visible {
+  opacity: 1;
+}
 .account-insight-panel {
   display: grid;
   gap: 14px;
@@ -9385,8 +9481,14 @@ input {
 
   .bank-ops-grid,
   .account-health-grid,
-  .bank-public-metrics {
+  .bank-public-metrics,
+  .android-beta-section {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .android-beta-section {
+    width: min(100% - 20px, 1180px);
+    padding: 16px;
   }
 
   .bank-public-intro {
@@ -9403,6 +9505,10 @@ input {
 }
 
 @media (max-width: 390px) {
+  .android-beta-section {
+    grid-template-columns: 1fr;
+  }
+
   .quick-grid,
   .service-grid,
   .contact-grid,

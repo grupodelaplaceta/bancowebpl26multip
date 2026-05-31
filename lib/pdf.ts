@@ -16,6 +16,22 @@ type PdfDocumentInput = {
   id: string;
   title: string;
   kind: WebDocumentKind;
+  labor?: {
+    companyName: string;
+    employeeName: string;
+    employeeDip: string;
+    roleTitle: string;
+    startDate: string;
+    frequency: string;
+    grossSalaryPz: number;
+    workerTaxPz?: number;
+    employerTaxPz?: number;
+    netSalaryPz?: number;
+    companyIban?: string;
+    workerIban?: string;
+    status?: string;
+    periodLabel?: string;
+  };
 };
 
 const PAGE_W = 595;
@@ -188,30 +204,34 @@ function drawInvestmentLiquidation(ops: string[], account: Account, document: Pd
 
 function drawLaborContract(ops: string[], account: Account, document: PdfDocumentInput, txn?: LedgerTransaction) {
   header(ops, "BANCO DE LA PLACETA", txn ? "NÓMINA Y RELACIÓN LABORAL REGISTRADA" : "CERTIFICADO DE ALTA LABORAL", document);
-  const gross = txn?.amountPz || 200;
-  const workerRetention = Math.floor(gross * 20 / 200);
-  const employerContribution = Math.floor(gross * 20 / 200);
-  const net = gross - workerRetention;
+  const labor = document.labor;
+  const gross = txn?.amountPz || labor?.grossSalaryPz || 0;
+  const totalTax = txn ? Math.max(txn.taxAmount, txn.ivaPz) : 0;
+  const workerRetention = labor?.workerTaxPz ?? (txn ? Math.ceil(totalTax / 2) : Math.ceil(gross * 0.1));
+  const employerContribution = labor?.employerTaxPz ?? (txn ? Math.max(0, totalTax - workerRetention) : Math.ceil(gross * 0.1));
+  const net = labor?.netSalaryPz ?? Math.max(0, gross - workerRetention);
   text(ops, txn ? "Partes contratantes" : "Alta registrada", 42, 158, 14, ink, true);
-  row(ops, "Empresa/Asociación", account.type === "Business" ? account.id : txn?.fromAccountId || "ASOC-GDLP", 54, 190);
-  row(ops, "Empleado DIP", account.placetaId || txn?.toAccountId || account.id, 54, 218);
-  row(ops, "Rol verificado", account.citizenshipTier || "CiudadaniaPlena", 54, 246);
+  row(ops, "Empresa/Asociación", labor?.companyName || txn?.fromAccountId || "ASOC-GDLP", 54, 190);
+  row(ops, "Empleado", labor?.employeeName || account.displayName, 54, 218);
+  row(ops, "Empleado DIP", labor?.employeeDip || account.placetaId || txn?.toAccountId || account.id, 54, 246);
+  row(ops, "Puesto verificado", labor?.roleTitle || account.citizenshipTier || "CiudadaniaPlena", 54, 274);
   roundRect(ops, 42, 292, 511, 176, 14, soft, border);
   money(ops, txn ? "Sueldo bruto liquidado" : "Sueldo bruto semanal pactado", gross, 58, 324);
   row(ops, "Cumple SMI vigente", String(gross >= 150), 58, 354);
-  row(ops, "Estado de alta", txn ? "Alta con periodo liquidado" : "Alta laboral registrada sin liquidación", 58, 384);
-  row(ops, "Cotización total", "20% entre empresa y trabajador", 58, 414);
+  row(ops, "Estado de alta", txn ? `Periodo liquidado${labor?.periodLabel ? ` · ${labor.periodLabel}` : ""}` : labor?.status || "Alta laboral registrada sin liquidación", 58, 384);
+  row(ops, "Frecuencia", labor?.frequency || "Semanal", 58, 414);
   money(ops, "Retención trabajador", workerRetention, 58, 444, true);
   money(ops, "Aportación patronal", employerContribution, 300, 444);
   money(ops, txn ? "Sueldo neto abonado" : "Sueldo neto previsto", net, 58, 466, false, true);
   line(ops, 42, 504, 553, 504);
   text(ops, "Trazabilidad del alta", 42, 538, 14, ink, true);
   row(ops, "Registro laboral", document.id, 54, 570);
-  row(ops, "Cuenta trabajador", account.iban, 54, 598);
-  row(ops, "Responsable datos", `Delegado_Datos_${account.id.slice(0, 8)}`, 54, 626);
-  row(ops, "Registro actividades", "Inscrito_En_Log_Central", 54, 654);
-  wrapped(ops, "Cláusula RGPD: la organización empleadora conserva trazabilidad del alta, periodos y pagos en el registro central del Banco de La Placeta.", 54, 690, 92, 9.5);
-  wrapped(ops, "Base normativa: Disposiciones de Empresas y Asociaciones / Capítulo IV (Salario Mínimo Interprofesional).", 54, 740, 92, 9.5);
+  row(ops, "IBAN empresa", labor?.companyIban || txn?.IBAN_Origin || "No informado", 54, 598);
+  row(ops, "IBAN trabajador", labor?.workerIban || account.iban, 54, 626);
+  row(ops, "Responsable datos", `Delegado_Datos_${account.id.slice(0, 8)}`, 54, 654);
+  row(ops, "Inicio contrato", labor?.startDate || "No informado", 54, 682);
+  row(ops, "Registro actividades", "Inscrito_En_Log_Central", 54, 710);
+  fitText(ops, "Clausula RGPD: trazabilidad del alta, periodos y pagos en el registro central.", 54, 742, 470, 9.5, muted);
   footer(ops, document, account);
 }
 

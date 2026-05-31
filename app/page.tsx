@@ -18,7 +18,10 @@ import {
   MoreHorizontal,
   QrCode,
   ScanLine,
+  Mail,
+  MessageCircle,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   TrendingUp,
   WalletCards,
@@ -28,6 +31,7 @@ import type { LucideIcon } from "lucide-react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import {
   Account,
   accountTypeAccountLimit,
@@ -35,6 +39,7 @@ import {
   AccountType,
   accountTypeLabel,
   AGLDP_ID,
+  AndroidBetaSignup,
   BankState,
   businessUsageFeePreview,
   chargeWeeklyTax,
@@ -1052,6 +1057,10 @@ function PlacetaIdLoadingScreen({ sync }: { sync: "loading" | "online" | "offlin
 
 function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: boolean; authError: string }) {
   const [slideIndex, setSlideIndex] = useState(0);
+  const [betaName, setBetaName] = useState("");
+  const [betaContact, setBetaContact] = useState("");
+  const [betaChannel, setBetaChannel] = useState<"email" | "whatsapp">("email");
+  const [betaSubmitted, setBetaSubmitted] = useState(false);
   const activeSlide = webCarouselSlides[slideIndex] ?? webCarouselSlides[0];
 
   useEffect(() => {
@@ -1071,6 +1080,44 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
     url.searchParams.set("state", stateToken);
     url.searchParams.set("service", PLACETAID_SERVICE_NAME);
     window.location.href = url.toString();
+  }
+
+  async function submitBeta(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const signup: AndroidBetaSignup = {
+      id: crypto.randomUUID(),
+      name: betaName.trim(),
+      contact: betaContact.trim(),
+      channel: betaChannel,
+      status: "Registered",
+      createdAt: new Date().toISOString()
+    };
+    if (!signup.contact) return;
+    let stored = false;
+    try {
+      const response = await fetch("/api/bank-state", { cache: "no-store" });
+      if (!response.ok) throw new Error("No se pudo leer el estado");
+      const bankState = normalizeState(await response.json());
+      const nextState = finalizeState({
+        ...bankState,
+        androidBetaSignups: [signup, ...(bankState.androidBetaSignups || [])]
+      });
+      const saved = await fetch("/api/bank-state", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ state: nextState, baseUpdatedAt: bankState.updatedAt || null })
+      });
+      stored = saved.ok;
+    } catch {
+      stored = false;
+    }
+    if (!stored) {
+      const current = JSON.parse(localStorage.getItem("banco-android-beta-signups") || "[]");
+      localStorage.setItem("banco-android-beta-signups", JSON.stringify([signup, ...current].slice(0, 50)));
+    }
+    setBetaSubmitted(true);
+    setBetaName("");
+    setBetaContact("");
   }
 
   const loginForm = (
@@ -1139,6 +1186,7 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
         <nav className="lp4-links" aria-label="Navegación landing">
           <a href="#modulos">Módulos</a>
           <a href="#operativa">Operativa</a>
+          <a href="#android-beta">Android BETA</a>
           <a className="lp4-link-cta" href="/login">Acceder</a>
         </nav>
       </header>
@@ -1210,6 +1258,43 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
             </article>
           ))}
         </div>
+      </section>
+
+      <section className="android-beta-section" id="android-beta">
+        <div className="android-beta-copy">
+          <span>Programa BETA Android</span>
+          <h2>Prueba antes el APK de la app.</h2>
+          <p>Inscríbete para recibir próximamente el acceso por correo electrónico o WhatsApp cuando el paquete de prueba esté listo.</p>
+          <div className="android-beta-points">
+            <span><Smartphone size={16} /> APK Android</span>
+            <span><Mail size={16} /> Correo electrónico</span>
+            <span><MessageCircle size={16} /> WhatsApp</span>
+          </div>
+        </div>
+        <form className="android-beta-form" onSubmit={submitBeta}>
+          <label>
+            <span>Nombre</span>
+            <input value={betaName} onChange={(event) => setBetaName(event.target.value.slice(0, 50))} placeholder="Tu nombre" />
+          </label>
+          <label>
+            <span>{betaChannel === "email" ? "Correo electrónico" : "WhatsApp"}</span>
+            <input
+              required
+              value={betaContact}
+              onChange={(event) => setBetaContact(event.target.value.slice(0, 80))}
+              placeholder={betaChannel === "email" ? "nombre@correo.com" : "+34 600 000 000"}
+              type={betaChannel === "email" ? "email" : "tel"}
+            />
+          </label>
+          <div className="segmented android-beta-channel">
+            <button type="button" className={betaChannel === "email" ? "active" : ""} onClick={() => setBetaChannel("email")}>Email</button>
+            <button type="button" className={betaChannel === "whatsapp" ? "active" : ""} onClick={() => setBetaChannel("whatsapp")}>WhatsApp</button>
+          </div>
+          <button type="submit" className="primary-button">Inscribirme al BETA</button>
+          <p className={betaSubmitted ? "android-beta-status visible" : "android-beta-status"}>
+            Inscripción recibida. El acceso al APK llegará próximamente vía {betaChannel === "email" ? "correo electrónico" : "WhatsApp"}.
+          </p>
+        </form>
       </section>
 
       <section className="lp4-final-cta">
@@ -1402,8 +1487,8 @@ function AccountCreationForm({ parentAccount, config, onCreate }: { parentAccoun
       <div className="account-create-head">
         <Landmark size={22} />
         <div>
-          <strong>Nuevo IBAN GDLP automático</strong>
-          <span>El producto se vincula a tu PlacetaID con tarjeta virtual asociada.</span>
+          <strong>Nuevo IBAN web GDLP automático</strong>
+          <span>Formato GDLP-0000-0000 vinculado a tu PlacetaID con tarjeta virtual asociada.</span>
         </div>
       </div>
       <Field label="Nombre visible" value={displayName} onChange={(value) => setDisplayName(value.slice(0, 34))} placeholder={accountTypeLabel(type)} />
@@ -1950,11 +2035,18 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
     return !payrollSearch.trim() || text.includes(payrollSearch.trim().toLowerCase());
   });
   const selectedContract = payrollContracts.find((contract) => contract.companyAccountId === business?.id && contract.employeeAccountId === payrollTarget?.id && contract.status !== "Ended");
-  const workerTax = Math.ceil((payrollGross * state.treasuryConfig.payrollWorkerTaxPercent) / 100);
-  const employerTax = Math.ceil((payrollGross * state.treasuryConfig.payrollEmployerTaxPercent) / 100);
-  const netSalary = Math.max(0, payrollGross - workerTax);
-  const payrollCost = payrollGross + employerTax;
   const payrollPreviewTotal = Math.max(0, payrollGross + payrollPrevious + payrollBonus - payrollDeductions);
+  const workerTax = Math.ceil((payrollPreviewTotal * state.treasuryConfig.payrollWorkerTaxPercent) / 100);
+  const employerTax = Math.ceil((payrollPreviewTotal * state.treasuryConfig.payrollEmployerTaxPercent) / 100);
+  const netSalary = Math.max(0, payrollPreviewTotal - workerTax);
+  const payrollCost = payrollPreviewTotal + employerTax;
+  const payrollCanSubmit = Boolean(
+    business &&
+    payrollTarget &&
+    payrollTargetDip &&
+    payrollGross >= state.treasuryConfig.minimumWeeklySalaryPz &&
+    (payrollPeriodStatus !== "Paid" || payrollPreviewTotal >= state.treasuryConfig.minimumWeeklySalaryPz)
+  );
   const attachments = [
     ...userAccounts.slice(0, 4).map((account) => ({ id: `account:${account.id}`, label: `Cuenta · ${account.displayName}` })),
     ...cards.slice(0, 3).map((card) => ({ id: `card:${card.id}`, label: `Tarjeta · ${card.alias}` })),
@@ -2016,12 +2108,17 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
       createdAt: now,
       updatedAt: now
     };
-    const transferred = transferPayrollOrLoan(state, business.id, payrollTarget.id, payrollPreviewTotal, `Nómina ${payrollPeriodLabel} · ${business.displayName} -> ${payrollTarget.displayName}`);
-    const payrollTransaction = transferred.transactions.find((transaction) =>
-      transaction.kind === "PayrollLoan" &&
-      transaction.fromAccountId === business.id &&
-      transaction.toAccountId === payrollTarget.id
-    );
+    const shouldTransfer = payrollPeriodStatus === "Paid";
+    const transferred = shouldTransfer
+      ? transferPayrollOrLoan(state, business.id, payrollTarget.id, payrollPreviewTotal, `Nómina ${payrollPeriodLabel} · ${business.displayName} -> ${payrollTarget.displayName}`)
+      : state;
+    const payrollTransaction = shouldTransfer
+      ? transferred.transactions.find((transaction) =>
+        transaction.kind === "PayrollLoan" &&
+        transaction.fromAccountId === business.id &&
+        transaction.toAccountId === payrollTarget.id
+      )
+      : undefined;
     const period: PayrollPeriod = {
       id: `payroll-period-${Date.now()}`,
       contractId: contract.id,
@@ -2036,15 +2133,15 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
       employerTaxPz: Math.ceil((payrollPreviewTotal * state.treasuryConfig.payrollEmployerTaxPercent) / 100),
       netSalaryPz: Math.max(0, payrollPreviewTotal - Math.ceil((payrollPreviewTotal * state.treasuryConfig.payrollWorkerTaxPercent) / 100)),
       status: payrollPeriodStatus,
-      paidAt: payrollPeriodStatus === "Paid" ? now : null,
+      paidAt: shouldTransfer ? now : null,
       transactionId: payrollTransaction?.id || null,
       createdAt: now
     };
-    onPersist({
+    onPersist(finalizeState({
       ...transferred,
       payrollContracts: [contract, ...transferred.payrollContracts.filter((item) => item.id !== contract.id)],
       payrollPeriods: [period, ...transferred.payrollPeriods]
-    }, `Nómina registrada para ${contract.employeeName}`);
+    }), `${shouldTransfer ? "Nómina pagada" : "Alta laboral registrada"} para ${contract.employeeName}`);
     setPayrollPrevious(0);
     setPayrollBonus(0);
     setPayrollDeductions(0);
@@ -2226,7 +2323,7 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
               <div><span>Total con ajustes</span><strong>{formatPz(payrollPreviewTotal)} Pz</strong></div>
               <div><span>Contrato</span><strong>{selectedContract ? `${selectedContract.salaryHistory.length} cambios` : "Nuevo"}</strong></div>
             </div>
-            <button className="primary-button" disabled={!business || !payrollTarget || !payrollTargetDip || payrollGross < state.treasuryConfig.minimumWeeklySalaryPz} onClick={submitPayroll}>Registrar nómina</button>
+            <button className="primary-button" disabled={!payrollCanSubmit} onClick={submitPayroll}>{payrollPeriodStatus === "Paid" ? "Registrar y pagar nómina" : "Registrar alta laboral"}</button>
             <div className="payroll-register">
               <Field label="Buscar contratos" value={payrollSearch} onChange={setPayrollSearch} placeholder="DIP, trabajador, puesto o estado" />
               {visiblePayrollContracts.length ? visiblePayrollContracts.map((contract) => {
@@ -2271,10 +2368,49 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
                         setPayrollGross(contract.grossSalaryPz);
                       }}>Usar contrato</button>
                       <button className="mini-action" disabled={!worker} onClick={() => {
-                        if (worker) generateBankPdf(worker, { id: `alta-${contract.id}`, title: `Alta laboral ${contract.employeeName}`, kind: "LaborContract" }, payrollTxn ? [payrollTxn] : []);
+                        if (worker) generateBankPdf(worker, {
+                          id: `alta-${contract.id}`,
+                          title: `Alta laboral ${contract.employeeName}`,
+                          kind: "LaborContract",
+                          labor: {
+                            companyName: company?.displayName || contract.companyAccountId,
+                            employeeName: contract.employeeName,
+                            employeeDip: contract.employeeDip,
+                            roleTitle: contract.roleTitle,
+                            startDate: contract.startDate,
+                            frequency: contract.frequency,
+                            grossSalaryPz: contract.grossSalaryPz,
+                            workerTaxPz: Math.ceil((contract.grossSalaryPz * state.treasuryConfig.payrollWorkerTaxPercent) / 100),
+                            employerTaxPz: Math.ceil((contract.grossSalaryPz * state.treasuryConfig.payrollEmployerTaxPercent) / 100),
+                            netSalaryPz: Math.max(0, contract.grossSalaryPz - Math.ceil((contract.grossSalaryPz * state.treasuryConfig.payrollWorkerTaxPercent) / 100)),
+                            companyIban: company?.iban,
+                            workerIban: worker.iban,
+                            status: contract.status
+                          }
+                        }, []);
                       }}>PDF alta</button>
                       <button className="mini-action" disabled={!payrollTxn || !worker} onClick={() => {
-                        if (payrollTxn && worker) generateBankPdf(worker, { id: `payroll-${lastPeriod?.id || payrollTxn.id}`, title: `Nómina ${lastPeriod?.label || contract.employeeName}`, kind: "LaborContract" }, [payrollTxn]);
+                        if (payrollTxn && worker) generateBankPdf(worker, {
+                          id: `payroll-${lastPeriod?.id || payrollTxn.id}`,
+                          title: `Nómina ${lastPeriod?.label || contract.employeeName}`,
+                          kind: "LaborContract",
+                          labor: {
+                            companyName: company?.displayName || contract.companyAccountId,
+                            employeeName: contract.employeeName,
+                            employeeDip: contract.employeeDip,
+                            roleTitle: contract.roleTitle,
+                            startDate: contract.startDate,
+                            frequency: contract.frequency,
+                            grossSalaryPz: lastPeriod?.grossSalaryPz || contract.grossSalaryPz,
+                            workerTaxPz: lastPeriod?.workerTaxPz,
+                            employerTaxPz: lastPeriod?.employerTaxPz,
+                            netSalaryPz: lastPeriod?.netSalaryPz,
+                            companyIban: company?.iban,
+                            workerIban: worker.iban,
+                            status: lastPeriod?.status || contract.status,
+                            periodLabel: lastPeriod?.label
+                          }
+                        }, [payrollTxn]);
                       }}>PDF nómina</button>
                     </div>
                   </article>

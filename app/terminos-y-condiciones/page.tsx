@@ -1,9 +1,10 @@
 const sections = [
   {
-    title: "1. Naturaleza del Servicio y Exención de Responsabilidad Real",
+    title: "1. Naturaleza del Servicio y exención bancaria real",
     body: [
       "El Banco de La Placeta y todas sus herramientas (en adelante, la Plataforma) son propiedad de la Asociación Grupo de La Placeta, una entidad sin ánimo de lucro constituida al amparo de la Ley Orgánica 1/2002.",
-      "DECLARACIÓN DE SIMULACIÓN CRÍTICA: La Plataforma opera única y exclusivamente como un entorno de simulación y juego de rol de carácter virtual. Las Placetas (Pz) son divisas ficticias sin valor económico real en el mercado financiero. No existe, ni se permite, la circulación o intercambio por dinero real o físico bajo ninguna circunstancia. Toda actividad económica reflejada es una ficción lúdica."
+      "DECLARACIÓN DE SIMULACIÓN CRÍTICA: La Plataforma opera única y exclusivamente como un entorno de simulación, juego de rol y gestión interna. Las Placetas (Pz), IBAN GDLP, tarjetas, nóminas, tributos y documentos generados son elementos ficticios sin valor económico real ni validez bancaria, laboral, fiscal o financiera fuera del ecosistema de La Placeta.",
+      "La Plataforma no es una entidad de crédito, entidad de pago, proveedor de servicios de inversión, asesor fiscal ni intermediario financiero. No capta depósitos, no custodia dinero real, no concede crédito real y no permite canje, compraventa o retirada de Placetas por euros u otra moneda."
     ]
   },
   {
@@ -23,7 +24,7 @@ const sections = [
     ]
   },
   {
-    title: "4. Gobernanza Económica y Fiscalidad Interna de Rol",
+    title: "4. Gobernanza económica y fiscalidad interna de rol",
     body: [
       "Al operar en la Plataforma, el usuario acepta de manera automática la aplicación de las reglas del Tesoro y la Agencia Tributaria de La Placeta.",
       "Tasas y comisiones: las transferencias interbancarias e interpersonales devengarán una tasa operativa automática de hasta el 12%.",
@@ -33,11 +34,34 @@ const sections = [
     ]
   },
   {
-    title: "5. Módulo de Inversiones con Azar y Loterías",
+    title: "5. Módulo de inversiones con azar y loterías",
     body: [
       "El mercado de inversiones aleatorias con resolución a un (1) minuto queda estrictamente restringido a usuarios mayores de 18 años (Ciudadanía Plena).",
       "Los resultados de las inversiones, sean pérdidas o ganancias, son generados por un algoritmo probabilístico aleatorio del backend. Los beneficios netos obtenidos están sujetos a una retención fiscal inmediata del 10%.",
       "El usuario acepta el riesgo de pérdida total de sus Placetas simuladas al participar en este módulo."
+    ]
+  },
+  {
+    title: "6. Documentos, nóminas, PDFs e IBAN GDLP",
+    body: [
+      "Los PDFs, justificantes, certificados de solvencia, altas laborales, nóminas, recibos fiscales e IBAN GDLP se emiten únicamente como documentos internos de rol y trazabilidad técnica.",
+      "Estos documentos no sustituyen contratos laborales reales, nóminas reales, facturas fiscales, certificados bancarios, justificantes de pago legalmente exigibles ni comunicaciones oficiales ante administraciones públicas.",
+      "Las cuentas creadas desde web generan IBAN web en formato GDLP interno. Las cuentas creadas desde app pueden usar otro formato interno compatible. Ambos formatos son identificadores ficticios de la Plataforma."
+    ]
+  },
+  {
+    title: "7. Programa BETA Android",
+    body: [
+      "La inscripción al Programa BETA Android solo permite recibir comunicaciones sobre pruebas del APK de la app. La participación es voluntaria, revocable y no garantiza disponibilidad inmediata, compatibilidad del dispositivo ni acceso permanente.",
+      "El usuario se compromete a no redistribuir APKs, credenciales, capturas privadas o información técnica no pública sin autorización expresa de la Asociación.",
+      "La Asociación podrá cerrar, pausar o modificar la beta por seguridad, estabilidad, protección de datos o mantenimiento del servicio."
+    ]
+  },
+  {
+    title: "8. Protección de menores, uso responsable y suspensión",
+    body: [
+      "Las funciones sensibles quedan sujetas a edad verificada, rol, consentimiento y límites operativos. La Asociación podrá restringir cuentas ante uso abusivo, suplantación, fraude, acoso, vulneración de privacidad o intento de convertir activos ficticios en valor real.",
+      "El usuario debe utilizar datos propios o autorizados. Está prohibido registrar teléfonos, correos o información personal de terceros sin legitimación suficiente."
     ]
   }
 ];
@@ -48,12 +72,12 @@ export default function TermsPage() {
       <header className="legal-hero">
         <span>Banco de La Placeta</span>
         <h1>Términos y Condiciones de Uso</h1>
-        <p>Última actualización: 17 de mayo de 2026</p>
+        <p>Última actualización: 31 de mayo de 2026</p>
       </header>
       <section className="legal-content">
         <article className="legal-warning">
           <strong>Entorno de simulación</strong>
-          <p>Banco de La Placeta es una plataforma de rol. Las Placetas (Pz) son ficticias y no tienen valor económico real.</p>
+          <p>Banco de La Placeta es una plataforma de rol. Las Placetas (Pz), IBAN GDLP, tarjetas, nóminas y PDFs son ficticios y no tienen valor económico real ni validez bancaria oficial.</p>
         </article>
         {sections.map((section) => (
           <article key={section.title}>

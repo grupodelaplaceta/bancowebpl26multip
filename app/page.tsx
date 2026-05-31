@@ -103,21 +103,11 @@ const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
 const webCarouselSlides = [
   {
     title: "Banco de La Placeta",
-    kicker: "Banca web oficial",
-    subtitle: "Cuentas GDLP, pagos Placezum, documentos firmados y operativa diaria desde una interfaz clara y trazable.",
-    image: "/assets/logobanco.jpg"
+    image: "/assets/promoscarrusel/1.jpg"
   },
   {
     title: "Operativa diaria sin ruido",
-    kicker: "Cuentas y tarjetas",
-    subtitle: "Consulta saldo, límites, IBAN, tarjetas virtuales y últimos movimientos con acciones separadas y seguras.",
-    image: "/assets/VIRTUALCARD.jpg"
-  },
-  {
-    title: "Pagos y documentación",
-    kicker: "Placezum y PDF",
-    subtitle: "Justificantes, extractos, certificados, nóminas y enlaces de pago preparados para revisar y descargar.",
-    image: "/assets/actu.jpg"
+    image: "/assets/promoscarrusel/2.jpg"
   }
 ];
 
@@ -1060,6 +1050,7 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
   const [betaName, setBetaName] = useState("");
   const [betaContact, setBetaContact] = useState("");
   const [betaChannel, setBetaChannel] = useState<"email" | "whatsapp">("email");
+  const [betaConsent, setBetaConsent] = useState(false);
   const [betaSubmitted, setBetaSubmitted] = useState(false);
   const activeSlide = webCarouselSlides[slideIndex] ?? webCarouselSlides[0];
 
@@ -1092,7 +1083,7 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
       status: "Registered",
       createdAt: new Date().toISOString()
     };
-    if (!signup.contact) return;
+    if (!signup.contact || !betaConsent) return;
     let stored = false;
     try {
       const response = await fetch("/api/bank-state", { cache: "no-store" });
@@ -1118,6 +1109,7 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
     setBetaSubmitted(true);
     setBetaName("");
     setBetaContact("");
+    setBetaConsent(false);
   }
 
   const loginForm = (
@@ -1265,6 +1257,7 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
           <span>Programa BETA Android</span>
           <h2>Prueba antes el APK de la app.</h2>
           <p>Inscríbete para recibir próximamente el acceso por correo electrónico o WhatsApp cuando el paquete de prueba esté listo.</p>
+          <p className="android-beta-legal">Servicio interno de pruebas del entorno Banco de La Placeta. Tus datos se usarán solo para gestionar la invitación beta y podrás solicitar baja o supresión.</p>
           <div className="android-beta-points">
             <span><Smartphone size={16} /> APK Android</span>
             <span><Mail size={16} /> Correo electrónico</span>
@@ -1290,7 +1283,11 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
             <button type="button" className={betaChannel === "email" ? "active" : ""} onClick={() => setBetaChannel("email")}>Email</button>
             <button type="button" className={betaChannel === "whatsapp" ? "active" : ""} onClick={() => setBetaChannel("whatsapp")}>WhatsApp</button>
           </div>
-          <button type="submit" className="primary-button">Inscribirme al BETA</button>
+          <label className="legal-consent android-beta-consent">
+            <input type="checkbox" checked={betaConsent} onChange={(event) => setBetaConsent(event.target.checked)} required />
+            <span>Acepto recibir comunicaciones del Programa BETA y he leído los <a href="/terminos-y-condiciones">términos</a> y la <a href="/politica-de-privacidad">política de privacidad</a>.</span>
+          </label>
+          <button type="submit" className="primary-button" disabled={!betaConsent}>Inscribirme al BETA</button>
           <p className={betaSubmitted ? "android-beta-status visible" : "android-beta-status"}>
             Inscripción recibida. El acceso al APK llegará próximamente vía {betaChannel === "email" ? "correo electrónico" : "WhatsApp"}.
           </p>
@@ -1583,7 +1580,7 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
       <div className="metric-grid placezum-metrics">
         <MetricCard label="Disponible" value={`${formatPz(remaining)} Pz`} tone="purple" />
         <MetricCard label="Usado semana" value={`${usagePercent}%`} tone="gold" />
-        <MetricCard label="Contactos" value={String(favoriteAccounts.length)} tone="green" />
+        <MetricCard label="Contactos" value={String(favoriteAccounts.length)} tone="accent" />
         <MetricCard label="Código" value={`${secondsLeft}s`} tone="purple" />
       </div>
 
@@ -1796,8 +1793,8 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
         <div className="metric-grid market-metrics">
           <MetricCard label="Capital recibido" value={`${formatPz(companyReceived)} Pz`} tone="purple" />
           <MetricCard label="Pagado a usuarios" value={`${formatPz(companyPaid)} Pz`} tone="gold" />
-          <MetricCard label="Margen cerrado" value={`${companyRoi >= 0 ? "+" : ""}${companyRoi}%`} tone={companyRoi >= 0 ? "green" : "red"} />
-          <MetricCard label="Inversores" value={String(companyInvestors)} tone="green" />
+          <MetricCard label="Margen cerrado" value={`${companyRoi >= 0 ? "+" : ""}${companyRoi}%`} tone={companyRoi >= 0 ? "accent" : "red"} />
+          <MetricCard label="Inversores" value={String(companyInvestors)} tone="accent" />
         </div>
         <article className="panel investment-analysis company-analysis">
           <SectionTitle icon={Building2} title="Alta de empresa" />
@@ -1872,8 +1869,8 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
       <div className="metric-grid market-metrics">
         <MetricCard label="Disponible" value={`${formatPz(account.balancePz)} Pz`} tone="purple" />
         <MetricCard label="Pendiente 60s" value={`${formatPz(pendingCapital)} Pz`} tone="gold" />
-        <MetricCard label="Mejor cupo hoy" value={`${remainingToday}`} tone="green" />
-        <MetricCard label="Resultado" value={`${totalNetResult >= 0 ? "+" : ""}${formatPz(totalNetResult)} Pz`} tone={totalNetResult >= 0 ? "green" : "red"} />
+        <MetricCard label="Mejor cupo hoy" value={`${remainingToday}`} tone="accent" />
+        <MetricCard label="Resultado" value={`${totalNetResult >= 0 ? "+" : ""}${formatPz(totalNetResult)} Pz`} tone={totalNetResult >= 0 ? "accent" : "red"} />
       </div>
       <article className="panel investment-analysis">
         <SectionTitle icon={Sparkles} title="Cómo vas" />
@@ -2217,7 +2214,7 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
 
       <div className="metric-grid">
         <MetricCard label="Saldo total" value={`${formatPz(totalBalance)} Pz`} tone="purple" />
-        <MetricCard label="Tarjetas activas" value={String(activeCards)} tone="green" />
+        <MetricCard label="Tarjetas activas" value={String(activeCards)} tone="accent" />
         <MetricCard label="Nómina neta" value={`${formatPz(netSalary)} Pz`} tone="gold" />
         <MetricCard label="Tickets abiertos" value={String(openTickets)} tone="red" />
       </div>
@@ -2603,7 +2600,7 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
         <MetricCard label="Recaudado hoy" value={`${formatPz(todayTax)} Pz`} tone="purple" />
         <MetricCard label="IVA histórico" value={`${formatPz(iva)} Pz`} tone="gold" />
         <MetricCard label="Expedientes" value={String(state.complianceFlags.length)} tone="red" />
-        <MetricCard label="Cuentas auditables" value={String(citizenAccounts.length)} tone="green" />
+        <MetricCard label="Cuentas auditables" value={String(citizenAccounts.length)} tone="accent" />
       </div>
 
       <article className="panel admin-panel admin-command-center">
@@ -2709,7 +2706,7 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
 
       <div className="metric-grid">
         <MetricCard label="Masa monetaria" value={`${formatPz(totalMoney)} Pz`} tone="purple" />
-        <MetricCard label="Empresas" value={String(businessCount)} tone="green" />
+        <MetricCard label="Empresas" value={String(businessCount)} tone="accent" />
         <MetricCard label="Developers" value="API" tone="gold" />
         <MetricCard label="Solicitudes" value={String(pendingRequests)} tone="red" />
       </div>
@@ -2868,7 +2865,7 @@ function Modal({ title, open, onClose, children }: { title: string; open: boolea
   );
 }
 
-function MetricCard({ label, value, tone }: { label: string; value: string; tone: "purple" | "green" | "gold" | "red" }) {
+function MetricCard({ label, value, tone }: { label: string; value: string; tone: "purple" | "accent" | "gold" | "red" }) {
   return (
     <div className={`metric-card ${tone}`}>
       <span>{label}</span>

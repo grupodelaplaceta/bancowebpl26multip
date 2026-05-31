@@ -16,7 +16,7 @@
   --brand-purple-dark: #260083;
   --gold: #b77912;
   --red: #3F00D8;
-  --green: #3F00D8;
+  --accent: #3F00D8;
   --blue: #3F00D8;
   --shadow-sm: 0 6px 16px rgba(23, 19, 34, 0.05);
   --shadow: 0 14px 34px rgba(23, 19, 34, 0.08);
@@ -68,10 +68,10 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
-body, button, input {
+body, button, input, textarea, select, a {
   font-family: "Outfit", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
-button, input { font: inherit; }
+button, input, textarea, select { font: inherit; }
 button {
   border: 0;
   cursor: pointer;
@@ -616,7 +616,7 @@ button:focus-visible, input:focus-visible {
   overflow-wrap: anywhere;
 }
 .metric-card.purple { background: #3F00D8; }
-.metric-card.green { background: #3F00D8; }
+.metric-card.accent { background: #3F00D8; }
 .metric-card.gold { background: #b77912; }
 .metric-card.red { background: #3F00D8; }
 .action-grid {
@@ -1142,7 +1142,7 @@ button:focus-visible, input:focus-visible {
 }
 .txn-icon.income {
   background: rgba(63, 0, 216, .12);
-  color: var(--green);
+  color: var(--accent);
 }
 
 .placezum-card {
@@ -1546,7 +1546,7 @@ button:focus-visible, input:focus-visible {
   overflow-wrap: anywhere;
 }
 .analysis-grid strong.good {
-  color: var(--green);
+  color: var(--accent);
 }
 .analysis-grid strong.bad {
   color: var(--red);
@@ -1800,7 +1800,7 @@ button:focus-visible, input:focus-visible {
   color: var(--ink);
 }
 .investment-row.win b {
-  color: var(--green);
+  color: var(--accent);
 }
 .investment-row.loss b {
   color: var(--red);
@@ -8459,7 +8459,7 @@ a:active svg,
 .account-chip.active,
 .metric-card,
 .metric-card.purple,
-.metric-card.green,
+.metric-card.accent,
 .metric-card.gold,
 .metric-card.red {
   color: white;
@@ -8831,14 +8831,14 @@ select:focus {
 }
 .bank-public-intro span,
 .lp4-section-head > span {
-  color: #1f7665;
+  color: #3F00D8;
   font-size: .78rem;
   font-weight: 950;
   text-transform: uppercase;
 }
 .bank-public-intro h1 {
   margin: 8px 0 0;
-  color: #10201a;
+  color: var(--ink);
   font-size: clamp(2.45rem, 7vw, 5.8rem);
   line-height: .9;
 }
@@ -8866,10 +8866,10 @@ select:focus {
 }
 .bank-public-actions a:first-child {
   color: white;
-  background: #10201a;
+  background: var(--ink);
 }
 .bank-public-actions a + a {
-  color: #10201a;
+  color: var(--ink);
   border: 1px solid rgba(16,32,26,.16);
   background: #fff;
 }
@@ -8892,7 +8892,7 @@ select:focus {
   display: block;
 }
 .bank-public-metrics strong {
-  color: #10201a;
+  color: var(--ink);
   font-size: 1.25rem;
 }
 .bank-public-metrics small {
@@ -8919,7 +8919,7 @@ select:focus {
   line-height: 1.35;
 }
 .lp4-info-grid a em {
-  color: #1f7665;
+  color: #3F00D8;
   font-size: .78rem;
   font-weight: 900;
 }
@@ -8945,12 +8945,12 @@ select:focus {
 .lp4-info-grid a:hover,
 .account-health-grid div:hover {
   transform: translateY(-2px);
-  border-color: rgba(31,118,101,.24);
+  border-color: rgba(63,0,216,.24);
   box-shadow: 0 18px 44px rgba(23,19,34,.09);
 }
 .bank-ops-grid strong {
   display: block;
-  color: #10201a;
+  color: var(--ink);
   font-size: 1.04rem;
   font-weight: 950;
 }
@@ -8971,7 +8971,7 @@ select:focus {
   border: 1px solid rgba(23,19,34,.08);
   border-radius: 8px;
   background:
-    linear-gradient(135deg, rgba(63,0,216,.08), rgba(31,118,101,.08)),
+    linear-gradient(135deg, rgba(63,0,216,.08), rgba(63,0,216,.08)),
     #fff;
   box-shadow: 0 14px 36px rgba(23,19,34,.06);
 }
@@ -8979,14 +8979,14 @@ select:focus {
   min-width: 0;
 }
 .android-beta-copy > span {
-  color: #1f7665;
+  color: #3F00D8;
   font-size: .78rem;
   font-weight: 950;
   text-transform: uppercase;
 }
 .android-beta-copy h2 {
   margin: 8px 0 0;
-  color: #10201a;
+  color: var(--ink);
   font-size: clamp(1.8rem, 4vw, 3.4rem);
   line-height: .95;
 }
@@ -8996,6 +8996,11 @@ select:focus {
   color: var(--muted);
   font-weight: 760;
   line-height: 1.55;
+}
+.android-beta-copy .android-beta-legal {
+  max-width: 620px;
+  color: var(--brand);
+  font-size: .92rem;
 }
 .android-beta-points {
   margin-top: 18px;
@@ -9009,9 +9014,9 @@ select:focus {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid rgba(31,118,101,.16);
+  border: 1px solid rgba(63,0,216,.16);
   border-radius: 8px;
-  color: #10201a;
+  color: var(--ink);
   background: rgba(255,255,255,.78);
   font-weight: 900;
 }
@@ -9047,7 +9052,7 @@ select:focus {
 .android-beta-status {
   min-height: 20px;
   margin: 0;
-  color: #1f7665;
+  color: #3F00D8;
   font-size: .88rem;
   font-weight: 850;
   line-height: 1.35;
@@ -9055,6 +9060,17 @@ select:focus {
 }
 .android-beta-status.visible {
   opacity: 1;
+}
+.android-beta-consent {
+  margin: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(63, 0, 216, .06);
+}
+.android-beta-consent span {
+  color: var(--muted);
+  font-size: .84rem;
+  line-height: 1.35;
 }
 .account-insight-panel {
   display: grid;
@@ -9082,7 +9098,7 @@ select:focus {
 .account-health-grid strong {
   display: block;
   margin: 5px 0;
-  color: #10201a;
+  color: var(--ink);
   font-size: clamp(1rem, 2vw, 1.32rem);
   font-weight: 950;
   overflow-wrap: anywhere;
@@ -9097,14 +9113,14 @@ select:focus {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #1f7665, #FFD36E);
+  background: linear-gradient(90deg, #3F00D8, #FFD36E);
 }
 
 /* General web polish */
 .landing-page,
 .app-shell {
   background:
-    linear-gradient(180deg, rgba(31,118,101,.055), rgba(255,255,255,0) 260px),
+    linear-gradient(180deg, rgba(63,0,216,.055), rgba(255,255,255,0) 260px),
     #f5f6fa;
 }
 .lp4-nav {
@@ -9132,10 +9148,10 @@ select:focus {
   box-shadow: 0 12px 34px rgba(23,19,34,.055) !important;
 }
 .section-title {
-  color: #10201a;
+  color: var(--ink);
 }
 .section-title svg {
-  color: #1f7665;
+  color: #3F00D8;
 }
 .field input,
 .field select,
@@ -9146,7 +9162,7 @@ input {
 }
 .primary-button {
   border-radius: 8px !important;
-  background: #10201a !important;
+  background: var(--ink) !important;
 }
 .secondary-button,
 .ghost-button,

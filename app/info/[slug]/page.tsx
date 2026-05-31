@@ -8,7 +8,7 @@ const infoPages = [
     tag: "Cuentas",
     title: "Cuentas digitales de Banco de La Placeta",
     summary: "Consulta saldo, IBAN, actividad y documentos desde una vista pensada para operar sin mezclar acciones incompatibles.",
-    image: "/assets/promoscarrusel/1.jpg",
+    image: "/assets/promoscarrusel/1.png",
     sections: [
       { title: "Qué puedes consultar", text: "La cuenta muestra saldo, estado, IBAN, límites por tipo, movimientos recientes, tarjetas asociadas y accesos a transferencias o documentos cuando corresponda." },
       { title: "Cómo se opera", text: "Las acciones sensibles se abren en ventanas separadas. Antes de guardar se revisa importe, origen, destino, concepto y límites de saldo para evitar operaciones inválidas." },
@@ -22,7 +22,7 @@ const infoPages = [
     tag: "Pagos",
     title: "Placezum para pagos rápidos",
     summary: "Placezum permite pagar y recibir con código temporal, contactos guardados y límite semanal visible antes de enviar.",
-    image: "/assets/promoscarrusel/2.jpg",
+    image: "/assets/promoscarrusel/2.png",
     sections: [
       { title: "Recibir", text: "La web muestra un código temporal y datos de cuenta para que otra persona pueda identificar el destino sin exponer más información de la necesaria." },
       { title: "Pagar", text: "Elige contacto, importe y confirma. La interfaz avisa del cupo disponible y el motor valida saldo, límites y comisiones antes de asentar el movimiento." },
@@ -92,7 +92,7 @@ const infoPages = [
     tag: "Seguridad",
     title: "Seguridad operativa y coherencia entre sesiones",
     summary: "La web prioriza contexto, trazabilidad y confirmaciones para evitar duplicados o operaciones incoherentes entre dispositivos.",
-    image: "/assets/promoscarrusel/1.jpg",
+    image: "/assets/promoscarrusel/1.png",
     sections: [
       { title: "Origen y destino", text: "Cada operación debe conservar cuenta origen, cuenta destino, concepto, estado y fecha." },
       { title: "Sin duplicados", text: "Las acciones sensibles se validan contra el estado más reciente antes de persistir." },
@@ -105,7 +105,7 @@ const infoPages = [
     tag: "Pagos",
     title: "Cómo enviar un pago sin errores",
     summary: "Una buena operación empieza revisando importe, cuenta destino y concepto antes de confirmar.",
-    image: "/assets/promoscarrusel/2.jpg",
+    image: "/assets/promoscarrusel/2.png",
     sections: [
       { title: "Antes de enviar", text: "Comprueba IBAN o contacto, importe, concepto y límite disponible." },
       { title: "Durante la confirmación", text: "La web separa el formulario en popup para que no pulses una acción por accidente." },

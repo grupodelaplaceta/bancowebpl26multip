@@ -103,11 +103,11 @@ const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
 const webCarouselSlides = [
   {
     title: "Banco de La Placeta",
-    image: "/assets/promoscarrusel/1.jpg"
+    image: "/assets/promoscarrusel/1.png"
   },
   {
     title: "Operativa diaria sin ruido",
-    image: "/assets/promoscarrusel/2.jpg"
+    image: "/assets/promoscarrusel/2.png"
   }
 ];
 
@@ -174,8 +174,8 @@ const confirmation = await captureResponse.json();`,
 };
 
 const landingPages = [
-  { id: "cuentas", title: "Cuentas", icon: WalletCards, image: "/assets/promoscarrusel/1.jpg", text: "Consulta saldo, IBAN, límites, actividad reciente y accesos de cuenta sin mezclar formularios en la pantalla principal.", bullets: ["Saldo y movimientos", "Límites por tipo", "Documentos y extractos"] },
-  { id: "placezum", title: "Placezum", icon: QrCode, image: "/assets/promoscarrusel/2.jpg", text: "Pagos rápidos con código temporal, contactos guardados y límites visibles antes de enviar.", bullets: ["Código temporal", "Contactos", "Límite semanal"] },
+  { id: "cuentas", title: "Cuentas", icon: WalletCards, image: "/assets/promoscarrusel/1.png", text: "Consulta saldo, IBAN, límites, actividad reciente y accesos de cuenta sin mezclar formularios en la pantalla principal.", bullets: ["Saldo y movimientos", "Límites por tipo", "Documentos y extractos"] },
+  { id: "placezum", title: "Placezum", icon: QrCode, image: "/assets/promoscarrusel/2.png", text: "Pagos rápidos con código temporal, contactos guardados y límites visibles antes de enviar.", bullets: ["Código temporal", "Contactos", "Límite semanal"] },
   { id: "tarjetas", title: "Tarjetas virtuales", icon: CreditCard, image: "/assets/VIRTUALCARD.jpg", text: "Gestiona tarjetas virtuales con estado claro, límite por cuenta y acciones separadas. La Promo Card física aparece como función próxima.", bullets: ["Emitir tarjeta virtual", "Congelar o activar", "Límite por cuenta"] },
   { id: "empresas", title: "Empresas", icon: Building2, image: "/assets/actu.jpg", text: "Panel para nóminas por DIP, alta de empresa, actividad y rentabilidad cuando la cuenta lo permite.", bullets: ["Nóminas por DIP", "Alta laboral PDF", "Actividad asociada"] },
   { id: "soporte", title: "Soporte", icon: ShieldCheck, image: "/assets/logobanco.jpg", text: "Tickets con contexto de cuenta, tarjeta, inversión o movimiento para explicar mejor cada incidencia.", bullets: ["Estado del ticket", "Historial", "Contexto de cuenta"] },
@@ -2936,9 +2936,9 @@ function transactionsFor(accountId: string, transactions: LedgerTransaction[]) {
 
 function assetUrl(path?: string | null, imageKey = "bank") {
   if (path?.startsWith("http") || path?.startsWith("/")) return path;
-  if (path?.startsWith("promos/")) return imageKey === "placezum" ? "/assets/promoscarrusel/2.jpg" : "/assets/promoscarrusel/1.jpg";
+  if (path?.startsWith("promos/")) return imageKey === "placezum" ? "/assets/promoscarrusel/2.png" : "/assets/promoscarrusel/1.png";
   if (path) return `/assets/${path}`;
-  if (imageKey === "placezum") return "/assets/promoscarrusel/2.jpg";
+  if (imageKey === "placezum") return "/assets/promoscarrusel/2.png";
   if (imageKey === "market") return "/assets/actu.jpg";
-  return "/assets/promoscarrusel/1.jpg";
+  return "/assets/promoscarrusel/1.png";
 }

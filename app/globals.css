@@ -9799,7 +9799,7 @@ input {
   padding: clamp(28px, 4.5vw, 52px);
   background:
     linear-gradient(135deg, rgba(63, 0, 216, .94), rgba(31, 8, 92, .92)),
-    url("/assets/promoscarrusel/1.jpg") center/cover;
+    url("/assets/promoscarrusel/1.png") center/cover;
 }
 
 .login-only-side::after {

@@ -30,7 +30,7 @@ export const gdlpNews: GdlpNewsItem[] = [
     tag: "Comunicado",
     summary: "El Grupo de La Placeta estrena portal central para altas, normativa, noticias y mapa del ecosistema.",
     date: "17/05/2026",
-    image: "/assets/promoscarrusel/1.jpg",
+    image: "/assets/promoscarrusel/1.png",
     body: [
       "El portal institucional concentra la información pública del ecosistema y separa la comunicación oficial de las herramientas operativas del banco.",
       "Las noticias se publican como comunicados independientes, con URL propia para consulta posterior y difusión directa.",
@@ -44,7 +44,7 @@ export const gdlpNews: GdlpNewsItem[] = [
     tag: "Ayuda",
     summary: "Toda nueva incorporación debe aceptar el aviso de simulación y el consentimiento RGPD antes de recibir DIP.",
     date: "17/05/2026",
-    image: "/assets/promoscarrusel/2.jpg",
+    image: "/assets/promoscarrusel/2.png",
     body: [
       "El alta distingue entre identidad, consentimiento y acceso operativo. El DIP identifica al miembro dentro del entorno de rol.",
       "Antes de activar una cuenta, el usuario debe comprender la naturaleza ficticia del ecosistema y aceptar el tratamiento mínimo de datos.",
@@ -70,7 +70,7 @@ export const gdlpNews: GdlpNewsItem[] = [
     tag: "Comunicado",
     summary: "El acceso al ecosistema se unifica mediante DIP, contraseña y autenticador para proteger la identidad interna.",
     date: "17/05/2026",
-    image: "/assets/promoscarrusel/2.jpg",
+    image: "/assets/promoscarrusel/2.png",
     body: [
       "PlacetaID actúa como identidad común para iniciar sesión en los servicios del ecosistema.",
       "La banca web puede registrar o reconocer una identidad existente y mantener la sesión asociada al DIP.",
@@ -86,7 +86,7 @@ export const planProjects: PlanProject[] = [
     tag: "MongoDB y APIs",
     summary: "Consolidación de PlacetaID, API Gateway y estado centralizado para reducir sistemas manuales.",
     status: "Primer semestre",
-    image: "/assets/promoscarrusel/1.jpg",
+    image: "/assets/promoscarrusel/1.png",
     body: [
       "La infraestructura core agrupa los servicios mínimos que sostienen identidad, estado bancario y comunicaciones entre módulos.",
       "El proyecto prioriza consistencia de datos, endpoints más claros y persistencia robusta para evitar divergencias entre web y app.",
@@ -142,7 +142,7 @@ export const planProjects: PlanProject[] = [
     tag: "RGPD / LOPDGDD",
     summary: "Trazabilidad de cambios, baja con anonimización contable y controles para proteger el ecosistema.",
     status: "Prioridad 2026",
-    image: "/assets/promoscarrusel/1.jpg",
+    image: "/assets/promoscarrusel/1.png",
     body: [
       "Seguridad y privacidad define cómo registrar cambios relevantes sin exponer más datos de los necesarios.",
       "El proyecto contempla logs, baja de usuario, anonimización de historial y revisión de consentimiento.",

@@ -68,6 +68,9 @@ export default function AdminPanelPage() {
   const [status, setStatus] = useState("Esperando PlacetaID");
   const [busy, setBusy] = useState(false);
   const [serialInput, setSerialInput] = useState("");
+  const [selectedPromoSerial, setSelectedPromoSerial] = useState("");
+  const [nfcStatus, setNfcStatus] = useState("NFC sin iniciar");
+  const [nfcBusy, setNfcBusy] = useState(false);
 
   const token = typeof window !== "undefined" ? sessionStorage.getItem("placetaid-token") || localStorage.getItem("placetaidToken") || "" : "";
 
@@ -185,6 +188,109 @@ export default function AdminPanelPage() {
     }, "PromoCard actualizada");
   }
 
+  function nfcAvailable() {
+    return typeof window !== "undefined" && "NDEFReader" in window;
+  }
+
+  function promoPayload(serial: string) {
+    return JSON.stringify({
+      type: "GDLP_PROMOCARD",
+      serial,
+      issuer: "Banco de La Placeta",
+      version: 1
+    });
+  }
+
+  function decodeNfcRecord(record: unknown) {
+    const item = record as { data?: DataView; recordType?: string };
+    if (!item.data) return "";
+    try {
+      return new TextDecoder().decode(item.data);
+    } catch {
+      return `[${item.recordType || "record"}]`;
+    }
+  }
+
+  function selectedPromo() {
+    if (!state) return null;
+    return (state.promoCardSerials || []).find((item) => item.serial === selectedPromoSerial) || null;
+  }
+
+  async function readPromoNfc() {
+    if (!nfcAvailable()) {
+      setNfcStatus("Este navegador no expone Web NFC. Usa Chrome Android/HTTPS o un puente nativo para lectores USB.");
+      return;
+    }
+    setNfcBusy(true);
+    setNfcStatus("Acerca la PromoCard al lector NFC...");
+    try {
+      const reader = new (window as unknown as { NDEFReader: new () => { scan: () => Promise<void>; addEventListener: (type: string, listener: (event: unknown) => void, options?: AddEventListenerOptions) => void } }).NDEFReader();
+      await reader.scan();
+      reader.addEventListener("reading", (event: unknown) => {
+        const reading = event as { serialNumber?: string; message?: { records?: unknown[] } };
+        const payload = (reading.message?.records || []).map(decodeNfcRecord).filter(Boolean).join("\n");
+        const uid = reading.serialNumber || "UID no expuesto";
+        setNfcStatus(`Leída PromoCard NFC · ${uid}${payload ? ` · ${payload}` : ""}`);
+        const matched = (state?.promoCardSerials || []).find((item) => payload.includes(item.serial));
+        if (matched) {
+          updatePromo(matched, { nfcUid: uid, nfcPayload: payload, lastNfcScanAt: new Date().toISOString(), note: "Validada por NFC" });
+          setSelectedPromoSerial(matched.serial);
+        }
+        setNfcBusy(false);
+      }, { once: true });
+    } catch (error) {
+      setNfcBusy(false);
+      setNfcStatus(error instanceof Error ? error.message : "No se pudo iniciar NFC");
+    }
+  }
+
+  async function writePromoNfc(lockAfterWrite = false) {
+    const promo = selectedPromo();
+    if (!promo) {
+      setNfcStatus("Selecciona una serie PromoCard registrada antes de escribir.");
+      return;
+    }
+    if (promo.writeLocked) {
+      setNfcStatus("Esta serie está marcada como escritura bloqueada.");
+      return;
+    }
+    if (!nfcAvailable()) {
+      setNfcStatus("Web NFC no disponible en este navegador. No puedo escribir desde la web.");
+      return;
+    }
+    setNfcBusy(true);
+    setNfcStatus(`Acerca la tarjeta para escribir ${promo.serial}...`);
+    try {
+      const reader = new (window as unknown as { NDEFReader: new () => { write: (message: unknown) => Promise<void>; makeReadOnly?: () => Promise<void> } }).NDEFReader();
+      const payload = promoPayload(promo.serial);
+      await reader.write({ records: [{ recordType: "text", data: payload }] });
+      let locked = false;
+      if (lockAfterWrite && typeof reader.makeReadOnly === "function") {
+        await reader.makeReadOnly();
+        locked = true;
+      }
+      updatePromo(promo, {
+        status: promo.status === "Available" ? "Assigned" : promo.status,
+        nfcPayload: payload,
+        writeLocked: promo.writeLocked || locked,
+        lastNfcScanAt: new Date().toISOString(),
+        note: locked ? "NFC escrito y bloqueado en solo lectura" : "NFC escrito"
+      });
+      setNfcStatus(locked ? `Escrita y bloqueada ${promo.serial}` : `Escrita ${promo.serial}`);
+    } catch (error) {
+      setNfcStatus(error instanceof Error ? error.message : "No se pudo escribir NFC");
+    } finally {
+      setNfcBusy(false);
+    }
+  }
+
+  function markPromoWriteLocked() {
+    const promo = selectedPromo();
+    if (!promo) return;
+    updatePromo(promo, { writeLocked: true, status: "Blocked", note: "Bloqueada administrativamente para escritura", updatedAt: new Date().toISOString() });
+    setNfcStatus(`Serie ${promo.serial} bloqueada administrativamente.`);
+  }
+
   const stats = useMemo(() => {
     const s = state;
     if (!s) return null;
@@ -295,11 +401,26 @@ export default function AdminPanelPage() {
                 <h2>Alta de series</h2>
                 <textarea value={serialInput} onChange={(event) => setSerialInput(event.target.value)} placeholder="PROMO-2026-0001, PROMO-2026-0002..." />
                 <button className="primary-button" onClick={addPromoSerials}><BadgeCheck size={17} /> Registrar series</button>
+                <div className="nfc-console">
+                  <h3>Lector NFC</h3>
+                  <p>{nfcAvailable() ? "Web NFC disponible. Acerca una PromoCard NDEF al lector." : "Web NFC no disponible. Los lectores USB/PCSC requieren app puente o navegador compatible."}</p>
+                  <select value={selectedPromoSerial} onChange={(event) => setSelectedPromoSerial(event.target.value)}>
+                    <option value="">Selecciona serie</option>
+                    {(state.promoCardSerials || []).map((serial) => <option key={serial.id} value={serial.serial}>{serial.serial} · {serial.status}</option>)}
+                  </select>
+                  <div className="nfc-actions">
+                    <button className="secondary-button" disabled={nfcBusy} onClick={() => void readPromoNfc()}>Validar lectura</button>
+                    <button className="primary-button" disabled={nfcBusy || !selectedPromoSerial} onClick={() => void writePromoNfc(false)}>Escribir NFC</button>
+                    <button className="secondary-button" disabled={nfcBusy || !selectedPromoSerial} onClick={() => void writePromoNfc(true)}>Escribir y bloquear</button>
+                    <button className="secondary-button" disabled={!selectedPromoSerial} onClick={markPromoWriteLocked}>Bloqueo admin</button>
+                  </div>
+                  <span className="nfc-status">{nfcStatus}</span>
+                </div>
               </article>
               <div className="admin-table">
                 {(state.promoCardSerials || []).map((serial) => (
                   <article key={serial.id}>
-                    <div><strong>{serial.serial}</strong><span>{serial.note || "Sin nota"} · {serial.accountId || "No asignada"}</span></div>
+                    <div><strong>{serial.serial}</strong><span>{serial.note || "Sin nota"} · {serial.accountId || "No asignada"} · {serial.nfcUid || "Sin NFC"}{serial.writeLocked ? " · escritura bloqueada" : ""}</span></div>
                     <select value={serial.status} onChange={(event) => updatePromo(serial, { status: event.target.value as PromoCardSerial["status"] })}>
                       <option value="Available">Disponible</option>
                       <option value="Assigned">Asignada</option>

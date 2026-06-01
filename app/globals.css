@@ -10773,6 +10773,66 @@ html[data-a11y-contrast="true"] .lp4-info-grid a small {
   resize: vertical;
 }
 
+.nfc-console {
+  margin-top: 2px;
+  padding: 14px;
+  border: 1px solid rgba(63, 0, 216, .14);
+  border-radius: 16px;
+  display: grid;
+  gap: 10px;
+  background: rgba(63, 0, 216, .05);
+}
+
+.nfc-console h3 {
+  margin: 0;
+  color: #161021;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.nfc-console p {
+  margin: 0;
+  color: #5f5872;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.nfc-console select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid rgba(63, 0, 216, .18);
+  border-radius: 12px;
+  padding: 0 12px;
+  color: #161021;
+  background: #fff;
+  font: inherit;
+  font-weight: 850;
+}
+
+.nfc-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.nfc-actions button {
+  min-width: 0;
+  justify-content: center;
+  text-align: center;
+}
+
+.nfc-status {
+  min-height: 38px;
+  padding: 10px 12px;
+  border: 1px solid rgba(63, 0, 216, .12);
+  border-radius: 12px;
+  color: #3F00D8;
+  background: rgba(255, 255, 255, .82);
+  font-weight: 900;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .admin-table {
   display: grid;
   gap: 8px;
@@ -10829,6 +10889,10 @@ html[data-a11y-contrast="true"] .lp4-info-grid a small {
   .admin-topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .nfc-actions {
+    grid-template-columns: 1fr;
   }
 }
 

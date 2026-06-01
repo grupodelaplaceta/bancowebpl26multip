@@ -145,6 +145,10 @@ export type PromoCardSerial = {
   status: "Available" | "Assigned" | "Redeemed" | "Blocked";
   accountId?: string | null;
   cardId?: string | null;
+  nfcUid?: string | null;
+  nfcPayload?: string | null;
+  writeLocked?: boolean;
+  lastNfcScanAt?: string | null;
   note?: string | null;
   createdAt: string;
   updatedAt?: string | null;

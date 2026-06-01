@@ -173,6 +173,7 @@ const MIN_PLACETAID_AGE = 18;
 
 type PlacetaIdUserPayload = {
   dip?: string;
+  registroId?: string;
   nombre?: string;
   apellidos?: string;
   nombreCompleto?: string;
@@ -191,6 +192,31 @@ function parsePlacetaIdUser(value: string): PlacetaIdUserPayload | null {
     } catch {}
   }
   return null;
+}
+
+function parseJwtPayload(token: string): PlacetaIdUserPayload | null {
+  const payload = token.split(".")[1];
+  if (!payload) return null;
+  try {
+    const normalized = payload.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, "=");
+    const decoded = decodeURIComponent(Array.from(atob(padded)).map((char) => `%${char.charCodeAt(0).toString(16).padStart(2, "0")}`).join(""));
+    const parsed = JSON.parse(decoded);
+    return parsed && typeof parsed === "object" ? parsed as PlacetaIdUserPayload : null;
+  } catch {
+    return null;
+  }
+}
+
+function placetaIdCallbackParams() {
+  const params = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+  if (typeof window !== "undefined" && window.location.hash.includes("=")) {
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    hashParams.forEach((value, key) => {
+      if (!params.has(key)) params.set(key, value);
+    });
+  }
+  return params;
 }
 
 function bankStateFingerprint(state: BankState) {
@@ -387,8 +413,6 @@ function BancoPlacetaClient() {
 
   const bankStateHeaders = useCallback((json = false) => {
     const headers: Record<string, string> = json ? { "content-type": "application/json" } : {};
-    const token = typeof window !== "undefined" ? sessionStorage.getItem("placetaid-token") || "" : "";
-    if (token) headers.Authorization = `Bearer ${token}`;
     return headers;
   }, []);
 
@@ -410,7 +434,7 @@ function BancoPlacetaClient() {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const params = placetaIdCallbackParams();
     const callbackToken = params.get("placetaid_token") || params.get("token");
     if (callbackToken) sessionStorage.setItem("placetaid-token", callbackToken);
 
@@ -759,10 +783,10 @@ function BancoPlacetaClient() {
 
   useEffect(() => {
     if (!hydrated || placetaIdCallbackHandledRef.current || typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
+    const params = placetaIdCallbackParams();
     const token = params.get("placetaid_token") || params.get("token");
     const rawUser = params.get("user");
-    if (!token || !rawUser) return;
+    if (!token) return;
 
     placetaIdCallbackHandledRef.current = true;
     setPlacetaIdLoading(true);
@@ -770,7 +794,7 @@ function BancoPlacetaClient() {
     void (async () => {
       try {
         setAuthError("");
-        const placetaUser = parsePlacetaIdUser(rawUser);
+        const placetaUser = rawUser ? parsePlacetaIdUser(rawUser) : parseJwtPayload(token);
         if (!placetaUser?.dip) throw new Error("PlacetaID no devolvió datos de usuario válidos");
         const verifiedAge = verifiedAdultAgeFromPlacetaId(placetaUser);
         const returnedState = params.get("state") || "";
@@ -806,7 +830,7 @@ function BancoPlacetaClient() {
         params.delete("platform");
         params.delete("expires_in");
         params.delete("state");
-        const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params}` : ""}${window.location.hash}`;
+        const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
         window.history.replaceState({}, "", cleanUrl);
       } catch (error) {
         const message = error instanceof Error ? error.message : "No se pudo iniciar sesión con PlacetaID";
@@ -822,7 +846,7 @@ function BancoPlacetaClient() {
         params.delete("platform");
         params.delete("expires_in");
         params.delete("state");
-        const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params}` : ""}${window.location.hash}`;
+        const cleanUrl = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
         window.history.replaceState({}, "", cleanUrl);
       } finally {
         setPlacetaIdLoading(false);

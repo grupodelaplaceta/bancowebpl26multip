@@ -11641,25 +11641,38 @@ video {
 
 @media (max-width: 760px) {
   .login-only-page {
+    width: 100vw;
+    max-width: 100vw;
     place-items: start center;
     padding: max(12px, env(safe-area-inset-top)) 10px max(16px, env(safe-area-inset-bottom));
+    overflow-x: hidden;
     background:
       linear-gradient(180deg, rgba(63, 0, 216, .10), rgba(255,255,255,0) 38%),
       #f8f6fc;
   }
 
   .login-only-card {
-    width: 100%;
-    overflow: visible;
+    width: calc(100vw - 32px) !important;
+    max-width: calc(100vw - 32px) !important;
+    min-width: 0;
+    min-height: 0;
+    margin-inline: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) !important;
+    overflow: hidden;
     border-radius: 18px;
     box-shadow: 0 18px 46px rgba(43, 20, 91, .13);
   }
 
   .login-only-side {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     min-height: 176px;
-    padding: 18px;
+    padding: 16px;
     gap: 18px;
     border-radius: 18px 18px 0 0;
+    overflow: hidden;
   }
 
   .login-only-brand > span {
@@ -11677,17 +11690,23 @@ video {
   }
 
   .login-only-side h1 {
-    max-width: 260px;
-    font-size: clamp(2rem, 12vw, 3rem);
+    max-width: 100%;
+    font-size: clamp(2rem, 11vw, 2.75rem);
+    overflow-wrap: anywhere;
   }
 
   .login-only-side p {
+    max-width: 100%;
     margin-top: 8px;
     font-size: .92rem;
     line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .login-side-grid {
+    grid-template-columns: 1fr;
     gap: 7px;
   }
 
@@ -11696,38 +11715,67 @@ video {
     padding: 7px 8px;
     border-radius: 11px;
     font-size: .76rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .login-side-grid span:nth-child(n + 3) {
+    display: none;
   }
 
   .login-only-page .lp4-login {
-    padding: 18px;
+    min-width: 0;
+    width: 100%;
+    max-width: 100%;
+    padding: 16px;
+    border-radius: 0 0 18px 18px;
+    overflow: hidden;
   }
 
   .lp4-login-head h2 {
-    font-size: 1.62rem;
+    max-width: 100%;
+    font-size: 1.5rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .lp4-login-head p {
-    font-size: .92rem;
+    max-width: 100%;
+    font-size: .88rem;
     line-height: 1.35;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .placetaid-button {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
     min-height: 58px;
     padding: 10px 12px;
     border-radius: 15px;
+    color: #fff !important;
+    background: #3F00D8 !important;
+    border-color: #3F00D8 !important;
   }
 
   .placetaid-button span {
     min-width: 0;
+    text-align: left;
   }
 
   .placetaid-button strong,
   .placetaid-button small {
+    display: block;
+    white-space: normal;
     overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .login-assurance {
+    grid-template-columns: 1fr;
     gap: 8px;
   }
 
@@ -11803,23 +11851,32 @@ video {
     border-radius: 12px;
     line-height: 1.35;
   }
+
+  .accessibility-panel {
+    right: max(10px, env(safe-area-inset-right));
+    bottom: max(10px, env(safe-area-inset-bottom));
+  }
+
+  .accessibility-toggle {
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    min-height: 48px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 16px;
+  }
+
+  .accessibility-toggle span,
+  .accessibility-toggle strong,
+  .accessibility-toggle small {
+    display: none;
+  }
 }
 
 @media (max-width: 420px) {
   .login-only-side {
     min-height: 158px;
-  }
-
-  .login-side-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .login-side-grid span:nth-child(n + 3) {
-    display: none;
-  }
-
-  .login-assurance {
-    grid-template-columns: 1fr;
   }
 
   .android-beta-section {

@@ -6,7 +6,12 @@ import { BANK_API_URL } from "../../../lib/site";
 const baseUrl = () => (process.env.PLACETA_API_BASE_URL || BANK_API_URL).replace(/\/$/, "");
 const appId = () => process.env.PLACETA_API_APP_ID || process.env.PLACETA_APP_ID || "org.laplaceta.banco";
 const appSecrets = () => {
-  const secrets = [process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET].map((value) => String(value || "").trim()).filter(Boolean);
+  const secrets = [process.env.PLACETA_API_SECRETS, process.env.PLACETA_APP_SECRETS, process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET]
+    .filter(Boolean)
+    .join(",")
+    .split(",")
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
   if (!secrets.length) requiredProductionSecret("PLACETA_API_SECRET", process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET);
   return Array.from(new Set(secrets));
 };

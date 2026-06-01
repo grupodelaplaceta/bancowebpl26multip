@@ -1173,14 +1173,14 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
       <div className="lp4-login-head">
         <span className={`login-status ${sync}`}>{sync === "online" ? "Servicio conectado" : sync === "offline" ? "Modo sin conexión" : "Sincronizando datos"}</span>
         <h2>Entrar con PlacetaID</h2>
-        <p>El acceso al banco requiere identidad GDLP verificada y mayoría de edad confirmada.</p>
+        <p>Identidad GDLP y edad verificadas.</p>
       </div>
       <button type="button" className="placetaid-button" onClick={startPlacetaId}>
         <ShieldCheck size={19} />
         <span>
-          <strong>Continuar con PlacetaID</strong>
-          <small>Solo mayores de {MIN_PLACETAID_AGE} años</small>
-        </span>
+              <strong>Continuar con PlacetaID</strong>
+              <small>Mayores de {MIN_PLACETAID_AGE} años</small>
+            </span>
       </button>
       <div className="login-assurance">
         <span><Lock size={15} /> Sesión protegida</span>
@@ -1203,14 +1203,11 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
             </a>
             <div>
               <span>Acceso seguro</span>
-              <h1>Tu banco GDLP</h1>
-              <p>Operativa diaria, Placezum, tarjetas, documentos y administración en una sola plataforma.</p>
+              <h1>Banco GDLP</h1>
             </div>
             <div className="login-side-grid" aria-label="Ventajas del acceso">
               <span><CheckCircle2 size={16} /> Acceso unificado</span>
-              <span><CreditCard size={16} /> Tarjetas virtuales</span>
               <span><QrCode size={16} /> Placezum</span>
-              <span><Download size={16} /> PDFs</span>
             </div>
           </div>
           {loginForm}

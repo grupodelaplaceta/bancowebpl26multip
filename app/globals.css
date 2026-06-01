@@ -11668,9 +11668,9 @@ video {
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    min-height: 176px;
+    min-height: 156px;
     padding: 16px;
-    gap: 18px;
+    gap: 14px;
     border-radius: 18px 18px 0 0;
     overflow: hidden;
   }
@@ -11876,7 +11876,7 @@ video {
 
 @media (max-width: 420px) {
   .login-only-side {
-    min-height: 158px;
+    min-height: 146px;
   }
 
   .android-beta-section {

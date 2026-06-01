@@ -13,8 +13,18 @@ const splitSecrets = (...values: Array<string | undefined>) =>
     .map((value) => String(value || "").trim().replace(/^["']|["']$/g, ""))
     .filter(Boolean);
 const appSecrets = () => {
-  const secrets = splitSecrets(process.env.PLACETA_API_SECRETS, process.env.PLACETA_APP_SECRETS, process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET);
-  if (!secrets.length) requiredProductionSecret("PLACETA_API_SECRET", process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET);
+  const secrets = splitSecrets(
+    process.env.PLACETA_API_SECRETS,
+    process.env.PLACETA_APP_SECRETS,
+    process.env.PLACETA_BANK_API_SECRETS,
+    process.env.BANK_API_SECRETS,
+    process.env.PLACETA_API_SECRET,
+    process.env.PLACETA_APP_SECRET,
+    process.env.PLACETA_BANK_API_SECRET,
+    process.env.BANK_API_SECRET,
+    process.env.API_SECRET
+  );
+  if (!secrets.length) requiredProductionSecret("PLACETA_API_SECRET", process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET, process.env.BANK_API_SECRET);
   return Array.from(new Set(secrets));
 };
 const appSecret = () => appSecrets()[0];

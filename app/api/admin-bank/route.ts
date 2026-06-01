@@ -51,24 +51,38 @@ async function readState(request: Request) {
 export async function GET(request: Request) {
   const auth = requireAdmin(request);
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status, headers: noStoreHeaders });
-  const state = await readState(request);
-  return NextResponse.json({ state, allowedDip: auth.dip }, { headers: noStoreHeaders });
+  try {
+    const state = await readState(request);
+    return NextResponse.json({ state, allowedDip: auth.dip }, { headers: noStoreHeaders });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "admin_state_unavailable" },
+      { status: 503, headers: noStoreHeaders }
+    );
+  }
 }
 
 export async function PUT(request: Request) {
   const auth = requireAdmin(request);
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status, headers: noStoreHeaders });
 
-  const payload = await request.json().catch(() => ({}));
-  const nextState = finalizeState(normalizeState(payload.state));
-  const baseUpdatedAt = payload.baseUpdatedAt || null;
-  const response = await fetch(bankStateUrl(request), {
-    method: "PUT",
-    headers: forwardHeaders(request, true),
-    body: JSON.stringify({ state: nextState, baseUpdatedAt }),
-    cache: "no-store"
-  });
-  const result = await response.json().catch(() => null);
-  if (!response.ok) return NextResponse.json(result || { error: "admin_write_failed" }, { status: response.status, headers: noStoreHeaders });
-  return NextResponse.json({ state: normalizeState(result), savedBy: auth.dip }, { headers: noStoreHeaders });
+  try {
+    const payload = await request.json().catch(() => ({}));
+    const nextState = finalizeState(normalizeState(payload.state));
+    const baseUpdatedAt = payload.baseUpdatedAt || null;
+    const response = await fetch(bankStateUrl(request), {
+      method: "PUT",
+      headers: forwardHeaders(request, true),
+      body: JSON.stringify({ state: nextState, baseUpdatedAt }),
+      cache: "no-store"
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) return NextResponse.json(result || { error: "admin_write_failed" }, { status: response.status, headers: noStoreHeaders });
+    return NextResponse.json({ state: normalizeState(result), savedBy: auth.dip }, { headers: noStoreHeaders });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "admin_write_failed" },
+      { status: 503, headers: noStoreHeaders }
+    );
+  }
 }

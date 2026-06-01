@@ -25,6 +25,10 @@ type AdminUser = {
 };
 
 type AdminTab = "normativa" | "cuentas" | "tarjetas" | "promocards" | "informes";
+type AdminApiPayload = {
+  error?: string;
+  state?: Partial<BankState> | null;
+};
 
 function parseAdminUser(raw: string | null): AdminUser | null {
   if (!raw) return null;
@@ -58,6 +62,16 @@ function downloadText(name: string, content: string) {
   link.download = name;
   link.click();
   URL.revokeObjectURL(url);
+}
+
+async function readApiJson(response: Response): Promise<AdminApiPayload> {
+  const text = await response.text();
+  if (!text.trim()) return {};
+  try {
+    return JSON.parse(text) as AdminApiPayload;
+  } catch {
+    return { error: `Respuesta no JSON (${response.status})` };
+  }
 }
 
 export default function AdminPanelPage() {
@@ -105,8 +119,8 @@ export default function AdminPanelPage() {
     setBusy(true);
     try {
       const response = await fetch("/api/admin-bank", { headers: adminHeaders, cache: "no-store" });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Acceso admin rechazado");
+      const payload = await readApiJson(response);
+      if (!response.ok) throw new Error(String(payload.error || "Acceso admin rechazado"));
       const next = normalizeState(payload.state);
       setState(next);
       setBaseUpdatedAt(next.updatedAt || null);
@@ -133,8 +147,8 @@ export default function AdminPanelPage() {
         headers: adminHeaders,
         body: JSON.stringify({ state: normalized, baseUpdatedAt })
       });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "No se pudo guardar");
+      const payload = await readApiJson(response);
+      if (!response.ok) throw new Error(String(payload.error || "No se pudo guardar"));
       const saved = normalizeState(payload.state);
       setState(saved);
       setBaseUpdatedAt(saved.updatedAt || null);

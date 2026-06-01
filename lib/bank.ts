@@ -1044,7 +1044,9 @@ export function madridDateParts(now = new Date()) {
 
 export function monthlyTaxKey(now = new Date()) {
   const parts = madridDateParts(now);
-  return `${parts.year}-${String(parts.month).padStart(2, "0")}`;
+  const monthStart = new Date(Date.UTC(parts.year, parts.month - 1, 1, 0, 0, 0));
+  monthStart.setUTCMonth(monthStart.getUTCMonth() - 1);
+  return `${monthStart.getUTCFullYear()}-${String(monthStart.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
 export function isMonthlyTaxWindow(now = new Date()) {

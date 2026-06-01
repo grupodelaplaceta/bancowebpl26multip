@@ -2683,7 +2683,7 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
         </div>
         <div className="action-grid">
           <button className="primary-button" disabled={!target} onClick={() => { if (target) onPersist(chargeWeeklyTax(state, target.id), "Impuesto semanal cargado"); setTaxModal(null); }}>Cobrar semanal</button>
-          <button className="secondary-button" onClick={() => { onPersist(chargeMonthlyTaxes(state, new Date(), true).state, "Impuestos mensuales cargados"); setTaxModal(null); }}>Cobrar mensual</button>
+          <button className="secondary-button" onClick={() => { onPersist(chargeMonthlyTaxes(state, new Date(), true).state, "Impuestos del mes anterior cargados"); setTaxModal(null); }}>Cobrar mes anterior</button>
           <button className="secondary-button" disabled={!target} onClick={() => { if (target) onPersist(issueOfficialFine(state, target.id, fineAmount), "Multa oficial emitida"); setTaxModal(null); }}>Emitir multa</button>
           <button className="secondary-button" disabled={!target} onClick={() => { if (target) onPersist(forceVatRegularization(state, target.id, vatBase), "IVA regularizado"); setTaxModal(null); }}>Regularizar IVA</button>
         </div>

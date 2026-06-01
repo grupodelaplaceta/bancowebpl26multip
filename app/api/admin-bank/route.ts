@@ -31,16 +31,13 @@ function bankStateUrl(request: Request) {
   return new URL("/api/bank-state", request.url).toString();
 }
 
-function forwardHeaders(request: Request, json = false) {
-  const headers: Record<string, string> = json ? { "content-type": "application/json" } : {};
-  const auth = request.headers.get("authorization");
-  if (auth) headers.authorization = auth;
-  return headers;
+function serverStateHeaders(json = false): Record<string, string> {
+  return json ? { "content-type": "application/json" } : {};
 }
 
 async function readState(request: Request) {
   const response = await fetch(`${bankStateUrl(request)}?adminTs=${Date.now()}`, {
-    headers: forwardHeaders(request),
+    headers: serverStateHeaders(),
     cache: "no-store"
   });
   const payload = await response.json().catch(() => null);
@@ -72,7 +69,7 @@ export async function PUT(request: Request) {
     const baseUpdatedAt = payload.baseUpdatedAt || null;
     const response = await fetch(bankStateUrl(request), {
       method: "PUT",
-      headers: forwardHeaders(request, true),
+      headers: serverStateHeaders(true),
       body: JSON.stringify({ state: nextState, baseUpdatedAt }),
       cache: "no-store"
     });

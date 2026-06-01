@@ -430,7 +430,17 @@ function clamp(value: number, min: number, max: number) {
 }
 
 export function normalizeIban(value: string) {
-  return value.replace(/\s+/g, "").toUpperCase();
+  const compact = String(value || "").normalize("NFKC").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const web = compact.match(/^GDLP(\d{4})(\d{4})$/);
+  if (web) return `GDLP-${web[1]}-${web[2]}`;
+  const app = compact.match(/^GDLPAP(\d{2})(\d{3})$/);
+  if (app) return `GDLP-AP${app[1]}-${app[2]}`;
+  return compact;
+}
+
+export function findAccountByIban(accounts: Account[], iban: string) {
+  const target = normalizeIban(iban);
+  return accounts.find((account) => normalizeIban(account.iban) === target);
 }
 
 export function normalizeTreasuryConfig(config: Partial<TreasuryConfig> = {}): TreasuryConfig {
@@ -521,7 +531,7 @@ function bridgeCommission(amountPz: number, from: Account, to: Account, config: 
 
 export function transferCostPreview(state: BankState, fromId: string, targetIban: string, amountPz: number, kind: TransactionKind = "Consumption") {
   const from = state.accounts.find((item) => item.id === fromId);
-  const to = state.accounts.find((item) => normalizeIban(item.iban) === normalizeIban(targetIban));
+  const to = findAccountByIban(state.accounts, targetIban);
   const safeAmount = Math.max(0, Math.floor(Number(amountPz) || 0));
   const officialTarget = isOfficialIban(targetIban);
   const taxLabel = kind === "Consumption" || kind === "Placezum" ? "IVA" : "Tasa operativa";
@@ -845,7 +855,7 @@ export function transferByIban(state: BankState, fromId: string, targetIban: str
       transactions: applyTransactions(state.transactions, [transaction])
     });
   }
-  const to = accounts.find((item) => normalizeIban(item.iban) === normalizeIban(targetIban));
+  const to = findAccountByIban(accounts, targetIban);
   if (!to) throw new Error("IBAN oficial no localizado");
   if (kind === "Consumption" || kind === "Placezum") {
     return transferConsumption(state, fromId, to.id, amountPz, note, kind);
@@ -1509,7 +1519,7 @@ export function createDeveloperPayment(merchantIban: string, amountPz: number, c
   const ivaPz = percentCeil(safeAmount, VAT_PERCENT);
   return {
     id: `pay_${makeId("dev").replace(/^dev-/, "")}`,
-    merchantIban: merchantIban.trim().toUpperCase(),
+    merchantIban: normalizeIban(merchantIban),
     amountPz: safeAmount,
     ivaPz,
     totalPz: safeAmount + ivaPz,
@@ -1529,7 +1539,7 @@ export function captureDeveloperPayment(state: BankState, payment: DeveloperPaym
   );
   if (alreadyPaid) throw new Error("El pago ya fue capturado");
   const customer = state.accounts.find((account) => account.id === customerAccountId);
-  const merchant = state.accounts.find((account) => normalizeIban(account.iban) === normalizeIban(payment.merchantIban));
+  const merchant = findAccountByIban(state.accounts, payment.merchantIban);
   const tglp = state.accounts.find((account) => account.id === TGLP_ID);
   if (!customer) throw new Error("Cuenta pagadora no encontrada");
   if (!merchant) throw new Error("IBAN de comercio no encontrado");

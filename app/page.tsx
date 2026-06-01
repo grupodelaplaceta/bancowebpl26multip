@@ -65,6 +65,7 @@ import {
   LedgerTransaction,
   MAX_VIRTUAL_CARDS_PER_ACCOUNT,
   investmentResultRows,
+  normalizeIban,
   normalizeState,
   payPlacezum,
   pendingInvestmentOperations,
@@ -1564,7 +1565,7 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
   const payTarget = normalizedPayTarget
     ? accounts.find((candidate) =>
       candidate.id !== account.id && (
-        candidate.iban.toUpperCase() === normalizedPayTarget ||
+        normalizeIban(candidate.iban) === normalizeIban(normalizedPayTarget) ||
         candidate.placetaId?.toUpperCase() === normalizedPayTarget ||
         candidate.displayName.toUpperCase().includes(normalizedPayTarget) ||
         (payCodeCandidate.length === 5 && [0, 120000].some((offset) => generatePlacezumCode(candidate, new Date(Date.now() - offset)) === payCodeCandidate))
@@ -1575,7 +1576,7 @@ function PlacezumScreen({ user, account, accounts, contacts, limit, spent, onPay
   const resolvedContact = normalizedQuery
     ? accounts.find((candidate) =>
       candidate.id !== account.id &&
-      (candidate.iban.toUpperCase() === normalizedQuery || candidate.placetaId?.toUpperCase() === normalizedQuery || candidate.displayName.toUpperCase().includes(normalizedQuery))
+      (normalizeIban(candidate.iban) === normalizeIban(normalizedQuery) || candidate.placetaId?.toUpperCase() === normalizedQuery || candidate.displayName.toUpperCase().includes(normalizedQuery))
     )
     : undefined;
   const favoriteAccounts = contacts

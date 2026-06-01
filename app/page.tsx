@@ -1298,7 +1298,12 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
         <form className="android-beta-form" onSubmit={submitBeta}>
           <label>
             <span>Nombre</span>
-            <input value={betaName} onChange={(event) => setBetaName(event.target.value.slice(0, 50))} placeholder="Tu nombre" />
+            <input
+              value={betaName}
+              onChange={(event) => setBetaName(event.target.value.slice(0, 50))}
+              placeholder="Tu nombre"
+              autoComplete="name"
+            />
           </label>
           <label>
             <span>{betaChannel === "email" ? "Correo electrónico" : "WhatsApp"}</span>
@@ -1308,6 +1313,8 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
               onChange={(event) => setBetaContact(event.target.value.slice(0, 80))}
               placeholder={betaChannel === "email" ? "nombre@correo.com" : "+34 600 000 000"}
               type={betaChannel === "email" ? "email" : "tel"}
+              inputMode={betaChannel === "email" ? "email" : "tel"}
+              autoComplete={betaChannel === "email" ? "email" : "tel"}
             />
           </label>
           <div className="android-beta-channel-field">

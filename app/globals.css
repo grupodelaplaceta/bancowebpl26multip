@@ -11287,3 +11287,543 @@ video {
     grid-template-columns: 1fr;
   }
 }
+
+/* Top navigation polish: responsive, touch-safe and fully aligned with the Banco accent. */
+.topbar {
+  min-height: 74px;
+  isolation: isolate;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.16), rgba(255,255,255,0) 42%),
+    #3F00D8 !important;
+  box-shadow: 0 16px 36px rgba(63, 0, 216, .22);
+}
+
+.top-brand {
+  flex: 1 1 auto;
+  max-width: 100%;
+}
+
+.top-brand > div {
+  max-width: 100%;
+}
+
+.top-actions {
+  margin-left: auto;
+}
+
+.topbar .status-pill {
+  min-height: 40px;
+  padding-inline: 13px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.15);
+  border-color: rgba(255,255,255,.25);
+}
+
+.icon-button {
+  flex: 0 0 auto;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 12px !important;
+  background: rgba(255,255,255,.14) !important;
+  border: 1px solid rgba(255,255,255,.24) !important;
+}
+
+.icon-button:hover {
+  background: rgba(255,255,255,.22) !important;
+  transform: translateY(-1px);
+}
+
+.icon-button.notify-on {
+  color: #3F00D8 !important;
+  background: #fff !important;
+  border-color: #fff !important;
+}
+
+.app-nav {
+  position: sticky;
+  top: 82px;
+  z-index: 7;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)) !important;
+  padding: 7px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.94) !important;
+  border: 1px solid rgba(63, 0, 216, .14) !important;
+  box-shadow: 0 12px 28px rgba(23, 19, 34, .08);
+  backdrop-filter: blur(18px);
+}
+
+.app-nav button,
+.bottom-nav button {
+  min-height: 46px;
+  border-radius: 13px !important;
+  white-space: nowrap;
+}
+
+.app-nav button {
+  padding-inline: 12px;
+  color: #554b67;
+}
+
+.app-nav button.active,
+.bottom-nav button.active,
+.account-chip.active {
+  color: #fff !important;
+  background: #3F00D8 !important;
+  box-shadow: 0 12px 24px rgba(63, 0, 216, .20) !important;
+}
+
+.account-strip {
+  padding: 7px;
+  border-radius: 18px;
+}
+
+.landing-page .lp4-nav {
+  position: sticky;
+  top: 10px;
+  min-height: 72px;
+  padding: 9px 12px;
+  border-radius: 20px !important;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.15), rgba(255,255,255,0) 45%),
+    #3F00D8 !important;
+  box-shadow: 0 18px 44px rgba(63, 0, 216, .24);
+}
+
+.landing-page .lp4-brand {
+  gap: 10px;
+}
+
+.landing-page .lp4-brand strong {
+  max-width: 28ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.landing-page .lp4-logo {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+}
+
+.landing-page .lp4-links {
+  display: flex;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.landing-page .lp4-links a,
+.bank-public-actions a,
+.primary-button,
+.secondary-button,
+.mini-action,
+.ghost-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 12px !important;
+  font-weight: 900;
+  text-align: center;
+  text-decoration: none;
+}
+
+.landing-page .lp4-links a {
+  padding: 0 13px;
+  color: #fff !important;
+  background: rgba(255,255,255,.12) !important;
+  border: 1px solid rgba(255,255,255,.16) !important;
+}
+
+.landing-page .lp4-links a:hover {
+  background: rgba(255,255,255,.20) !important;
+}
+
+.landing-page .lp4-links .lp4-link-cta,
+.landing-page .lp4-links .lp4-link-cta:hover {
+  color: #3F00D8 !important;
+  background: #fff !important;
+  border-color: #fff !important;
+}
+
+.bank-public-actions {
+  align-content: center;
+}
+
+.bank-public-actions a {
+  padding-inline: 16px;
+}
+
+.primary-button,
+.bank-public-actions a:first-child {
+  color: #fff !important;
+  background: #3F00D8 !important;
+  border: 1px solid #3F00D8 !important;
+  box-shadow: 0 12px 26px rgba(63, 0, 216, .20) !important;
+}
+
+.secondary-button,
+.bank-public-actions a + a {
+  color: #3F00D8 !important;
+  background: rgba(63, 0, 216, .07) !important;
+  border: 1px solid rgba(63, 0, 216, .16) !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 900px) {
+  .topbar {
+    min-height: 68px;
+    gap: 10px;
+  }
+
+  .brand-logo {
+    width: 56px;
+    height: 56px;
+  }
+
+  .topbar h1 {
+    font-size: 1.12rem;
+  }
+
+  .top-user {
+    font-size: .78rem;
+  }
+
+  .app-nav {
+    top: 76px;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 700px) {
+  .topbar {
+    margin-inline: -10px;
+    padding: 8px 10px;
+  }
+
+  .topbar .eyebrow {
+    display: none;
+  }
+
+  .topbar .status-pill {
+    display: none;
+  }
+
+  .icon-button {
+    min-width: 42px;
+    width: 42px;
+    min-height: 42px;
+    height: 42px;
+  }
+
+  .landing-page .lp4-nav {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 8px;
+    top: 6px;
+    width: min(100% - 12px, 1180px);
+    min-height: 62px;
+    padding: 7px 8px;
+  }
+
+  .landing-page .lp4-logo {
+    width: 42px;
+    height: 42px;
+  }
+
+  .landing-page .lp4-brand small {
+    display: none;
+  }
+
+  .landing-page .lp4-brand strong {
+    max-width: 38vw;
+    font-size: .92rem;
+  }
+
+  .landing-page .lp4-links {
+    width: auto !important;
+    display: flex !important;
+    grid-template-columns: none !important;
+  }
+
+  .landing-page .lp4-links a {
+    min-height: 40px;
+    padding-inline: 10px;
+  }
+
+  .landing-page .lp4-links a:not(.lp4-link-cta) {
+    display: none !important;
+  }
+
+  .landing-page .lp4-links a[href="#android-beta"] {
+    display: inline-flex !important;
+  }
+
+  .bank-public-actions {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .topbar h1 {
+    max-width: 45vw;
+    font-size: 1rem;
+  }
+
+  .top-user {
+    max-width: 45vw;
+  }
+
+  .brand-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .app-nav {
+    display: none !important;
+  }
+
+  .bottom-nav {
+    grid-template-columns: repeat(6, minmax(42px, 1fr)) !important;
+    padding: 6px;
+  }
+
+  .bottom-nav button {
+    min-width: 0;
+    min-height: 50px;
+    padding: 4px;
+  }
+
+  .landing-page .lp4-brand strong {
+    max-width: 42vw;
+  }
+
+  .landing-page .lp4-links a[href="#android-beta"] {
+    display: none !important;
+  }
+
+  .landing-page .lp4-links .lp4-link-cta {
+    min-width: 86px;
+  }
+}
+
+/* Mobile login and Android beta form comfort pass */
+.login-only-page {
+  min-height: 100svh;
+}
+
+.login-only-card {
+  border-radius: 22px;
+}
+
+.login-side-grid,
+.login-assurance {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.login-side-grid span,
+.login-assurance span {
+  min-width: 0;
+}
+
+.android-beta-form input {
+  min-height: 50px;
+  font-size: 16px;
+}
+
+.android-beta-channel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.android-beta-channel button {
+  min-height: 46px;
+}
+
+@media (max-width: 760px) {
+  .login-only-page {
+    place-items: start center;
+    padding: max(12px, env(safe-area-inset-top)) 10px max(16px, env(safe-area-inset-bottom));
+    background:
+      linear-gradient(180deg, rgba(63, 0, 216, .10), rgba(255,255,255,0) 38%),
+      #f8f6fc;
+  }
+
+  .login-only-card {
+    width: 100%;
+    overflow: visible;
+    border-radius: 18px;
+    box-shadow: 0 18px 46px rgba(43, 20, 91, .13);
+  }
+
+  .login-only-side {
+    min-height: 176px;
+    padding: 18px;
+    gap: 18px;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .login-only-brand > span {
+    width: 48px;
+    height: 48px;
+  }
+
+  .login-only-brand > strong {
+    font-size: .94rem;
+  }
+
+  .login-only-side div > span {
+    margin-bottom: 5px;
+    font-size: .7rem;
+  }
+
+  .login-only-side h1 {
+    max-width: 260px;
+    font-size: clamp(2rem, 12vw, 3rem);
+  }
+
+  .login-only-side p {
+    margin-top: 8px;
+    font-size: .92rem;
+    line-height: 1.35;
+  }
+
+  .login-side-grid {
+    gap: 7px;
+  }
+
+  .login-side-grid span {
+    min-height: 38px;
+    padding: 7px 8px;
+    border-radius: 11px;
+    font-size: .76rem;
+  }
+
+  .login-only-page .lp4-login {
+    padding: 18px;
+  }
+
+  .lp4-login-head h2 {
+    font-size: 1.62rem;
+  }
+
+  .lp4-login-head p {
+    font-size: .92rem;
+    line-height: 1.35;
+  }
+
+  .placetaid-button {
+    width: 100%;
+    min-height: 58px;
+    padding: 10px 12px;
+    border-radius: 15px;
+  }
+
+  .placetaid-button span {
+    min-width: 0;
+  }
+
+  .placetaid-button strong,
+  .placetaid-button small {
+    overflow-wrap: anywhere;
+  }
+
+  .login-assurance {
+    gap: 8px;
+  }
+
+  .login-assurance span {
+    justify-content: center;
+    min-height: 38px;
+    padding: 7px;
+    text-align: center;
+  }
+
+  .android-beta-section {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .android-beta-copy h2 {
+    font-size: clamp(1.7rem, 8vw, 2.25rem);
+    line-height: 1;
+  }
+
+  .android-beta-copy p {
+    font-size: .96rem;
+    line-height: 1.42;
+  }
+
+  .android-beta-points {
+    grid-template-columns: 1fr;
+    gap: 7px;
+  }
+
+  .android-beta-form {
+    width: 100%;
+    gap: 12px;
+  }
+
+  .android-beta-form label,
+  .android-beta-channel-field,
+  .android-beta-form .primary-button {
+    width: 100%;
+  }
+
+  .android-beta-form input,
+  .android-beta-channel button,
+  .android-beta-form .primary-button {
+    width: 100%;
+    min-height: 50px;
+    border-radius: 13px !important;
+  }
+
+  .android-beta-consent {
+    align-items: flex-start;
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .android-beta-consent input {
+    width: 20px;
+    min-width: 20px;
+    height: 20px;
+    min-height: 20px;
+    margin-top: 2px;
+  }
+
+  .android-beta-consent span {
+    font-size: .84rem;
+    line-height: 1.35;
+  }
+
+  .android-beta-status.visible {
+    padding: 10px 12px;
+    border-radius: 12px;
+    line-height: 1.35;
+  }
+}
+
+@media (max-width: 420px) {
+  .login-only-side {
+    min-height: 158px;
+  }
+
+  .login-side-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .login-side-grid span:nth-child(n + 3) {
+    display: none;
+  }
+
+  .login-assurance {
+    grid-template-columns: 1fr;
+  }
+
+  .android-beta-section {
+    width: min(100% - 16px, 1180px);
+    padding: 14px;
+  }
+}

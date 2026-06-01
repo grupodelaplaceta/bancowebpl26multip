@@ -11006,3 +11006,284 @@ html[data-a11y-contrast="true"] .lp4-info-grid a small {
     display: none;
   }
 }
+
+/* Final responsive stabilization: keep the bank web usable from small phones to wide desktops. */
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+}
+
+.app-shell,
+.lp4-shell,
+.admin-standalone {
+  width: 100%;
+  max-width: 100vw;
+}
+
+.topbar,
+.workspace-head,
+.screen-grid,
+.bottom-nav,
+.landing-page .lp4-nav,
+.landing-page .bank-simple-carousel,
+.bank-public-intro,
+.lp4-product,
+.bank-ops-section,
+.android-beta-section,
+.landing-page .lp4-footer.bank-footer,
+.admin-topbar,
+.admin-stat-grid,
+.admin-tabs,
+.admin-two-col,
+.admin-panel-box,
+.admin-table {
+  max-width: calc(100vw - 24px);
+}
+
+.landing-page .lp4-nav,
+.bank-public-intro,
+.android-beta-section,
+.landing-page .lp4-footer.bank-footer {
+  display: grid;
+}
+
+.landing-page .lp4-nav {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.landing-page .lp4-brand,
+.workspace-head > div,
+.admin-topbar > div,
+.admin-table article > div,
+.lp4-section-head,
+.hero-card,
+.placezum-card,
+.admin-panel-box {
+  min-width: 0;
+}
+
+.landing-page .lp4-brand span:last-child,
+.workspace-head p,
+.admin-topbar p,
+.admin-table span,
+.admin-table strong,
+.admin-table b,
+.lp4-info-grid a,
+.bank-ops-grid article,
+.nfc-status {
+  overflow-wrap: anywhere;
+}
+
+.landing-page .bank-simple-carousel {
+  height: clamp(180px, 43vw, 520px);
+  aspect-ratio: auto;
+}
+
+.landing-page .bank-simple-carousel .web-carousel-frame,
+.landing-page .bank-simple-carousel .web-carousel-frame > img {
+  width: 100%;
+  height: 100%;
+}
+
+.landing-page .bank-simple-carousel .web-carousel-frame > img {
+  object-fit: cover !important;
+}
+
+.bank-public-intro {
+  display: grid;
+}
+
+.bank-public-actions a,
+.lp4-hero-actions a,
+.primary-button,
+.secondary-button,
+.ghost-button,
+.admin-tabs button,
+.nfc-actions button {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.15;
+}
+
+.admin-table article {
+  grid-template-columns: minmax(0, 1fr) minmax(96px, auto) minmax(140px, 190px);
+}
+
+.admin-table select {
+  min-width: 0;
+}
+
+.admin-config-grid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.admin-stat-grid {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.lp4-info-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.bank-ops-grid,
+.bank-public-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+@media (max-width: 820px) {
+  :root {
+    --nav-h: 68px;
+  }
+
+  .topbar,
+  .workspace-head,
+  .screen-grid,
+  .landing-page .lp4-nav,
+  .landing-page .bank-simple-carousel,
+  .bank-public-intro,
+  .lp4-product,
+  .bank-ops-section,
+  .android-beta-section,
+  .landing-page .lp4-footer.bank-footer,
+  .admin-topbar,
+  .admin-stat-grid,
+  .admin-tabs,
+  .admin-two-col,
+  .admin-panel-box,
+  .admin-table {
+    max-width: calc(100vw - 16px);
+  }
+
+  .landing-page .lp4-nav {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .landing-page .lp4-links {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .landing-page .lp4-links a {
+    justify-content: center;
+    padding-inline: 10px;
+  }
+
+  .bank-public-intro {
+    grid-template-columns: 1fr;
+  }
+
+  .bank-public-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-topbar {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .admin-topbar .secondary-button,
+  .admin-topbar button {
+    width: 100%;
+  }
+
+  .admin-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .admin-tabs button {
+    justify-content: center;
+    padding-inline: 8px;
+  }
+
+  .admin-table article {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .admin-table article > b,
+  .admin-table article > select,
+  .admin-table article > button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  body {
+    font-size: 14px;
+  }
+
+  .landing-page .lp4-nav,
+  .bank-public-intro,
+  .android-beta-section,
+  .landing-page .lp4-footer.bank-footer,
+  .admin-login-panel,
+  .admin-topbar,
+  .admin-panel-box,
+  .admin-table article {
+    border-radius: 16px;
+  }
+
+  .landing-page .lp4-brand {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .landing-page .lp4-logo {
+    width: 44px;
+    height: 44px;
+  }
+
+  .landing-page .bank-simple-carousel {
+    height: clamp(168px, 54vw, 260px);
+    margin-top: -8px;
+  }
+
+  .bank-public-intro h1 {
+    font-size: clamp(1.8rem, 10vw, 2.2rem);
+  }
+
+  .bank-public-actions,
+  .landing-page .lp4-links,
+  .admin-tabs,
+  .nfc-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .lp4-info-grid,
+  .bank-ops-grid,
+  .bank-public-metrics,
+  .admin-stat-grid,
+  .admin-config-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .accessibility-panel {
+    right: 8px;
+    bottom: calc(var(--nav-h) + 10px);
+  }
+
+  .accessibility-options {
+    width: calc(100vw - 16px);
+  }
+
+  .accessibility-grid {
+    grid-template-columns: 1fr;
+  }
+}

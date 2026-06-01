@@ -39,7 +39,7 @@ function sanitizeItem(input: Partial<GdlpSharedNewsItem>): GdlpSharedNewsItem {
   const title = text(input.title, "Noticia del periodico").slice(0, 140);
   const slug = text(input.slug, slugify(title)).slice(0, 120) || `noticia-${Date.now()}`;
   const summary = text(input.summary || input.body?.[0] || title).slice(0, 320);
-  const image = text(input.image || input.images?.[0] || "/assets/gdlp-community.svg");
+  const image = text(input.image || input.images?.[0] || "/assets/logobanco.jpg");
   const body = list(input.body).length ? list(input.body).slice(0, 24) : [summary];
   const videos = list(input.videos).slice(0, 8);
   return {

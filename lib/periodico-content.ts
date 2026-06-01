@@ -7,8 +7,8 @@ export const periodicoNews: GdlpSharedNewsItem[] = [
     tag: "Portada",
     summary: "La nueva cabecera abre una linea editorial independiente para cronicas, entrevistas y reportajes del barrio.",
     date: "17/05/2026",
-    image: "/assets/gdlp-community.svg",
-    images: ["/assets/gdlp-community.svg"],
+    image: "/assets/logobanco.jpg",
+    images: ["/assets/logobanco.jpg"],
     body: [
       "El Periodico de La Placeta arranca como una publicacion propia del Grupo de La Placeta, separada de los avisos bancarios y del portal institucional.",
       "La cabecera nacera con noticias de calle, piezas de opinion, entrevistas y seguimiento de proyectos que necesiten mas contexto que un comunicado.",
@@ -23,8 +23,8 @@ export const periodicoNews: GdlpSharedNewsItem[] = [
     tag: "Cronica",
     summary: "Vecinos y comercios recuperan la plaza como punto de encuentro con productos locales, musica y conversaciones largas.",
     date: "17/05/2026",
-    image: "/assets/gdlp-placezum-market.svg",
-    images: ["/assets/gdlp-placezum-market.svg"],
+    image: "/assets/actu.jpg",
+    images: ["/assets/actu.jpg"],
     body: [
       "El mercado del domingo volvio a llenar La Placeta desde primera hora, con puestos de comida, reparacion, artesania y pequenas iniciativas del barrio.",
       "La jornada dejo una imagen distinta a la de los paneles del banco: menos cifras, mas nombres propios y una sensacion clara de movimiento comunitario.",
@@ -39,8 +39,8 @@ export const periodicoNews: GdlpSharedNewsItem[] = [
     tag: "Entrevista",
     summary: "El equipo juvenil quiere explicar sus avances con voz propia y publicar piezas cortas cada semana.",
     date: "17/05/2026",
-    image: "/assets/gdlp-placezum-pay.svg",
-    images: ["/assets/gdlp-placezum-pay.svg"],
+    image: "/assets/promocard.jpg",
+    images: ["/assets/promocard.jpg"],
     body: [
       "La redaccion del periodico abrira espacio a los grupos jovenes de La Placeta para contar ideas, prototipos y aprendizajes sin esperar a que todo este terminado.",
       "El objetivo es que el periodico sea tambien un archivo de proceso: lo que se intenta, lo que falla y lo que empieza a funcionar.",

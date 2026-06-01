@@ -139,6 +139,17 @@ export type PromoSlide = {
   assetPath?: string | null;
 };
 
+export type PromoCardSerial = {
+  id: string;
+  serial: string;
+  status: "Available" | "Assigned" | "Redeemed" | "Blocked";
+  accountId?: string | null;
+  cardId?: string | null;
+  note?: string | null;
+  createdAt: string;
+  updatedAt?: string | null;
+};
+
 export type ComplianceFlag = {
   id: string;
   accountId: string;
@@ -298,6 +309,7 @@ export type TreasuryConfig = {
   contactlessLimitPz: number;
   placezumWeeklyLimitPz: number;
   weeklyTaxPercent: number;
+  monthlyTaxPercent: number;
   weeklyDeveloperApiFeePercent: number;
   weeklyPaymentLinkFeePercent: number;
   minimumWeeklySalaryPz: number;
@@ -345,6 +357,7 @@ export type BankState = {
   digitalCards: DigitalCard[];
   savedContacts: SavedContact[];
   promoSlides: PromoSlide[];
+  promoCardSerials: PromoCardSerial[];
   treasuryConfig: TreasuryConfig;
   complianceFlags: ComplianceFlag[];
   supportTickets: SupportTicket[];
@@ -370,6 +383,7 @@ export const treasuryDefaults: TreasuryConfig = {
   contactlessLimitPz: 500,
   placezumWeeklyLimitPz: 1000,
   weeklyTaxPercent: 2,
+  monthlyTaxPercent: 2,
   weeklyDeveloperApiFeePercent: 1,
   weeklyPaymentLinkFeePercent: 1,
   minimumWeeklySalaryPz: 150,
@@ -423,6 +437,7 @@ export function normalizeTreasuryConfig(config: Partial<TreasuryConfig> = {}): T
     webBridgeCommissionPercent: clamp(next.webBridgeCommissionPercent, 0, VAT_PERCENT),
     placezumWeeklyLimitPz: clamp(next.placezumWeeklyLimitPz, 0, 1000000),
     weeklyTaxPercent: clamp(next.weeklyTaxPercent, 0, 25),
+    monthlyTaxPercent: clamp(next.monthlyTaxPercent, 0, 25),
     weeklyDeveloperApiFeePercent: clamp(next.weeklyDeveloperApiFeePercent, 0, 25),
     weeklyPaymentLinkFeePercent: clamp(next.weeklyPaymentLinkFeePercent, 0, 25),
     minimumWeeklySalaryPz: clamp(next.minimumWeeklySalaryPz, 1, 10000),
@@ -498,6 +513,42 @@ function isCrossPlatformTransfer(from: Account, to: Account) {
 
 function bridgeCommission(amountPz: number, from: Account, to: Account, config: TreasuryConfig) {
   return from.id !== AGLDP_ID && isCrossPlatformTransfer(from, to) ? percentCeil(amountPz, config.webBridgeCommissionPercent) : 0;
+}
+
+export function transferCostPreview(state: BankState, fromId: string, targetIban: string, amountPz: number, kind: TransactionKind = "Consumption") {
+  const from = state.accounts.find((item) => item.id === fromId);
+  const to = state.accounts.find((item) => normalizeIban(item.iban) === normalizeIban(targetIban));
+  const safeAmount = Math.max(0, Math.floor(Number(amountPz) || 0));
+  const officialTarget = isOfficialIban(targetIban);
+  const taxLabel = kind === "Consumption" || kind === "Placezum" ? "IVA" : "Tasa operativa";
+  const taxPercent = kind === "Consumption" || kind === "Placezum" ? VAT_PERCENT : state.treasuryConfig.operationalTransferTaxPercent;
+  const taxPz = officialTarget && from && to && safeAmount > 0 ? percentCeil(safeAmount, taxPercent) : 0;
+  const bridgePz = officialTarget && from && to && safeAmount > 0 ? bridgeCommission(safeAmount, from, to, state.treasuryConfig) : 0;
+  const totalDebitPz = safeAmount + taxPz + bridgePz;
+  const balanceAfterPz = from ? from.balancePz - totalDebitPz : 0;
+  const canPay =
+    Boolean(from) &&
+    safeAmount > 0 &&
+    officialTarget &&
+    Boolean(to) &&
+    from!.balancePz >= totalDebitPz &&
+    balanceAfterPz >= MINIMUM_INCOME_SHIELD_PZ;
+
+  return {
+    from,
+    to,
+    amountPz: safeAmount,
+    officialTarget,
+    taxLabel,
+    taxPercent,
+    taxPz,
+    bridgePercent: state.treasuryConfig.webBridgeCommissionPercent,
+    bridgePz,
+    crossPlatform: Boolean(from && to && isCrossPlatformTransfer(from, to)),
+    totalDebitPz,
+    balanceAfterPz,
+    canPay
+  };
 }
 
 export function accountTypeAccountLimit(config: TreasuryConfig, type: AccountType) {
@@ -684,6 +735,7 @@ export function demoSeed(): BankState {
       { id: "promo-2", title: "PLACEZUM", subtitle: "Pagos rápidos con IBAN GDLP app o web y control total.", action: "Register", imageKey: "placezum", assetPath: "promos/placezum-default.png" },
       { id: "promo-3", title: "MERCADO GDLP", subtitle: "Invierte, revisa movimientos y descarga documentos fiscales.", action: "Demo", imageKey: "market", assetPath: "promos/mercado-default.png" }
     ],
+    promoCardSerials: [],
     treasuryConfig: treasuryDefaults,
     complianceFlags: [],
     schemaSeedVersion: 2,
@@ -747,6 +799,7 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
     periodicoNews: dedupeBy(input.periodicoNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
     donationRewards: dedupeBy(input.donationRewards || [], "id").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
     androidBetaSignups: dedupeBy(input.androidBetaSignups || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    promoCardSerials: dedupeBy(input.promoCardSerials || [], "serial").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
     treasuryConfig: normalizeTreasuryConfig(input.treasuryConfig || {}),
     promoSlides: dedupeBy(input.promoSlides?.length ? input.promoSlides : seed.promoSlides, "id"),
     updatedAt: input.updatedAt || seed.updatedAt
@@ -967,6 +1020,110 @@ export function chargeWeeklyTax(state: BankState, accountId: string) {
   const amount = percentCeil(Math.max(0, account.balancePz), state.treasuryConfig.weeklyTaxPercent);
   if (amount <= 0) throw new Error("Impuesto semanal sin base liquidable");
   return simpleTransfer(state, accountId, TGLP_ID, amount, "Tax", `Impuesto semanal ${state.treasuryConfig.weeklyTaxPercent}%`, true);
+}
+
+export function madridDateParts(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Madrid",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(now);
+  const value = (type: string) => Number(parts.find((part) => part.type === type)?.value || 0);
+  return {
+    year: value("year"),
+    month: value("month"),
+    day: value("day"),
+    hour: value("hour"),
+    minute: value("minute")
+  };
+}
+
+export function monthlyTaxKey(now = new Date()) {
+  const parts = madridDateParts(now);
+  return `${parts.year}-${String(parts.month).padStart(2, "0")}`;
+}
+
+export function isMonthlyTaxWindow(now = new Date()) {
+  const parts = madridDateParts(now);
+  return parts.day === 1 && (parts.hour > 12 || (parts.hour === 12 && parts.minute >= 0));
+}
+
+function monthlyTaxableAccounts(state: BankState) {
+  return state.accounts
+    .filter((account) => ![TGLP_ID, AGLDP_ID, FOUNDATION_RBU_ID, VAULT_EMISION].includes(account.id))
+    .filter((account) => account.kind === "CITIZEN" || account.type === "Business" || account.type === "Investment");
+}
+
+export function monthlyTaxPreview(state: BankState, now = new Date()) {
+  const periodKey = monthlyTaxKey(now);
+  const alreadyCharged = new Set(state.transactions
+    .filter((transaction) => transaction.kind === "Tax" && transaction.concept === `MONTHLY_TAX:${periodKey}`)
+    .map((transaction) => transaction.fromAccountId));
+  const accounts = monthlyTaxableAccounts(state);
+  const rows = accounts.map((account) => {
+    const basePz = Math.max(0, account.balancePz);
+    const taxPz = alreadyCharged.has(account.id) ? 0 : percentCeil(basePz, state.treasuryConfig.monthlyTaxPercent);
+    return {
+      periodKey,
+      accountId: account.id,
+      displayName: account.displayName,
+      iban: account.iban,
+      type: account.type,
+      basePz,
+      taxPz,
+      alreadyCharged: alreadyCharged.has(account.id)
+    };
+  });
+  return {
+    periodKey,
+    generatedAt: now.toISOString(),
+    percent: state.treasuryConfig.monthlyTaxPercent,
+    rows,
+    totals: {
+      accounts: rows.length,
+      pendingAccounts: rows.filter((row) => !row.alreadyCharged && row.taxPz > 0).length,
+      basePz: rows.reduce((sum, row) => sum + row.basePz, 0),
+      taxPz: rows.reduce((sum, row) => sum + row.taxPz, 0)
+    }
+  };
+}
+
+export function chargeMonthlyTaxes(state: BankState, now = new Date(), force = false) {
+  if (!force && !isMonthlyTaxWindow(now)) {
+    return { state: normalizeState(state), preview: monthlyTaxPreview(state, now), charged: false, skipped: "outside_monthly_tax_window" };
+  }
+  const accounts = state.accounts.map((item) => ({ ...item }));
+  const tglp = accounts.find((item) => item.id === TGLP_ID);
+  if (!tglp) throw new Error("Cuenta TGLP no encontrada");
+  const preview = monthlyTaxPreview({ ...state, accounts }, now);
+  const transactions: LedgerTransaction[] = [];
+  for (const row of preview.rows) {
+    if (row.alreadyCharged || row.taxPz <= 0) continue;
+    const account = accounts.find((item) => item.id === row.accountId);
+    if (!account) continue;
+    const debit = Math.min(account.balancePz, row.taxPz);
+    if (debit <= 0) continue;
+    account.balancePz -= debit;
+    tglp.balancePz += debit;
+    const transaction = makeTransaction("Tax", account, TGLP_ID, debit, debit, `Impuesto mensual ${preview.percent}% · periodo ${preview.periodKey}`);
+    transaction.createdAt = now.toISOString();
+    transaction.netAmount = 0;
+    transaction.taxAmount = debit;
+    transaction.ivaPz = debit;
+    transaction.concept = `MONTHLY_TAX:${preview.periodKey}`;
+    transaction.originalTransactionId = `${account.id}:${preview.periodKey}:monthly-tax`;
+    transactions.push(transaction);
+  }
+  const next = finalizeState({
+    ...state,
+    accounts,
+    transactions: applyTransactions(state.transactions, transactions)
+  });
+  return { state: next, preview: monthlyTaxPreview(next, now), charged: transactions.length > 0, transactions };
 }
 
 export function businessUsageFeePreview(state: BankState, businessAccountId: string, now = new Date()) {

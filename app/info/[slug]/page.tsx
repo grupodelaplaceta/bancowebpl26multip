@@ -22,7 +22,7 @@ const infoPages = [
     tag: "Pagos",
     title: "Placezum para pagos rápidos",
     summary: "Placezum permite pagar y recibir con código temporal, contactos guardados y límite semanal visible antes de enviar.",
-    image: "/assets/promoscarrusel/2.png",
+    image: "/assets/promoscarrusel/7.png",
     sections: [
       { title: "Recibir", text: "La web muestra un código temporal y datos de cuenta para que otra persona pueda identificar el destino sin exponer más información de la necesaria." },
       { title: "Pagar", text: "Elige contacto, importe y confirma. La interfaz avisa del cupo disponible y el motor valida saldo, límites y comisiones antes de asentar el movimiento." },
@@ -105,7 +105,7 @@ const infoPages = [
     tag: "Pagos",
     title: "Cómo enviar un pago sin errores",
     summary: "Una buena operación empieza revisando importe, cuenta destino y concepto antes de confirmar.",
-    image: "/assets/promoscarrusel/2.png",
+    image: "/assets/promoscarrusel/7.png",
     sections: [
       { title: "Antes de enviar", text: "Comprueba IBAN o contacto, importe, concepto y límite disponible." },
       { title: "Durante la confirmación", text: "La web separa el formulario en popup para que no pulses una acción por accidente." },

@@ -44,7 +44,7 @@ export const gdlpNews: GdlpNewsItem[] = [
     tag: "Ayuda",
     summary: "Toda nueva incorporación debe aceptar el aviso de simulación y el consentimiento RGPD antes de recibir DIP.",
     date: "17/05/2026",
-    image: "/assets/promoscarrusel/2.png",
+    image: "/assets/promoscarrusel/7.png",
     body: [
       "El alta distingue entre identidad, consentimiento y acceso operativo. El DIP identifica al miembro dentro del entorno de rol.",
       "Antes de activar una cuenta, el usuario debe comprender la naturaleza ficticia del ecosistema y aceptar el tratamiento mínimo de datos.",
@@ -70,7 +70,7 @@ export const gdlpNews: GdlpNewsItem[] = [
     tag: "Comunicado",
     summary: "El acceso al ecosistema se unifica mediante DIP, contraseña y autenticador para proteger la identidad interna.",
     date: "17/05/2026",
-    image: "/assets/promoscarrusel/2.png",
+    image: "/assets/promoscarrusel/7.png",
     body: [
       "PlacetaID actúa como identidad común para iniciar sesión en los servicios del ecosistema.",
       "La banca web puede registrar o reconocer una identidad existente y mantener la sesión asociada al DIP.",

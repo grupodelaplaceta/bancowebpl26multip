@@ -43,6 +43,7 @@ import {
   BankState,
   businessUsageFeePreview,
   chargeWeeklyTax,
+  chargeMonthlyTaxes,
   chargeWeeklyBusinessUsageFees,
   claimRbu,
   DigitalCard,
@@ -78,6 +79,7 @@ import {
   SupportTicket,
   TGLP_ID,
   toggleCard,
+  transferCostPreview,
   transferByIban,
   transferPayrollOrLoan,
   updateInvestmentFundRisk,
@@ -107,26 +109,7 @@ const webCarouselSlides = [
   },
   {
     title: "Operativa diaria sin ruido",
-    image: "/assets/promoscarrusel/2.png"
-  }
-];
-
-const landingFeatureBlocks = [
-  {
-    title: "Control de cuentas",
-    text: "Cada producto muestra saldo, límite por tipo, IBAN, estado fiscal y accesos relevantes. Las altas respetan límites de número de cuentas y saldo máximo por tipo."
-  },
-  {
-    title: "Pagos con trazabilidad",
-    text: "Transferencias, Placezum y enlaces separan importe, IVA, comisiones puente Web/App y estado de liquidación para que el movimiento sea auditable."
-  },
-  {
-    title: "Documentación bancaria",
-    text: "Extractos, justificantes de pago, certificados de solvencia y altas laborales se generan como PDF con CSV interno y datos del movimiento."
-  },
-  {
-    title: "Empresas y nóminas",
-    text: "Las cuentas empresa concentran nóminas, contratos por DIP, periodos pendientes, PDFs de alta y pagos laborales con retenciones separadas."
+    image: "/assets/promoscarrusel/7.png"
   }
 ];
 
@@ -175,7 +158,7 @@ const confirmation = await captureResponse.json();`,
 
 const landingPages = [
   { id: "cuentas", title: "Cuentas", icon: WalletCards, image: "/assets/promoscarrusel/1.png", text: "Consulta saldo, IBAN, límites, actividad reciente y accesos de cuenta sin mezclar formularios en la pantalla principal.", bullets: ["Saldo y movimientos", "Límites por tipo", "Documentos y extractos"] },
-  { id: "placezum", title: "Placezum", icon: QrCode, image: "/assets/promoscarrusel/2.png", text: "Pagos rápidos con código temporal, contactos guardados y límites visibles antes de enviar.", bullets: ["Código temporal", "Contactos", "Límite semanal"] },
+  { id: "placezum", title: "Placezum", icon: QrCode, image: "/assets/promoscarrusel/7.png", text: "Pagos rápidos con código temporal, contactos guardados y límites visibles antes de enviar.", bullets: ["Código temporal", "Contactos", "Límite semanal"] },
   { id: "tarjetas", title: "Tarjetas virtuales", icon: CreditCard, image: "/assets/VIRTUALCARD.jpg", text: "Gestiona tarjetas virtuales con estado claro, límite por cuenta y acciones separadas. La Promo Card física aparece como función próxima.", bullets: ["Emitir tarjeta virtual", "Congelar o activar", "Límite por cuenta"] },
   { id: "empresas", title: "Empresas", icon: Building2, image: "/assets/actu.jpg", text: "Panel para nóminas por DIP, alta de empresa, actividad y rentabilidad cuando la cuenta lo permite.", bullets: ["Nóminas por DIP", "Alta laboral PDF", "Actividad asociada"] },
   { id: "soporte", title: "Soporte", icon: ShieldCheck, image: "/assets/logobanco.jpg", text: "Tickets con contexto de cuenta, tarjeta, inversión o movimiento para explicar mejor cada incidencia.", bullets: ["Estado del ticket", "Historial", "Contexto de cuenta"] },
@@ -396,6 +379,23 @@ function BancoPlacetaClient() {
     return headers;
   }, []);
 
+  const restoreStoredSession = useCallback((nextState: BankState) => {
+    if (typeof window === "undefined") return;
+    const storedDip = localStorage.getItem("placeta-web-dip")?.trim().toUpperCase();
+    if (!storedDip) return;
+    const storedUser = nextState.users.find((user) => user.dip === storedDip);
+    if (!storedUser) {
+      localStorage.removeItem("placeta-web-dip");
+      setActiveUser(null);
+      return;
+    }
+    setActiveUser(storedUser);
+    setSelectedAccountId((current) => {
+      const selectedStillValid = nextState.accounts.some((account) => account.id === current && account.placetaId === storedUser.placetaId);
+      return selectedStillValid ? current : storedUser.primaryAccountId;
+    });
+  }, []);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const callbackToken = params.get("placetaid_token") || params.get("token");
@@ -403,7 +403,9 @@ function BancoPlacetaClient() {
 
     const cached = localStorage.getItem("placeta-web-state");
     if (cached) {
-      setState(normalizeState(JSON.parse(cached)));
+      const cachedState = normalizeState(JSON.parse(cached));
+      setState(cachedState);
+      restoreStoredSession(cachedState);
       setHydrated(true);
     }
     fetch(`/api/bank-state?ts=${Date.now()}`, { headers: bankStateHeaders(), cache: "no-store" })
@@ -412,6 +414,7 @@ function BancoPlacetaClient() {
         const remote = normalizeState(await response.json());
         lastRemoteFingerprintRef.current = bankStateFingerprint(remote);
         setState(remote);
+        restoreStoredSession(remote);
         setHydrated(true);
         localStorage.setItem("placeta-web-state", JSON.stringify(remote));
         setSync("online");
@@ -420,7 +423,7 @@ function BancoPlacetaClient() {
         setSync("offline");
         setHydrated(true);
       });
-  }, [bankStateHeaders]);
+  }, [bankStateHeaders, restoreStoredSession]);
 
   useEffect(() => {
     if (hydrated) localStorage.setItem("placeta-web-state", JSON.stringify(normalizeState(state)));
@@ -430,6 +433,17 @@ function BancoPlacetaClient() {
     stateRef.current = state;
     lastRemoteFingerprintRef.current = bankStateFingerprint(state);
   }, [state]);
+
+  useEffect(() => {
+    if (!activeUser) return;
+    const refreshedUser = state.users.find((user) => user.dip === activeUser.dip);
+    if (!refreshedUser) {
+      setActiveUser(null);
+      localStorage.removeItem("placeta-web-dip");
+      return;
+    }
+    if (refreshedUser !== activeUser) setActiveUser(refreshedUser);
+  }, [activeUser, state.users]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -629,17 +643,18 @@ function BancoPlacetaClient() {
     }
   }
 
-  async function fetchFreshState(applyToUi = true) {
+  const fetchFreshState = useCallback(async (applyToUi = true) => {
     const response = await fetch(`/api/bank-state?ts=${Date.now()}`, { headers: bankStateHeaders(), cache: "no-store" });
     if (!response.ok) throw new Error("No se pudo leer el estado remoto");
     const remote = normalizeState(await response.json());
     if (applyToUi) {
       setState(remote);
+      restoreStoredSession(remote);
       localStorage.setItem("placeta-web-state", JSON.stringify(remote));
     }
     setSync("online");
     return remote;
-  }
+  }, [bankStateHeaders, restoreStoredSession]);
 
   const persist = useCallback(async (next: BankState, message: string, baseUpdatedAt: string | null = stateRef.current.updatedAt || null) => {
     if (persistInFlightRef.current) {
@@ -796,7 +811,7 @@ function BancoPlacetaClient() {
         setPlacetaIdLoading(false);
       }
     })();
-  }, [hydrated, sync, persist]);
+  }, [fetchFreshState, hydrated, persist]);
 
   if (placetaIdLoading) {
     return <PlacetaIdLoadingScreen sync={sync} />;
@@ -1176,9 +1191,8 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
           </span>
         </a>
         <nav className="lp4-links" aria-label="Navegación landing">
-          <a href="#modulos">Módulos</a>
-          <a href="#operativa">Operativa</a>
-          <a href="#android-beta">Android BETA</a>
+          <a href="#modulos">Servicios</a>
+          <a href="#android-beta">BETA Android</a>
           <a className="lp4-link-cta" href="/login">Acceder</a>
         </nav>
       </header>
@@ -1196,27 +1210,20 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
 
       <section className="bank-public-intro">
         <div>
-          <span>Banca web oficial</span>
-          <h1>Banco de La Placeta</h1>
-          <p>Cuentas GDLP, pagos Placezum, tarjetas virtuales, PDFs firmados, nóminas por DIP y soporte operativo desde una web clara, moderna y preparada para escritorio.</p>
+          <span>Acceso rápido</span>
+          <h1>Entra con DIP. Prueba Android cuando esté listo.</h1>
+          <p>Acceso web verificado, operaciones GDLP y lista BETA del APK en dos acciones claras.</p>
         </div>
         <div className="bank-public-actions" aria-label="Acciones principales">
           <a href="/login">Entrar al banco</a>
-          <a href="#modulos">Ver módulos</a>
-        </div>
-        <div className="bank-public-metrics" aria-label="Resumen del servicio">
-          <span><strong>GDLP</strong><small>IBAN web y app</small></span>
-          <span><strong>PDF</strong><small>Justificantes</small></span>
-          <span><strong>DIP</strong><small>Identidad verificada</small></span>
-          <span><strong>IVA</strong><small>Desglose automático</small></span>
+          <a href="#android-beta">Unirme al BETA</a>
         </div>
       </section>
 
       <section className="lp4-product" id="modulos">
         <div className="lp4-section-head">
-          <span>Accesos</span>
-          <h2>Todo lo que esperas de una banca web.</h2>
-          <p>La web se organiza por tareas: consultar, pagar, justificar, contratar, invertir y resolver incidencias. Cada módulo enseña información suficiente antes de pedirte una acción.</p>
+          <span>Servicios</span>
+          <h2>Operar sin ruido.</h2>
         </div>
         <div className="lp4-service-grid lp4-info-grid">
           {landingPages.map((item) => {
@@ -1228,39 +1235,22 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
                 </span>
                 <Icon size={22} />
                 <strong>{item.title}</strong>
-                <small>{item.text}</small>
-                <em>{item.bullets.join(" · ")}</em>
+                <em>{item.bullets.slice(0, 3).join(" · ")}</em>
               </a>
             );
           })}
         </div>
       </section>
 
-      <section className="bank-ops-section" id="operativa">
-        <div className="lp4-section-head">
-          <span>Operativa</span>
-          <h2>Diseñado para entender tu dinero.</h2>
-          <p>Las acciones críticas viven en modales o paneles dedicados para reducir errores: transferencias, tarjetas, nóminas, documentos, soporte y configuración administrativa.</p>
-        </div>
-        <div className="bank-ops-grid">
-          {landingFeatureBlocks.map((item) => (
-            <article key={item.title}>
-              <strong>{item.title}</strong>
-              <p>{item.text}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
       <section className="android-beta-section" id="android-beta">
         <div className="android-beta-copy">
-          <span>Programa BETA Android</span>
-          <h2>Prueba antes el APK de la app.</h2>
-          <p>Inscríbete para recibir próximamente el acceso por correo electrónico o WhatsApp cuando el paquete de prueba esté listo.</p>
+          <span>Lista BETA Android</span>
+          <h2>Recibe el APK cuando esté disponible.</h2>
+          <p>Apúntate y te avisaremos próximamente por el canal que elijas.</p>
           <p className="android-beta-legal">Servicio interno de pruebas del entorno Banco de La Placeta. Tus datos se usarán solo para gestionar la invitación beta y podrás solicitar baja o supresión.</p>
           <div className="android-beta-points">
-            <span><Smartphone size={16} /> APK Android</span>
-            <span><Mail size={16} /> Correo electrónico</span>
+            <span><Smartphone size={16} /> Sin descarga inmediata</span>
+            <span><Mail size={16} /> Email</span>
             <span><MessageCircle size={16} /> WhatsApp</span>
           </div>
         </div>
@@ -1279,46 +1269,45 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
               type={betaChannel === "email" ? "email" : "tel"}
             />
           </label>
-          <div className="segmented android-beta-channel">
-            <button type="button" className={betaChannel === "email" ? "active" : ""} onClick={() => setBetaChannel("email")}>Email</button>
-            <button type="button" className={betaChannel === "whatsapp" ? "active" : ""} onClick={() => setBetaChannel("whatsapp")}>WhatsApp</button>
+          <div className="android-beta-channel-field">
+            <span>Canal de aviso</span>
+            <div className="segmented android-beta-channel">
+              <button type="button" className={betaChannel === "email" ? "active" : ""} onClick={() => setBetaChannel("email")}>Email</button>
+              <button type="button" className={betaChannel === "whatsapp" ? "active" : ""} onClick={() => setBetaChannel("whatsapp")}>WhatsApp</button>
+            </div>
           </div>
           <label className="legal-consent android-beta-consent">
             <input type="checkbox" checked={betaConsent} onChange={(event) => setBetaConsent(event.target.checked)} required />
             <span>Acepto recibir comunicaciones del Programa BETA y he leído los <a href="/terminos-y-condiciones">términos</a> y la <a href="/politica-de-privacidad">política de privacidad</a>.</span>
           </label>
-          <button type="submit" className="primary-button" disabled={!betaConsent}>Inscribirme al BETA</button>
+          <button type="submit" className="primary-button" disabled={!betaConsent}>Unirme a la lista BETA</button>
           <p className={betaSubmitted ? "android-beta-status visible" : "android-beta-status"}>
             Inscripción recibida. El acceso al APK llegará próximamente vía {betaChannel === "email" ? "correo electrónico" : "WhatsApp"}.
           </p>
         </form>
       </section>
-
-      <section className="lp4-final-cta">
-        <div>
-          <span>Banco de La Placeta</span>
-          <h2>Accede a tu banca web con identidad verificada.</h2>
-        </div>
-        <a href="/login">Abrir acceso DIP</a>
-      </section>
-
-      <footer className="lp4-footer">
+      <footer className="lp4-footer bank-footer">
         <div className="lp4-footer-brand">
           <span className="lp4-logo small">
             <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="46px" />
           </span>
           <div>
-          <strong>Banco de La Placeta</strong>
-            <p>{BANK_SITE_URL.replace("https://", "")}</p>
+            <strong>Banco de La Placeta</strong>
+            <p>Entorno GDLP de banca simulada.</p>
           </div>
         </div>
-        <div className="lp4-footer-columns">
-          <nav aria-label="Enlaces básicos">
+        <div className="bank-footer-navs">
+          <nav className="bank-footer-actions" aria-label="Banco">
             <a href="/login">Acceder</a>
+            <a href="#modulos">Servicios</a>
+            <a href="#android-beta">BETA Android</a>
+          </nav>
+          <nav className="bank-footer-legal" aria-label="Legal">
             <a href="/terminos-y-condiciones">Términos</a>
             <a href="/politica-de-privacidad">Privacidad</a>
           </nav>
         </div>
+        <p className="bank-footer-note">Placetas, IBAN GDLP, nóminas y PDFs son documentos internos del ecosistema y no sustituyen servicios bancarios reales.</p>
       </footer>
     </main>
   );
@@ -1340,8 +1329,12 @@ function HomeScreen({ account, accounts, transactions, cards, config, onTransfer
   const [iban, setIban] = useState(accounts.find((item) => item.id !== account.id && item.kind === "CITIZEN")?.iban || "");
   const [amount, setAmount] = useState(25);
   const [note, setNote] = useState("Pago GDLP");
+  const [transferReview, setTransferReview] = useState(false);
   const [activePopup, setActivePopup] = useState<"transfer" | "cards" | "account" | "promocard" | null>(null);
   const history = transactionsFor(account.id, transactions).slice(0, 8);
+  const transferState = useMemo(() => ({ accounts, treasuryConfig: config } as BankState), [accounts, config]);
+  const transferPreview = useMemo(() => transferCostPreview(transferState, account.id, iban, amount, "Consumption"), [account.id, amount, iban, transferState]);
+  const canSubmitTransfer = transferPreview.amountPz > 0 && (transferPreview.officialTarget ? transferPreview.canPay : true);
   const virtualCardCount = cards.filter((card) => !card.promoPhysical).length;
   const canIssueVirtualCard = virtualCardCount < MAX_VIRTUAL_CARDS_PER_ACCOUNT;
   const typeBalanceLimit = accountTypeBalanceLimit(config, account.type);
@@ -1417,10 +1410,27 @@ function HomeScreen({ account, accounts, transactions, cards, config, onTransfer
           <Field label="Importe Pz" value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
           <Field label="Concepto" value={note} onChange={setNote} />
         </div>
-        <button className="primary-button" onClick={() => {
-          onTransfer(iban, amount, note);
-          setActivePopup(null);
-        }}>Enviar</button>
+        <div className="payment-preview" aria-live="polite">
+          <div><span>Importe</span><strong>{formatPz(transferPreview.amountPz)} Pz</strong></div>
+          <div><span>{transferPreview.taxLabel} {transferPreview.taxPercent}%</span><strong>{formatPz(transferPreview.taxPz)} Pz</strong></div>
+          <div><span>Comisión Web/App {transferPreview.bridgePercent}%</span><strong>{formatPz(transferPreview.bridgePz)} Pz</strong></div>
+          <div><span>Total a descontar</span><strong>{formatPz(transferPreview.totalDebitPz)} Pz</strong></div>
+        </div>
+        {transferPreview.crossPlatform && <p className="fee-warning">Aviso: el IBAN destino pertenece a otra plataforma GDLP y aplica comisión puente Web/App antes de pagar.</p>}
+        {!transferPreview.officialTarget && <p className="fee-warning">IBAN no oficial GDLP: no se abonará al instante; quedará como movimiento pendiente de validación manual.</p>}
+        {transferPreview.officialTarget && !transferPreview.canPay && <p className="fee-warning">Saldo insuficiente para cubrir importe, {transferPreview.taxLabel.toLowerCase()} y comisiones manteniendo la Renta Básica mínima.</p>}
+        {!transferReview ? (
+          <button className="primary-button" disabled={!canSubmitTransfer} onClick={() => setTransferReview(true)}>Revisar antes de pagar</button>
+        ) : (
+          <div className="confirm-actions">
+            <button className="secondary-button" onClick={() => setTransferReview(false)}>Editar</button>
+            <button className="primary-button" disabled={!canSubmitTransfer} onClick={() => {
+              onTransfer(iban, amount, note);
+              setTransferReview(false);
+              setActivePopup(null);
+            }}>Confirmar pago de {formatPz(transferPreview.totalDebitPz)} Pz</button>
+          </div>
+        )}
       </Modal>
 
       <Modal title="Tarjetas" open={activePopup === "cards"} onClose={() => setActivePopup(null)}>
@@ -1703,6 +1713,7 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
   const [amount, setAmount] = useState(120);
   const [now, setNow] = useState(Date.now());
   const [riskDraft, setRiskDraft] = useState(account.investmentRiskLevel || 3);
+  const [selectedFundId, setSelectedFundId] = useState("");
   const market = state.accounts
     .filter((item) => item.listedInvestmentFund || item.id.startsWith("biz-market-"))
     .sort((left, right) => (left.investmentRiskLevel || 3) - (right.investmentRiskLevel || 3));
@@ -1750,6 +1761,8 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
   const maxAmount = state.treasuryConfig.maxInvestmentAmountPz;
   const safeAmount = Math.min(Math.max(0, amount), maxAmount);
   const quickAmounts = [100, 250, 500, maxAmount].filter((value, index, all) => value <= maxAmount && all.indexOf(value) === index);
+  const selectedFund = market.find((fund) => fund.id === selectedFundId) || null;
+  const selectedInvestmentPreview = selectedFund ? transferCostPreview(state, account.id, selectedFund.iban, safeAmount, "InvestmentBuy") : null;
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -1910,16 +1923,18 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
             const profile = investmentRiskProfile(risk);
             const usedToday = companyDailyCounts.get(fund.id) || 0;
             const remainingForFund = Math.max(0, limits.dailyLimit - usedToday);
-            const canInvestFund = isInvestmentAccount && remainingForFund > 0 && safeAmount > 0 && safeAmount <= limits.maxAmountPz;
+            const preview = transferCostPreview(state, account.id, fund.iban, safeAmount, "InvestmentBuy");
+            const canInvestFund = isInvestmentAccount && remainingForFund > 0 && safeAmount > 0 && safeAmount <= limits.maxAmountPz && preview.canPay;
             return (
-              <button key={fund.id} className="fund-card" disabled={!canInvestFund} onClick={() => onStart(fund.id, safeAmount)}>
+              <button key={fund.id} className="fund-card" disabled={!canInvestFund} onClick={() => setSelectedFundId(fund.id)}>
                 <div>
                   <strong>{fund.displayName} <RiskBadge level={risk} /></strong>
                   <span>Máx {formatPz(limits.maxAmountPz)} Pz · {remainingForFund}/{limits.dailyLimit} hoy · {limits.allowedPercent}% base</span>
                   <span>Prob. usuario {profile.userWinProbabilityPercent}% · si gana +{profile.winMovementMinPercent}-{profile.winMovementMaxPercent}%</span>
+                  <span>Coste ahora: {formatPz(preview.totalDebitPz)} Pz · tasa {formatPz(preview.taxPz)} · puente {formatPz(preview.bridgePz)}</span>
                   <RiskIndicator level={risk} compact />
                 </div>
-                <b>{canInvestFund ? "Invertir" : safeAmount > limits.maxAmountPz ? "Baja importe" : "Sin cupo"}</b>
+                <b>{canInvestFund ? "Revisar" : safeAmount > limits.maxAmountPz ? "Baja importe" : !preview.canPay ? "Sin saldo" : "Sin cupo"}</b>
               </button>
             );
           })}
@@ -1954,6 +1969,31 @@ function MarketScreen({ state, account, onStart, onSettle, onUpdateRisk }: {
           </div>
         )) : <Empty title="Sin resultados cerrados" text="Los resultados aparecerán al liquidar operaciones 60s." />}
       </article>
+      <Modal title="Confirmar inversión" open={Boolean(selectedFund)} onClose={() => setSelectedFundId("")}>
+        {selectedFund && selectedInvestmentPreview && (
+          <>
+            <div className="investment-confirm-head">
+              <strong>{selectedFund.displayName}</strong>
+              <span>Riesgo R{selectedFund.investmentRiskLevel || 3} · resultado 60s</span>
+            </div>
+            <div className="payment-preview" aria-live="polite">
+              <div><span>Capital invertido</span><strong>{formatPz(selectedInvestmentPreview.amountPz)} Pz</strong></div>
+              <div><span>{selectedInvestmentPreview.taxLabel} {selectedInvestmentPreview.taxPercent}%</span><strong>{formatPz(selectedInvestmentPreview.taxPz)} Pz</strong></div>
+              <div><span>Comisión Web/App {selectedInvestmentPreview.bridgePercent}%</span><strong>{formatPz(selectedInvestmentPreview.bridgePz)} Pz</strong></div>
+              <div><span>Total a descontar</span><strong>{formatPz(selectedInvestmentPreview.totalDebitPz)} Pz</strong></div>
+            </div>
+            {selectedInvestmentPreview.crossPlatform && <p className="fee-warning">Aviso: esta inversión cruza web/app y aplica comisión puente antes de abrir la operación.</p>}
+            {!selectedInvestmentPreview.canPay && <p className="fee-warning">No hay saldo suficiente para cubrir capital, tasa y comisiones manteniendo la Renta Básica mínima.</p>}
+            <div className="confirm-actions">
+              <button className="secondary-button" onClick={() => setSelectedFundId("")}>Cancelar</button>
+              <button className="primary-button" disabled={!selectedInvestmentPreview.canPay} onClick={() => {
+                onStart(selectedFund.id, safeAmount);
+                setSelectedFundId("");
+              }}>Confirmar inversión</button>
+            </div>
+          </>
+        )}
+      </Modal>
     </section>
   );
 }
@@ -2643,6 +2683,7 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
         </div>
         <div className="action-grid">
           <button className="primary-button" disabled={!target} onClick={() => { if (target) onPersist(chargeWeeklyTax(state, target.id), "Impuesto semanal cargado"); setTaxModal(null); }}>Cobrar semanal</button>
+          <button className="secondary-button" onClick={() => { onPersist(chargeMonthlyTaxes(state, new Date(), true).state, "Impuestos mensuales cargados"); setTaxModal(null); }}>Cobrar mensual</button>
           <button className="secondary-button" disabled={!target} onClick={() => { if (target) onPersist(issueOfficialFine(state, target.id, fineAmount), "Multa oficial emitida"); setTaxModal(null); }}>Emitir multa</button>
           <button className="secondary-button" disabled={!target} onClick={() => { if (target) onPersist(forceVatRegularization(state, target.id, vatBase), "IVA regularizado"); setTaxModal(null); }}>Regularizar IVA</button>
         </div>
@@ -2678,6 +2719,7 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
 function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state: BankState, message: string) => void }) {
   const [amount, setAmount] = useState(1000);
   const [weeklyTax, setWeeklyTax] = useState(state.treasuryConfig.weeklyTaxPercent);
+  const [monthlyTax, setMonthlyTax] = useState(state.treasuryConfig.monthlyTaxPercent);
   const [developerApiFee, setDeveloperApiFee] = useState(state.treasuryConfig.weeklyDeveloperApiFeePercent);
   const [paymentLinkFee, setPaymentLinkFee] = useState(state.treasuryConfig.weeklyPaymentLinkFeePercent);
   const [opTax, setOpTax] = useState(state.treasuryConfig.operationalTransferTaxPercent);
@@ -2748,6 +2790,7 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
         <SectionTitle icon={ShieldCheck} title="Configuración normativa" />
         <div className="config-grid">
           <Field label="Impuesto semanal %" value={String(weeklyTax)} onChange={(value) => setWeeklyTax(Number(value) || 0)} type="number" />
+          <Field label="Impuesto mensual %" value={String(monthlyTax)} onChange={(value) => setMonthlyTax(Number(value) || 0)} type="number" />
           <Field label="Tasa semanal API pagos %" value={String(developerApiFee)} onChange={(value) => setDeveloperApiFee(Number(value) || 0)} type="number" />
           <Field label="Tasa semanal enlaces empresa %" value={String(paymentLinkFee)} onChange={(value) => setPaymentLinkFee(Number(value) || 0)} type="number" />
           <Field label="Tasa operativa %" value={String(opTax)} onChange={(value) => setOpTax(Number(value) || 0)} type="number" />
@@ -2758,6 +2801,7 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
         <button className="primary-button" onClick={() => {
           onPersist(updateTreasuryConfig(state, {
             weeklyTaxPercent: weeklyTax,
+            monthlyTaxPercent: monthlyTax,
             weeklyDeveloperApiFeePercent: developerApiFee,
             weeklyPaymentLinkFeePercent: paymentLinkFee,
             operationalTransferTaxPercent: opTax,
@@ -2936,9 +2980,9 @@ function transactionsFor(accountId: string, transactions: LedgerTransaction[]) {
 
 function assetUrl(path?: string | null, imageKey = "bank") {
   if (path?.startsWith("http") || path?.startsWith("/")) return path;
-  if (path?.startsWith("promos/")) return imageKey === "placezum" ? "/assets/promoscarrusel/2.png" : "/assets/promoscarrusel/1.png";
+  if (path?.startsWith("promos/")) return imageKey === "placezum" ? "/assets/promoscarrusel/7.png" : "/assets/promoscarrusel/1.png";
   if (path) return `/assets/${path}`;
-  if (imageKey === "placezum") return "/assets/promoscarrusel/2.png";
+  if (imageKey === "placezum") return "/assets/promoscarrusel/7.png";
   if (imageKey === "market") return "/assets/actu.jpg";
   return "/assets/promoscarrusel/1.png";
 }

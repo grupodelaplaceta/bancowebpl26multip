@@ -1,4 +1,6 @@
 export const TGLP_ID = "TGLP";
+export const TGLP_LEGACY_ID = "sys-lottery";
+export const TGLP_OFFICIAL_IBAN = "GDLP-AP98-605";
 export const AGLDP_ID = "AGLDP";
 export const FOUNDATION_RBU_ID = "FOUNDATION_RBU";
 export const VAULT_EMISION = "VAULT_EMISION";
@@ -443,6 +445,14 @@ export function findAccountByIban(accounts: Account[], iban: string) {
   return accounts.find((account) => normalizeIban(account.iban) === target);
 }
 
+function isTglpAccount(account: Partial<Account>) {
+  return account.id === TGLP_ID || account.id === TGLP_LEGACY_ID || account.kind === "TGLP" || account.role === "Tributos" || normalizeIban(account.iban || "") === TGLP_OFFICIAL_IBAN;
+}
+
+function canonicalAccountId(id: string) {
+  return id === TGLP_LEGACY_ID ? TGLP_ID : id;
+}
+
 export function normalizeTreasuryConfig(config: Partial<TreasuryConfig> = {}): TreasuryConfig {
   const next = { ...treasuryDefaults, ...config };
   return {
@@ -682,7 +692,7 @@ function account(
 export function demoSeed(): BankState {
   const now = new Date().toISOString();
   const accounts = [
-    account(TGLP_ID, "TGLP Tributos", "TGLP", 8500, null, "Current", "Tributos"),
+    account(TGLP_ID, "TGLP Tributos", "TGLP", 8500, null, "Current", "Tributos", { iban: TGLP_OFFICIAL_IBAN }),
     account(AGLDP_ID, "AGLDP Administración", "AGLDP", 94000, null, "Current", "Administracion"),
     account(FOUNDATION_RBU_ID, "Fundación Banco de La Placeta", "AGLDP", 12000, null, "Current", "Administracion"),
     account(VAULT_EMISION, "Vault Emisión", "AGLDP", 0, null, "Current", "Administracion"),
@@ -778,13 +788,29 @@ function txn(id: string, kind: TransactionKind, fromAccountId: string, toAccount
 export function normalizeState(input: Partial<BankState> | null | undefined): BankState {
   const seed = demoSeed();
   if (!input) return seed;
-  const normalizedAccounts = dedupeBy(input.accounts?.length ? input.accounts : seed.accounts, "id")
-    .map((account) => ({
-      ...account,
-      iban: isOfficialIban(account.iban || "") ? account.iban : ibanGenerate(account.id)
-    }));
+  const normalizedAccounts = dedupeBy(
+    (input.accounts?.length ? input.accounts : seed.accounts)
+      .map((account) => {
+      const tglp = isTglpAccount(account);
+      return {
+        ...account,
+        id: tglp ? TGLP_ID : canonicalAccountId(account.id),
+        displayName: tglp ? account.displayName || "TGLP Tributos" : account.displayName,
+        kind: tglp ? "TGLP" as AccountKind : account.kind,
+        role: tglp ? "Tributos" as Role : account.role,
+        iban: tglp ? TGLP_OFFICIAL_IBAN : isOfficialIban(account.iban || "") ? account.iban : ibanGenerate(account.id)
+      };
+      }),
+    "id"
+  );
   const ibanByAccountId = new Map(normalizedAccounts.map((account) => [account.id, account.iban]));
   const transactions = dedupeBy(input.transactions?.length ? input.transactions : seed.transactions, "id")
+    .map((transaction) => ({
+      ...transaction,
+      fromAccountId: canonicalAccountId(transaction.fromAccountId),
+      toAccountId: canonicalAccountId(transaction.toAccountId),
+      IBAN_Origin: canonicalAccountId(transaction.fromAccountId) === TGLP_ID ? TGLP_OFFICIAL_IBAN : transaction.IBAN_Origin
+    }))
     .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
   return {
     ...seed,

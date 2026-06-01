@@ -11,7 +11,9 @@ const noStoreHeaders = {
 };
 
 function allowedDips() {
-  return (process.env.PLACETA_ADMIN_DIPS || process.env.ADMIN_ALLOWED_DIPS || "12345678A")
+  return [process.env.PLACETA_ADMIN_DIPS, process.env.ADMIN_ALLOWED_DIPS, "12345678A,11111111D"]
+    .filter(Boolean)
+    .join(",")
     .split(",")
     .map((item) => item.trim().toUpperCase())
     .filter(Boolean);

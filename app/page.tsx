@@ -205,6 +205,18 @@ function bankStateFingerprint(state: BankState) {
   });
 }
 
+function looksLikeDemoState(state: BankState) {
+  const accountIds = new Set(state.accounts.map((account) => account.id));
+  const transactionIds = new Set(state.transactions.map((transaction) => transaction.id));
+  return (
+    ["u-alba", "u-dario", "u-lia", "biz-market-cristal"].every((id) => accountIds.has(id)) &&
+    ["txn-demo-1", "txn-demo-2", "txn-demo-3", "txn-demo-4"].every((id) => transactionIds.has(id)) &&
+    state.users.length <= 2 &&
+    state.users.some((user) => user.dip === "12345678A") &&
+    state.users.some((user) => user.dip === "87654321D")
+  );
+}
+
 function isAdminUser(user: UserProfile | null) {
   return user?.dip === "12345678A";
 }
@@ -404,9 +416,13 @@ function BancoPlacetaClient() {
     const cached = localStorage.getItem("placeta-web-state");
     if (cached) {
       const cachedState = normalizeState(JSON.parse(cached));
-      setState(cachedState);
-      restoreStoredSession(cachedState);
-      setHydrated(true);
+      if (looksLikeDemoState(cachedState)) {
+        localStorage.removeItem("placeta-web-state");
+      } else {
+        setState(cachedState);
+        restoreStoredSession(cachedState);
+        setHydrated(true);
+      }
     }
     fetch(`/api/bank-state?ts=${Date.now()}`, { headers: bankStateHeaders(), cache: "no-store" })
       .then(async (response) => {
@@ -426,8 +442,8 @@ function BancoPlacetaClient() {
   }, [bankStateHeaders, restoreStoredSession]);
 
   useEffect(() => {
-    if (hydrated) localStorage.setItem("placeta-web-state", JSON.stringify(normalizeState(state)));
-  }, [hydrated, state]);
+    if (hydrated && sync === "online") localStorage.setItem("placeta-web-state", JSON.stringify(normalizeState(state)));
+  }, [hydrated, state, sync]);
 
   useEffect(() => {
     stateRef.current = state;

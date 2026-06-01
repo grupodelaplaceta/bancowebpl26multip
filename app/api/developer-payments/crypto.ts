@@ -5,7 +5,12 @@ import { BANK_API_URL } from "../../../lib/site";
 
 const baseUrl = () => (process.env.PLACETA_API_BASE_URL || BANK_API_URL).replace(/\/$/, "");
 const appId = () => process.env.PLACETA_API_APP_ID || process.env.PLACETA_APP_ID || "org.laplaceta.banco";
-const appSecret = () => requiredProductionSecret("PLACETA_API_SECRET", process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET);
+const appSecrets = () => {
+  const secrets = [process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET].map((value) => String(value || "").trim()).filter(Boolean);
+  if (!secrets.length) requiredProductionSecret("PLACETA_API_SECRET", process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET);
+  return Array.from(new Set(secrets));
+};
+const appSecret = () => appSecrets()[0];
 const developerSecret = () => process.env.PLACETA_DEVELOPER_SECRET || appSecret();
 const developerApiKey = () => process.env.PLACETA_DEVELOPER_API_KEY || "";
 
@@ -20,11 +25,11 @@ function sha256Hex(value: string) {
   return crypto.createHash("sha256").update(value || "", "utf8").digest("hex");
 }
 
-function signedHeaders(method: string, path: string, body: string) {
+function signedHeaders(method: string, path: string, body: string, secret = appSecret()) {
   const timestamp = String(Date.now());
   const nonce = crypto.randomUUID();
   const payload = [method, path, timestamp, nonce, sha256Hex(body)].join("\n");
-  const signature = crypto.createHmac("sha256", appSecret()).update(payload, "utf8").digest("hex");
+  const signature = crypto.createHmac("sha256", secret).update(payload, "utf8").digest("hex");
   return {
     "content-type": "application/json",
     "x-placeta-app-id": appId(),
@@ -64,30 +69,46 @@ export function verifyPaymentToken(token: string) {
 
 export async function readRemoteState() {
   const path = "/api/state";
-  const response = await fetch(`${baseUrl()}${path}`, {
-    method: "GET",
-    headers: signedHeaders("GET", path, ""),
-    cache: "no-store"
-  });
-  const text = await response.text();
-  if (!response.ok) throw new Error(text || "remote_state_unavailable");
-  return normalizeState(text ? JSON.parse(text) : null);
+  let lastError: unknown = null;
+  for (const secret of appSecrets()) {
+    try {
+      const response = await fetch(`${baseUrl()}${path}`, {
+        method: "GET",
+        headers: signedHeaders("GET", path, "", secret),
+        cache: "no-store"
+      });
+      const text = await response.text();
+      if (!response.ok) throw new Error(text || "remote_state_unavailable");
+      return normalizeState(text ? JSON.parse(text) : null);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("remote_state_unavailable");
 }
 
 export async function writeRemoteState(state: BankState) {
   const path = "/api/state";
   const body = JSON.stringify(normalizeState(state));
-  const response = await fetch(`${baseUrl()}${path}`, {
-    method: "PUT",
-    headers: signedHeaders("PUT", path, body),
-    body,
-    cache: "no-store"
-  });
-  const text = await response.text();
-  if (!response.ok) throw new Error(text || "remote_write_failed");
-  const payload = text ? JSON.parse(text) : null;
-  if (payload && Array.isArray(payload.accounts)) return normalizeState(payload);
-  return normalizeState(state);
+  let lastError: unknown = null;
+  for (const secret of appSecrets()) {
+    try {
+      const response = await fetch(`${baseUrl()}${path}`, {
+        method: "PUT",
+        headers: signedHeaders("PUT", path, body, secret),
+        body,
+        cache: "no-store"
+      });
+      const text = await response.text();
+      if (!response.ok) throw new Error(text || "remote_write_failed");
+      const payload = text ? JSON.parse(text) : null;
+      if (payload && Array.isArray(payload.accounts)) return normalizeState(payload);
+      return normalizeState(state);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("remote_write_failed");
 }
 
 export function buildPayment(input: { merchantIban?: string; amountPz?: number; concept?: string }) {

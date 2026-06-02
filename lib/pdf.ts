@@ -2,6 +2,7 @@ import { Account, formatPz, LedgerTransaction } from "./bank";
 
 export type WebDocumentKind =
   | "MonthlyStatement"
+  | "MonthlyTaxReport"
   | "WeeklyTaxReport"
   | "VatReceipt"
   | "PaymentReceipt"
@@ -250,7 +251,7 @@ function footer(ops: string[], document: PdfDocumentInput, account: Account) {
 
 function filterTransactions(kind: WebDocumentKind, transactions: LedgerTransaction[]) {
   const sorted = [...transactions].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
-  if (kind === "WeeklyTaxReport" || kind === "VatReceipt") return sorted.filter((item) => item.taxAmount > 0 || item.kind.includes("Tax"));
+  if (kind === "WeeklyTaxReport" || kind === "MonthlyTaxReport" || kind === "VatReceipt") return sorted.filter((item) => item.taxAmount > 0 || item.kind.includes("Tax"));
   if (kind === "PaymentReceipt") return sorted.slice(0, 1);
   if (kind === "FineReceipt") return sorted.filter((item) => item.kind.includes("Fine"));
   if (kind === "BusinessStatement") return sorted.filter((item) => item.note.toLowerCase().includes("empresa") || item.kind.includes("Business") || item.kind.includes("Payroll"));
@@ -276,6 +277,11 @@ function legalLines(kind: WebDocumentKind, account: Account, transactions: Ledge
     `Base liquidada: ${transactions.reduce((s, t) => s + t.amountPz, 0)} Pz. Cuota: ${transactions.reduce((s, t) => s + t.taxAmount, 0)} Pz.`,
     "Los importes quedan vinculados a los movimientos detallados y a su CSV de verificación."
   ];
+  if (kind === "MonthlyTaxReport") return [
+    "Liquidación mensual emitida por Tributos del Grupo de La Placeta.",
+    `Periodo cerrado con ${transactions.length} cargos. Cuota: ${transactions.reduce((s, t) => s + t.taxAmount, 0)} Pz.`,
+    "Cada cargo queda vinculado a la cuenta, periodo y CSV de verificación."
+  ];
   return [
     "Documento generado con datos reales de cuenta, movimientos e impuestos asociados.",
     "El CSV permite verificar integridad, titular, fecha de emisión y tipo documental.",
@@ -286,6 +292,7 @@ function legalLines(kind: WebDocumentKind, account: Account, transactions: Ledge
 function sectionTitle(kind: WebDocumentKind) {
   return {
     WeeklyTaxReport: "LIQUIDACIÓN SEMANAL",
+    MonthlyTaxReport: "LIQUIDACIÓN MENSUAL",
     PaymentReceipt: "JUSTIFICANTE DE PAGO",
     FineReceipt: "EXPEDIENTE DE MULTAS",
     BusinessStatement: "INFORME DE EMPRESA",

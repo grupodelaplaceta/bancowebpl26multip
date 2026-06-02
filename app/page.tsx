@@ -45,6 +45,7 @@ import {
   chargeWeeklyTax,
   chargeMonthlyTaxes,
   chargeWeeklyBusinessUsageFees,
+  taxPeriodDocumentId,
   claimRbu,
   DigitalCard,
   emitMoney,
@@ -2705,6 +2706,44 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
     { id: "ranking" as const, title: "Ranking", detail: `${citizenAccounts.length} cuentas auditables`, icon: TrendingUp },
     { id: "history" as const, title: "Movimientos", detail: `${fiscalTx.length} apuntes fiscales`, icon: Banknote }
   ];
+
+  function chargeWeeklyAndDocument() {
+    if (!target) return;
+    const next = chargeWeeklyTax(state, target.id);
+    const taxTxn = next.transactions.find((transaction) =>
+      transaction.kind === "Tax" &&
+      transaction.fromAccountId === target.id &&
+      transaction.toAccountId === TGLP_ID &&
+      transaction.originalTransactionId?.endsWith(":weekly-tax")
+    );
+    onPersist(next, "Impuesto semanal cargado y documento emitido");
+    if (taxTxn) {
+      const periodKey = taxTxn.concept.replace("WEEKLY_TAX:", "");
+      void generateBankPdf(target, {
+        id: taxPeriodDocumentId(target.id, periodKey, "weekly"),
+        title: `Liquidación semanal ${periodKey} · ${target.displayName}`,
+        kind: "WeeklyTaxReport"
+      }, [taxTxn]);
+    }
+    setTaxModal(null);
+  }
+
+  function chargeMonthlyAndDocument() {
+    const result = chargeMonthlyTaxes(state, new Date(), true);
+    onPersist(result.state, "Impuestos del mes anterior cargados y documentos emitidos");
+    (result.transactions || []).forEach((transaction) => {
+      const account = state.accounts.find((item) => item.id === transaction.fromAccountId);
+      if (!account) return;
+      const periodKey = transaction.concept.replace("MONTHLY_TAX:", "");
+      void generateBankPdf(account, {
+        id: taxPeriodDocumentId(account.id, periodKey, "monthly"),
+        title: `Liquidación mensual ${periodKey} · ${account.displayName}`,
+        kind: "MonthlyTaxReport"
+      }, [transaction]);
+    });
+    setTaxModal(null);
+  }
+
   return (
     <section className="screen-grid admin-grid purple-suite">
       <article className="hero-card tributos-hero admin-command">
@@ -2759,8 +2798,8 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
           <Field label="Base IVA Pz" value={String(vatBase)} onChange={(value) => setVatBase(Number(value) || 0)} type="number" />
         </div>
         <div className="action-grid">
-          <button className="primary-button" disabled={!target} onClick={() => { if (target) onPersist(chargeWeeklyTax(state, target.id), "Impuesto semanal cargado"); setTaxModal(null); }}>Cobrar semanal</button>
-          <button className="secondary-button" onClick={() => { onPersist(chargeMonthlyTaxes(state, new Date(), true).state, "Impuestos del mes anterior cargados"); setTaxModal(null); }}>Cobrar mes anterior</button>
+          <button className="primary-button" disabled={!target} onClick={chargeWeeklyAndDocument}>Cobrar semanal + PDF</button>
+          <button className="secondary-button" onClick={chargeMonthlyAndDocument}>Cobrar mes anterior + PDF</button>
           <button className="secondary-button" disabled={!target} onClick={() => { if (target) onPersist(issueOfficialFine(state, target.id, fineAmount), "Multa oficial emitida"); setTaxModal(null); }}>Emitir multa</button>
           <button className="secondary-button" disabled={!target} onClick={() => { if (target) onPersist(forceVatRegularization(state, target.id, vatBase), "IVA regularizado"); setTaxModal(null); }}>Regularizar IVA</button>
         </div>

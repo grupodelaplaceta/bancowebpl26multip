@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chargeMonthlyTaxes, monthlyTaxPreview, normalizeState } from "../../../lib/bank";
+import { chargeMonthlyTaxes, monthlyTaxPreview, normalizeState, taxPeriodDocumentId } from "../../../lib/bank";
 import { productionSecret, timingSafeTokenEqual } from "../../../lib/api-security";
 import { readRemoteState, writeRemoteState } from "../developer-payments/crypto";
 
@@ -52,10 +52,19 @@ async function run(request: Request) {
   }
 
   const saved = await writeRemoteState(result.state);
+  const documents = (result.transactions || []).map((transaction) => ({
+    id: taxPeriodDocumentId(transaction.fromAccountId, result.preview.periodKey, "monthly"),
+    accountId: transaction.fromAccountId,
+    periodKey: result.preview.periodKey,
+    transactionId: transaction.id,
+    kind: "MonthlyTaxReport",
+    title: `Liquidación mensual ${result.preview.periodKey}`
+  }));
   return NextResponse.json({
     ok: true,
     charged: true,
     periodKey: result.preview.periodKey,
+    documents,
     transactions: result.transactions?.length || 0,
     totalTaxPz: result.transactions?.reduce((sum, transaction) => sum + transaction.amountPz, 0) || 0,
     stateUpdatedAt: saved.updatedAt

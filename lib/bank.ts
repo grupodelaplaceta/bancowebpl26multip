@@ -1059,7 +1059,24 @@ export function chargeWeeklyTax(state: BankState, accountId: string) {
   if (!account) throw new Error("Cuenta no encontrada");
   const amount = percentCeil(Math.max(0, account.balancePz), state.treasuryConfig.weeklyTaxPercent);
   if (amount <= 0) throw new Error("Impuesto semanal sin base liquidable");
-  return simpleTransfer(state, accountId, TGLP_ID, amount, "Tax", `Impuesto semanal ${state.treasuryConfig.weeklyTaxPercent}%`, true);
+  const periodKey = weeklyFeeKey();
+  const next = simpleTransfer(state, accountId, TGLP_ID, amount, "Tax", `Impuesto semanal ${state.treasuryConfig.weeklyTaxPercent}% · periodo ${periodKey}`, true);
+  return finalizeState({
+    ...next,
+    transactions: next.transactions.map((transaction) => transaction.kind === "Tax" && transaction.fromAccountId === accountId && transaction.toAccountId === TGLP_ID && transaction.note.includes(`periodo ${periodKey}`)
+      ? {
+        ...transaction,
+        taxAmount: transaction.amountPz,
+        ivaPz: transaction.amountPz,
+        concept: `WEEKLY_TAX:${periodKey}`,
+        originalTransactionId: `${accountId}:${periodKey}:weekly-tax`
+      }
+      : transaction)
+  });
+}
+
+export function taxPeriodDocumentId(accountId: string, periodKey: string, cadence: "weekly" | "monthly") {
+  return `tax-${cadence}-${periodKey}-${accountId}`;
 }
 
 export function madridDateParts(now = new Date()) {

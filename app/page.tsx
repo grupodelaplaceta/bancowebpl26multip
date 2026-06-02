@@ -2842,8 +2842,26 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
   const [placezumLimit, setPlacezumLimit] = useState(state.treasuryConfig.placezumWeeklyLimitPz);
   const [investmentMax, setInvestmentMax] = useState(state.treasuryConfig.maxInvestmentAmountPz);
   const [dailyInvestmentLimit, setDailyInvestmentLimit] = useState(state.treasuryConfig.dailyInvestmentLimit);
-  const [adminModal, setAdminModal] = useState<"emission" | "policy" | "businessFees" | "audit" | "users" | null>(null);
+  const [adminModal, setAdminModal] = useState<"emission" | "policy" | "businessFees" | "audit" | "users" | "provenance" | null>(null);
+  const [provenanceAccountId, setProvenanceAccountId] = useState(state.accounts[0]?.id || "");
+  const [provenanceQuery, setProvenanceQuery] = useState("");
   const agldp = state.accounts.find((item) => item.id === AGLDP_ID);
+  const provenanceAccount = state.accounts.find((account) => account.id === provenanceAccountId) || state.accounts[0];
+  const provenanceMovements = provenanceAccount ? state.transactions
+    .filter((transaction) => transaction.fromAccountId === provenanceAccount.id || transaction.toAccountId === provenanceAccount.id)
+    .filter((transaction) => {
+      const query = provenanceQuery.trim().toLowerCase();
+      if (!query) return true;
+      const from = state.accounts.find((account) => account.id === transaction.fromAccountId);
+      const to = state.accounts.find((account) => account.id === transaction.toAccountId);
+      return [transaction.id, transaction.kind, transaction.note, transaction.concept, transaction.IBAN_Origin, from?.displayName, to?.displayName]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+    })
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    : [];
+  const provenanceIn = provenanceMovements.reduce((sum, transaction) => sum + Math.max(0, signedAmountForAccount(transaction, provenanceAccount?.id || "")), 0);
+  const provenanceOut = provenanceMovements.reduce((sum, transaction) => sum + Math.max(0, -signedAmountForAccount(transaction, provenanceAccount?.id || "")), 0);
   const totalMoney = state.accounts.reduce((sum, account) => sum + Math.max(0, account.balancePz), 0);
   const businessCount = state.accounts.filter((account) => account.type === "Business").length;
   const pendingRequests = state.subsidyRequests.filter((request) => request.status === "Pending").length;
@@ -2851,6 +2869,7 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
     { id: "emission" as const, title: "Emisión", detail: `Preparado ${formatPz(amount)} Pz`, icon: Landmark },
     { id: "policy" as const, title: "Normativa", detail: "Límites, tasas e inversión", icon: ShieldCheck },
     { id: "businessFees" as const, title: "Tasas empresa", detail: "API y enlaces semanales", icon: Banknote },
+    { id: "provenance" as const, title: "Procedencia", detail: "Origen del dinero por cuenta", icon: Eye },
     { id: "audit" as const, title: "Auditoría", detail: `${state.complianceFlags.length} flags · ${state.transactions.length} movimientos`, icon: WifiOff },
     { id: "users" as const, title: "Usuarios", detail: `${state.users.length} perfiles registrados`, icon: Building2 }
   ];
@@ -2954,6 +2973,41 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
           <div><strong>Conexión segura</strong><span>La sesión mantiene tus datos actualizados entre móvil y web.</span></div>
           <div><strong>Modo sin conexión</strong><span>La web conserva la última información disponible si pierdes señal.</span></div>
           <div><strong>Auditoría</strong><span>{state.complianceFlags.length} flags activos · {state.transactions.length} movimientos.</span></div>
+        </div>
+      </Modal>
+
+      <Modal title="Procedencia del dinero" open={adminModal === "provenance"} onClose={() => setAdminModal(null)}>
+        <SectionTitle icon={Eye} title="Procedencia" />
+        <label className="field">
+          <span>Cuenta</span>
+          <select value={provenanceAccount?.id || ""} onChange={(event) => setProvenanceAccountId(event.target.value)}>
+            {state.accounts.map((account) => (
+              <option key={account.id} value={account.id}>{account.displayName} · {account.iban} · {formatPz(account.balancePz)} Pz</option>
+            ))}
+          </select>
+        </label>
+        <Field label="Buscar" value={provenanceQuery} onChange={setProvenanceQuery} placeholder="ID, concepto, origen, cuenta" />
+        <div className="payroll-summary">
+          <div><span>Saldo</span><strong>{formatPz(provenanceAccount?.balancePz || 0)} Pz</strong></div>
+          <div><span>Entradas</span><strong>+{formatPz(provenanceIn)} Pz</strong></div>
+          <div><span>Salidas</span><strong>-{formatPz(provenanceOut)} Pz</strong></div>
+          <div><span>Movs.</span><strong>{provenanceMovements.length}</strong></div>
+        </div>
+        <div className="ops-list provenance-list">
+          {provenanceMovements.slice(0, 18).map((transaction) => {
+            const from = state.accounts.find((account) => account.id === transaction.fromAccountId);
+            const to = state.accounts.find((account) => account.id === transaction.toAccountId);
+            const signed = signedAmountForAccount(transaction, provenanceAccount?.id || "");
+            return (
+              <div key={transaction.id}>
+                <strong>{formatSignedPz(signed)} Pz · {transaction.kind}</strong>
+                <span>{from?.displayName || transaction.fromAccountId} → {to?.displayName || transaction.toAccountId}</span>
+                <span>Origen {transaction.IBAN_Origin || transaction.fromAccountId} · {transaction.concept || transaction.note} · {transaction.status}</span>
+                <code>{transaction.id}</code>
+              </div>
+            );
+          })}
+          {!provenanceMovements.length && <Empty title="Sin movimientos" text="No hay trazas para esta cuenta." />}
         </div>
       </Modal>
 

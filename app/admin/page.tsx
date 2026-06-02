@@ -6,9 +6,9 @@ import {
   Account,
   BankState,
   DigitalCard,
-  finalizeState,
   formatPz,
-  normalizeState,
+  finalizeStateStrict,
+  normalizeStateStrict,
   PromoCardSerial,
   TreasuryConfig,
   updateTreasuryConfig
@@ -29,6 +29,16 @@ type AdminApiPayload = {
   error?: string;
   state?: Partial<BankState> | null;
 };
+
+function isFullStatePayload(value: unknown): value is Partial<BankState> {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    Array.isArray((value as Partial<BankState>).users) &&
+    Array.isArray((value as Partial<BankState>).accounts) &&
+    Array.isArray((value as Partial<BankState>).transactions)
+  );
+}
 
 function parseAdminUser(raw: string | null): AdminUser | null {
   if (!raw) return null;
@@ -134,7 +144,8 @@ export default function AdminPanelPage() {
       const response = await fetch("/api/admin-bank", { headers: adminHeaders, cache: "no-store" });
       const payload = await readApiJson(response);
       if (!response.ok) throw new Error(String(payload.error || "Acceso admin rechazado"));
-      const next = normalizeState(payload.state);
+      if (!isFullStatePayload(payload.state)) throw new Error("Estado real no disponible");
+      const next = normalizeStateStrict(payload.state);
       setState(next);
       setBaseUpdatedAt(next.updatedAt || null);
       setStatus(`Acceso admin concedido para ${adminUser.dip}`);
@@ -154,7 +165,7 @@ export default function AdminPanelPage() {
     if (!adminUser || !token) return;
     setBusy(true);
     try {
-      const normalized = finalizeState(next);
+      const normalized = finalizeStateStrict(next);
       const response = await fetch("/api/admin-bank", {
         method: "PUT",
         headers: adminHeaders,
@@ -162,7 +173,8 @@ export default function AdminPanelPage() {
       });
       const payload = await readApiJson(response);
       if (!response.ok) throw new Error(String(payload.error || "No se pudo guardar"));
-      const saved = normalizeState(payload.state);
+      if (!isFullStatePayload(payload.state)) throw new Error("Guardado sin estado real válido");
+      const saved = normalizeStateStrict(payload.state);
       setState(saved);
       setBaseUpdatedAt(saved.updatedAt || null);
       setStatus(message);

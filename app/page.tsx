@@ -41,14 +41,11 @@ import {
   AGLDP_ID,
   AndroidBetaSignup,
   BankState,
-  businessUsageFeePreview,
   chargeWeeklyTax,
   chargeMonthlyTaxes,
-  chargeWeeklyBusinessUsageFees,
   taxPeriodDocumentId,
   claimRbu,
   DigitalCard,
-  emitMoney,
   finalizeState,
   formatMoneyPz,
   formatPz,
@@ -85,7 +82,6 @@ import {
   transferByIban,
   transferPayrollOrLoan,
   updateInvestmentFundRisk,
-  updateTreasuryConfig,
   UserProfile,
   VAT_PERCENT
 } from "../lib/bank";
@@ -93,15 +89,14 @@ import { generateBankPdf } from "../lib/pdf";
 import { BANK_SITE_URL } from "../lib/site";
 import type { WebDocumentKind } from "../lib/pdf";
 
-type Tab = "home" | "placezum" | "market" | "hub" | "tributos" | "admin";
+type Tab = "home" | "placezum" | "market" | "hub" | "tributos";
 
 const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
   { id: "home", label: "Inicio", icon: Home },
   { id: "placezum", label: "Placezum", icon: QrCode },
   { id: "market", label: "Mercado", icon: TrendingUp },
   { id: "hub", label: "Hub", icon: MoreHorizontal },
-  { id: "tributos", label: "TGLP", icon: Gavel },
-  { id: "admin", label: "Admin", icon: Landmark }
+  { id: "tributos", label: "TGLP", icon: Gavel }
 ];
 
 const webCarouselSlides = [
@@ -231,18 +226,6 @@ function bankStateFingerprint(state: BankState) {
     tickets: (state.supportTickets || []).map((ticket) => [ticket.id, ticket.status, ticket.updatedAt]),
     links: (state.paymentLinks || []).map((link) => [link.id, link.status, link.usedAt || "", link.totalPz])
   });
-}
-
-function looksLikeDemoState(state: BankState) {
-  const accountIds = new Set(state.accounts.map((account) => account.id));
-  const transactionIds = new Set(state.transactions.map((transaction) => transaction.id));
-  return (
-    ["u-alba", "u-dario", "u-lia", "biz-market-cristal"].every((id) => accountIds.has(id)) &&
-    ["txn-demo-1", "txn-demo-2", "txn-demo-3", "txn-demo-4"].every((id) => transactionIds.has(id)) &&
-    state.users.length <= 2 &&
-    state.users.some((user) => user.dip === "12345678A") &&
-    state.users.some((user) => user.dip === "87654321D")
-  );
 }
 
 function isAdminUser(user: UserProfile | null) {
@@ -392,7 +375,7 @@ function BancoPlacetaClient() {
   const pathname = usePathname();
   const [state, setState] = useState<BankState>(() => normalizeState(null));
   const [activeUser, setActiveUser] = useState<UserProfile | null>(null);
-  const [selectedAccountId, setSelectedAccountId] = useState("u-alba");
+  const [selectedAccountId, setSelectedAccountId] = useState("");
   const [tab, setTab] = useState<Tab>("home");
   const [sync, setSync] = useState<"loading" | "online" | "offline">("loading");
   const [hydrated, setHydrated] = useState(false);
@@ -439,17 +422,7 @@ function BancoPlacetaClient() {
     const callbackToken = params.get("placetaid_token") || params.get("token");
     if (callbackToken) sessionStorage.setItem("placetaid-token", callbackToken);
 
-    const cached = localStorage.getItem("placeta-web-state");
-    if (cached) {
-      const cachedState = normalizeState(JSON.parse(cached));
-      if (looksLikeDemoState(cachedState)) {
-        localStorage.removeItem("placeta-web-state");
-      } else {
-        setState(cachedState);
-        restoreStoredSession(cachedState);
-        setHydrated(true);
-      }
-    }
+    localStorage.removeItem("placeta-web-state");
     fetch(`/api/bank-state?ts=${Date.now()}`, { headers: bankStateHeaders(), cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Servicio no disponible");
@@ -514,7 +487,7 @@ function BancoPlacetaClient() {
     return accountsForUser(state, activeUser);
   }, [activeUser, state]);
   const selectedAccount = userAccounts.find((account) => account.id === selectedAccountId) || userAccounts.find((account) => account.id === activeUser?.primaryAccountId) || userAccounts[0];
-  const visibleTabs = isAdminUser(activeUser) ? tabs : tabs.filter((item) => !["tributos", "admin"].includes(item.id));
+  const visibleTabs = isAdminUser(activeUser) ? tabs : tabs.filter((item) => item.id !== "tributos");
 
   useEffect(() => {
     if (!activeUser || !userAccounts.length) return;
@@ -1047,7 +1020,6 @@ function BancoPlacetaClient() {
       )}
       {tab === "hub" && <HubScreen state={state} user={activeUser} onPersist={(next, message) => void persist(next, message)} onCreateAccount={(type, displayName, parentAccountId, cardTier) => void handleCreateAccount(type, displayName, parentAccountId, cardTier)} />}
       {tab === "tributos" && <TributosScreen state={state} onPersist={(next, message) => void persist(next, message)} />}
-      {tab === "admin" && <AdminScreen state={state} onPersist={(next, message) => void persist(next, message)} />}
 
       <nav className="bottom-nav">
         {visibleTabs.map((item) => {
@@ -2827,201 +2799,6 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
 
       <Modal title="Movimientos fiscales" open={taxModal === "history"} onClose={() => setTaxModal(null)}>
         <History transactions={fiscalTx} accounts={state.accounts} />
-      </Modal>
-    </section>
-  );
-}
-
-function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state: BankState, message: string) => void }) {
-  const [amount, setAmount] = useState(1000);
-  const [weeklyTax, setWeeklyTax] = useState(state.treasuryConfig.weeklyTaxPercent);
-  const [monthlyTax, setMonthlyTax] = useState(state.treasuryConfig.monthlyTaxPercent);
-  const [developerApiFee, setDeveloperApiFee] = useState(state.treasuryConfig.weeklyDeveloperApiFeePercent);
-  const [paymentLinkFee, setPaymentLinkFee] = useState(state.treasuryConfig.weeklyPaymentLinkFeePercent);
-  const [opTax, setOpTax] = useState(state.treasuryConfig.operationalTransferTaxPercent);
-  const [placezumLimit, setPlacezumLimit] = useState(state.treasuryConfig.placezumWeeklyLimitPz);
-  const [investmentMax, setInvestmentMax] = useState(state.treasuryConfig.maxInvestmentAmountPz);
-  const [dailyInvestmentLimit, setDailyInvestmentLimit] = useState(state.treasuryConfig.dailyInvestmentLimit);
-  const [adminModal, setAdminModal] = useState<"emission" | "policy" | "businessFees" | "audit" | "users" | "provenance" | null>(null);
-  const [provenanceAccountId, setProvenanceAccountId] = useState(state.accounts[0]?.id || "");
-  const [provenanceQuery, setProvenanceQuery] = useState("");
-  const agldp = state.accounts.find((item) => item.id === AGLDP_ID);
-  const provenanceAccount = state.accounts.find((account) => account.id === provenanceAccountId) || state.accounts[0];
-  const provenanceMovements = provenanceAccount ? state.transactions
-    .filter((transaction) => transaction.fromAccountId === provenanceAccount.id || transaction.toAccountId === provenanceAccount.id)
-    .filter((transaction) => {
-      const query = provenanceQuery.trim().toLowerCase();
-      if (!query) return true;
-      const from = state.accounts.find((account) => account.id === transaction.fromAccountId);
-      const to = state.accounts.find((account) => account.id === transaction.toAccountId);
-      return [transaction.id, transaction.kind, transaction.note, transaction.concept, transaction.IBAN_Origin, from?.displayName, to?.displayName]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query));
-    })
-    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-    : [];
-  const provenanceIn = provenanceMovements.reduce((sum, transaction) => sum + Math.max(0, signedAmountForAccount(transaction, provenanceAccount?.id || "")), 0);
-  const provenanceOut = provenanceMovements.reduce((sum, transaction) => sum + Math.max(0, -signedAmountForAccount(transaction, provenanceAccount?.id || "")), 0);
-  const totalMoney = state.accounts.reduce((sum, account) => sum + Math.max(0, account.balancePz), 0);
-  const businessCount = state.accounts.filter((account) => account.type === "Business").length;
-  const pendingRequests = state.subsidyRequests.filter((request) => request.status === "Pending").length;
-  const adminActions = [
-    { id: "emission" as const, title: "Emisión", detail: `Preparado ${formatPz(amount)} Pz`, icon: Landmark },
-    { id: "policy" as const, title: "Normativa", detail: "Límites, tasas e inversión", icon: ShieldCheck },
-    { id: "businessFees" as const, title: "Tasas empresa", detail: "API y enlaces semanales", icon: Banknote },
-    { id: "provenance" as const, title: "Procedencia", detail: "Origen del dinero por cuenta", icon: Eye },
-    { id: "audit" as const, title: "Auditoría", detail: `${state.complianceFlags.length} flags · ${state.transactions.length} movimientos`, icon: WifiOff },
-    { id: "users" as const, title: "Usuarios", detail: `${state.users.length} perfiles registrados`, icon: Building2 }
-  ];
-  return (
-    <section className="screen-grid admin-grid purple-suite">
-      <article className="hero-card admin-hero admin-command">
-        <span>Administración · Banco de La Placeta</span>
-        <strong>{formatMoneyPz(agldp?.balancePz || 0)} Pz</strong>
-        <p>{state.users.length} usuarios · {state.accounts.length} cuentas · masa {formatPz(totalMoney)} Pz</p>
-      </article>
-
-      <div className="metric-grid">
-        <MetricCard label="Masa monetaria" value={`${formatPz(totalMoney)} Pz`} tone="purple" />
-        <MetricCard label="Empresas" value={String(businessCount)} tone="accent" />
-        <MetricCard label="Developers" value="API" tone="gold" />
-        <MetricCard label="Solicitudes" value={String(pendingRequests)} tone="red" />
-      </div>
-
-      <article className="panel admin-panel admin-command-center">
-        <SectionTitle icon={Landmark} title="Centro administrativo" />
-        <div className="admin-action-grid">
-          {adminActions.map((action) => {
-            const Icon = action.icon;
-            return (
-              <button key={action.id} onClick={() => setAdminModal(action.id)}>
-                <Icon size={22} />
-                <span><strong>{action.title}</strong><small>{action.detail}</small></span>
-              </button>
-            );
-          })}
-        </div>
-      </article>
-
-      <article className="panel admin-panel fiscal-overview">
-        <SectionTitle icon={ShieldCheck} title="Resumen del sistema" />
-        <div className="hub-status-list">
-          <div><strong>Saldo AGLDP</strong><span>{formatPz(agldp?.balancePz || 0)} Pz disponibles</span></div>
-          <div><strong>Normativa activa</strong><span>Placezum {formatPz(state.treasuryConfig.placezumWeeklyLimitPz)} Pz · API {state.treasuryConfig.weeklyDeveloperApiFeePercent}% · enlaces {state.treasuryConfig.weeklyPaymentLinkFeePercent}%</span></div>
-          <div><strong>Operación</strong><span>{pendingRequests ? `${pendingRequests} solicitudes pendientes` : "Sin solicitudes pendientes"}</span></div>
-        </div>
-      </article>
-
-      <Modal title="Emisión monetaria" open={adminModal === "emission"} onClose={() => setAdminModal(null)}>
-        <SectionTitle icon={Landmark} title="Emisión monetaria" />
-        <Field label="Importe Pz" value={String(amount)} onChange={(value) => setAmount(Number(value) || 0)} type="number" />
-        <button className="primary-button" onClick={() => {
-          onPersist(emitMoney(state, amount), "Emisión monetaria aplicada");
-          setAdminModal(null);
-        }}>Emitir hacia AGLDP</button>
-      </Modal>
-
-      <Modal title="Configuración normativa" open={adminModal === "policy"} onClose={() => setAdminModal(null)}>
-        <SectionTitle icon={ShieldCheck} title="Configuración normativa" />
-        <div className="config-grid">
-          <Field label="Impuesto semanal %" value={String(weeklyTax)} onChange={(value) => setWeeklyTax(Number(value) || 0)} type="number" />
-          <Field label="Impuesto mensual %" value={String(monthlyTax)} onChange={(value) => setMonthlyTax(Number(value) || 0)} type="number" />
-          <Field label="Tasa semanal API pagos %" value={String(developerApiFee)} onChange={(value) => setDeveloperApiFee(Number(value) || 0)} type="number" />
-          <Field label="Tasa semanal enlaces empresa %" value={String(paymentLinkFee)} onChange={(value) => setPaymentLinkFee(Number(value) || 0)} type="number" />
-          <Field label="Tasa operativa %" value={String(opTax)} onChange={(value) => setOpTax(Number(value) || 0)} type="number" />
-          <Field label="Placezum semanal" value={String(placezumLimit)} onChange={(value) => setPlacezumLimit(Number(value) || 0)} type="number" />
-          <Field label="Máx inversión" value={String(investmentMax)} onChange={(value) => setInvestmentMax(Number(value) || 0)} type="number" />
-          <Field label="Inversiones/día" value={String(dailyInvestmentLimit)} onChange={(value) => setDailyInvestmentLimit(Number(value) || 0)} type="number" />
-        </div>
-        <button className="primary-button" onClick={() => {
-          onPersist(updateTreasuryConfig(state, {
-            weeklyTaxPercent: weeklyTax,
-            monthlyTaxPercent: monthlyTax,
-            weeklyDeveloperApiFeePercent: developerApiFee,
-            weeklyPaymentLinkFeePercent: paymentLinkFee,
-            operationalTransferTaxPercent: opTax,
-            placezumWeeklyLimitPz: placezumLimit,
-            maxInvestmentAmountPz: investmentMax,
-            dailyInvestmentLimit
-          }), "Configuración normativa guardada");
-          setAdminModal(null);
-        }}>Guardar configuración</button>
-      </Modal>
-
-      <Modal title="Tasas semanales de empresa" open={adminModal === "businessFees"} onClose={() => setAdminModal(null)}>
-        <SectionTitle icon={Banknote} title="API de pagos y enlaces" />
-        <p className="muted">Liquida semanalmente el uso de API de pagos y enlaces creados por empresas. Los enlaces de cobro no sustituyen el módulo de nóminas ni deben usarse para enviar salarios.</p>
-        <div className="ops-list">
-          {state.accounts.filter((account) => account.type === "Business").map((business) => {
-            const preview = businessUsageFeePreview(state, business.id);
-            return (
-              <div key={business.id}>
-                <strong>{business.displayName}</strong>
-                <span>API base {formatPz(preview.apiBasePz)} Pz · enlaces base {formatPz(preview.linkBasePz)} Pz · tasa {formatPz(preview.totalFeePz)} Pz · semana {preview.weekKey}</span>
-                <button className="mini-action" disabled={preview.totalFeePz <= 0 || preview.alreadyCharged} onClick={() => onPersist(chargeWeeklyBusinessUsageFees(state, business.id), "Tasas semanales de empresa cobradas")}>
-                  {preview.alreadyCharged ? "Cobrada" : "Cobrar tasas"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </Modal>
-
-      <Modal title="Auditoría operativa" open={adminModal === "audit"} onClose={() => setAdminModal(null)}>
-        <SectionTitle icon={WifiOff} title="Auditoría operativa" />
-        <div className="ops-list">
-          <div><strong>Conexión segura</strong><span>La sesión mantiene tus datos actualizados entre móvil y web.</span></div>
-          <div><strong>Modo sin conexión</strong><span>La web conserva la última información disponible si pierdes señal.</span></div>
-          <div><strong>Auditoría</strong><span>{state.complianceFlags.length} flags activos · {state.transactions.length} movimientos.</span></div>
-        </div>
-      </Modal>
-
-      <Modal title="Procedencia del dinero" open={adminModal === "provenance"} onClose={() => setAdminModal(null)}>
-        <SectionTitle icon={Eye} title="Procedencia" />
-        <label className="field">
-          <span>Cuenta</span>
-          <select value={provenanceAccount?.id || ""} onChange={(event) => setProvenanceAccountId(event.target.value)}>
-            {state.accounts.map((account) => (
-              <option key={account.id} value={account.id}>{account.displayName} · {account.iban} · {formatPz(account.balancePz)} Pz</option>
-            ))}
-          </select>
-        </label>
-        <Field label="Buscar" value={provenanceQuery} onChange={setProvenanceQuery} placeholder="ID, concepto, origen, cuenta" />
-        <div className="payroll-summary">
-          <div><span>Saldo</span><strong>{formatPz(provenanceAccount?.balancePz || 0)} Pz</strong></div>
-          <div><span>Entradas</span><strong>+{formatPz(provenanceIn)} Pz</strong></div>
-          <div><span>Salidas</span><strong>-{formatPz(provenanceOut)} Pz</strong></div>
-          <div><span>Movs.</span><strong>{provenanceMovements.length}</strong></div>
-        </div>
-        <div className="ops-list provenance-list">
-          {provenanceMovements.slice(0, 18).map((transaction) => {
-            const from = state.accounts.find((account) => account.id === transaction.fromAccountId);
-            const to = state.accounts.find((account) => account.id === transaction.toAccountId);
-            const signed = signedAmountForAccount(transaction, provenanceAccount?.id || "");
-            return (
-              <div key={transaction.id}>
-                <strong>{formatSignedPz(signed)} Pz · {transaction.kind}</strong>
-                <span>{from?.displayName || transaction.fromAccountId} → {to?.displayName || transaction.toAccountId}</span>
-                <span>Origen {transaction.IBAN_Origin || transaction.fromAccountId} · {transaction.concept || transaction.note} · {transaction.status}</span>
-                <code>{transaction.id}</code>
-              </div>
-            );
-          })}
-          {!provenanceMovements.length && <Empty title="Sin movimientos" text="No hay trazas para esta cuenta." />}
-        </div>
-      </Modal>
-
-      <Modal title="Usuarios y cuentas" open={adminModal === "users"} onClose={() => setAdminModal(null)}>
-        <SectionTitle icon={Building2} title="Usuarios y cuentas" />
-        {state.users.map((user) => {
-          const account = state.accounts.find((item) => item.id === user.primaryAccountId);
-          return (
-            <div className="holding-row" key={user.dip}>
-              <div><strong>{user.displayName}</strong><span>{user.dip} · {user.placetaId}</span></div>
-              <b>{formatPz(account?.balancePz || 0)} Pz</b>
-            </div>
-          );
-        })}
       </Modal>
     </section>
   );

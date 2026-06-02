@@ -135,7 +135,7 @@ export type PromoSlide = {
   id: string;
   title: string;
   subtitle: string;
-  action: "Login" | "Register" | "Demo";
+  action: "Login" | "Register";
   imageKey: string;
   imageUrl?: string | null;
   assetPath?: string | null;
@@ -689,76 +689,26 @@ function account(
   };
 }
 
-export function demoSeed(): BankState {
+export function emptyBankState(): BankState {
   const now = new Date().toISOString();
-  const accounts = [
-    account(TGLP_ID, "TGLP Tributos", "TGLP", 8500, null, "Current", "Tributos", { iban: TGLP_OFFICIAL_IBAN }),
-    account(AGLDP_ID, "AGLDP Administración", "AGLDP", 94000, null, "Current", "Administracion"),
-    account(FOUNDATION_RBU_ID, "Fundación Banco de La Placeta", "AGLDP", 12000, null, "Current", "Administracion"),
-    account(VAULT_EMISION, "Vault Emisión", "AGLDP", 0, null, "Current", "Administracion"),
-    account("u-alba", "Personal", "CITIZEN", 12400, "ALBA-001"),
-    account("u-alba-save", "Ahorro · Hucha", "CITIZEN", 42000, "ALBA-001", "Savings", "Citizen", { huchaLocked: true }),
-    account("u-alba-biz", "Empresa Alba & Co", "CITIZEN", 87500, "ALBA-001", "Business", "Citizen", { citizenshipTier: "Institucion" }),
-    account("u-alba-child", "Infantil supervisada", "CITIZEN", 1200, "ALBA-001", "Child", "Citizen", { parentAccountId: "u-alba", sendLimitPz: 50, citizenshipTier: "JuniorBasica" }),
-    account("u-alba-invest", "Cartera Plazet", "CITIZEN", 18900, "ALBA-001", "Investment"),
-    account("u-dario", "Darío Vega", "CITIZEN", 6800, "DARIO-014"),
-    account("u-lia", "Lía Montes", "CITIZEN", 31500, "LIA-022"),
-    account("biz-market-dario", "Taller Dario SA", "CITIZEN", 64000, "DARIO-SA", "Business", "Citizen", { citizenshipTier: "Institucion", listedInvestmentFund: true, investmentRiskLevel: 3 }),
-    account("biz-market-cristal", "Cristal Escaso", "CITIZEN", 113000, "CRISTAL-ESC", "Business", "Citizen", { citizenshipTier: "Institucion", listedInvestmentFund: true, investmentRiskLevel: 6 }),
-    account("biz-market-propiedad", "Propiedad La Placeta #042", "CITIZEN", 146500, "PROP-042", "Business", "Citizen", { citizenshipTier: "Institucion", listedInvestmentFund: true, investmentRiskLevel: 2 })
-  ];
   return {
-    users: [
-      { dip: "12345678A", displayName: "Alba Placeta", placetaId: "ALBA-001", pinHash: "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4", primaryAccountId: "u-alba", verifiedAge: 28, createdAt: now },
-      { dip: "87654321D", displayName: "Darío Vega", placetaId: "DARIO-014", pinHash: "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4", primaryAccountId: "u-dario", verifiedAge: 34, createdAt: now }
-    ],
-    accounts,
-    transactions: [
-      txn("txn-demo-1", "WelcomeBonus", AGLDP_ID, "u-alba", 500, 0, "Bono de bienvenida Banco de La Placeta", "WELCOME_BONUS"),
-      txn("txn-demo-2", "Consumption", "u-alba", "biz-market-dario", 36, 5, "Café y reparación · CONSUMO GDLP", "CONSUMO"),
-      txn("txn-demo-3", "Rbu", FOUNDATION_RBU_ID, "u-alba", 150, 0, "Renta Básica Universal", "RBU"),
-      txn("txn-demo-4", "InvestmentBuy", "u-alba-invest", "biz-market-cristal", 300, 21, "Inversión 60s iniciada: Cristal Escaso", "InvestmentBuy")
-    ],
+    users: [],
+    accounts: [],
+    transactions: [],
     subsidyRequests: [],
     investmentHoldings: [],
     investmentOperations: [],
-    digitalCards: [
-      { id: "card-alba", accountId: "u-alba", alias: "Placeta Black", tier: "Standard", frozen: false, cardNumber: "183042", pin: "0000", released: true },
-      { id: "card-child", accountId: "u-alba-child", alias: "Junior supervisada", tier: "Child", frozen: false, cardNumber: "000122", pin: "0000" }
-    ],
-    savedContacts: [
-      { id: "contact-dario", ownerPlacetaId: "ALBA-001", accountId: "u-dario", createdAt: now },
-      { id: "contact-lia", ownerPlacetaId: "ALBA-001", accountId: "u-lia", createdAt: now }
-    ],
+    digitalCards: [],
+    savedContacts: [],
     supportTickets: [],
     paymentLinks: [],
-    payrollContracts: [
-      {
-        id: "payroll-contract-demo",
-        companyAccountId: "u-alba-biz",
-        employeeAccountId: "u-alba",
-        employeeDip: "12345678A",
-        employeeName: "Alba Placeta",
-        roleTitle: "Administración de empresa",
-        startDate: "2026-01-01",
-        frequency: "Weekly",
-        grossSalaryPz: 200,
-        status: "Active",
-        salaryHistory: [{ changedAt: now, previousGrossSalaryPz: 0, newGrossSalaryPz: 200, reason: "Alta inicial" }],
-        createdAt: now,
-        updatedAt: now
-      }
-    ],
+    payrollContracts: [],
     payrollPeriods: [],
     gdlpSharedNews: [],
     periodicoNews: [],
     donationRewards: [],
     androidBetaSignups: [],
-    promoSlides: [
-      { id: "promo-1", title: "BANCO DE LA PLACETA", subtitle: "Tu centro financiero seguro, claro y siempre a mano.", action: "Login", imageKey: "bank", assetPath: "promos/banco-default.png" },
-      { id: "promo-2", title: "PLACEZUM", subtitle: "Pagos rápidos con IBAN GDLP app o web y control total.", action: "Register", imageKey: "placezum", assetPath: "promos/placezum-default.png" },
-      { id: "promo-3", title: "MERCADO GDLP", subtitle: "Invierte, revisa movimientos y descarga documentos fiscales.", action: "Demo", imageKey: "market", assetPath: "promos/mercado-default.png" }
-    ],
+    promoSlides: [],
     promoCardSerials: [],
     treasuryConfig: treasuryDefaults,
     complianceFlags: [],
@@ -767,29 +717,11 @@ export function demoSeed(): BankState {
   };
 }
 
-function txn(id: string, kind: TransactionKind, fromAccountId: string, toAccountId: string, amountPz: number, ivaPz: number, note: string, concept: string): LedgerTransaction {
-  return {
-    id,
-    kind,
-    fromAccountId,
-    toAccountId,
-    amountPz,
-    ivaPz,
-    note,
-    status: "Settled",
-    createdAt: new Date(Date.now() - Math.floor(Math.random() * 90000000)).toISOString(),
-    netAmount: amountPz,
-    taxAmount: ivaPz,
-    concept,
-    IBAN_Origin: ibanGenerate(fromAccountId)
-  };
-}
-
 export function normalizeState(input: Partial<BankState> | null | undefined): BankState {
-  const seed = demoSeed();
+  const seed = emptyBankState();
   if (!input) return seed;
   const normalizedAccounts = dedupeBy(
-    (input.accounts?.length ? input.accounts : seed.accounts)
+    (input.accounts || [])
       .map((account) => {
       const tglp = isTglpAccount(account);
       return {
@@ -804,7 +736,7 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
     "id"
   );
   const ibanByAccountId = new Map(normalizedAccounts.map((account) => [account.id, account.iban]));
-  const transactions = dedupeBy(input.transactions?.length ? input.transactions : seed.transactions, "id")
+  const transactions = dedupeBy(input.transactions || [], "id")
     .map((transaction) => ({
       ...transaction,
       fromAccountId: canonicalAccountId(transaction.fromAccountId),
@@ -815,7 +747,7 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
   return {
     ...seed,
     ...input,
-    users: dedupeBy(input.users?.length ? input.users : seed.users, "dip").sort((left, right) => left.displayName.localeCompare(right.displayName)),
+    users: dedupeBy(input.users || [], "dip").sort((left, right) => left.displayName.localeCompare(right.displayName)),
     accounts: normalizedAccounts,
     transactions,
     subsidyRequests: dedupeBy(input.subsidyRequests || [], "id"),
@@ -833,7 +765,7 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
           : link.targetIban
       }))
       .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
-    payrollContracts: dedupeBy(input.payrollContracts?.length ? input.payrollContracts : seed.payrollContracts, "id").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
+    payrollContracts: dedupeBy(input.payrollContracts || [], "id").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
     payrollPeriods: dedupeBy(input.payrollPeriods || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     gdlpSharedNews: dedupeBy(input.gdlpSharedNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
     periodicoNews: dedupeBy(input.periodicoNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
@@ -841,8 +773,68 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
     androidBetaSignups: dedupeBy(input.androidBetaSignups || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
     promoCardSerials: dedupeBy(input.promoCardSerials || [], "serial").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
     treasuryConfig: normalizeTreasuryConfig(input.treasuryConfig || {}),
-    promoSlides: dedupeBy(input.promoSlides?.length ? input.promoSlides : seed.promoSlides, "id"),
+    promoSlides: dedupeBy(input.promoSlides || [], "id"),
     updatedAt: input.updatedAt || seed.updatedAt
+  };
+}
+
+export function normalizeStateStrict(input: Partial<BankState> | null | undefined): BankState {
+  if (!input) throw new Error("real_bank_state_required");
+  const seed = emptyBankState();
+  const normalizedAccounts = dedupeBy(
+    (input.accounts || []).map((account) => {
+      const tglp = isTglpAccount(account);
+      return {
+        ...account,
+        id: tglp ? TGLP_ID : canonicalAccountId(account.id),
+        displayName: tglp ? account.displayName || "TGLP Tributos" : account.displayName,
+        kind: tglp ? "TGLP" as AccountKind : account.kind,
+        role: tglp ? "Tributos" as Role : account.role,
+        iban: tglp ? TGLP_OFFICIAL_IBAN : isOfficialIban(account.iban || "") ? account.iban : ibanGenerate(account.id)
+      };
+    }),
+    "id"
+  );
+  const ibanByAccountId = new Map(normalizedAccounts.map((account) => [account.id, account.iban]));
+  const transactions = dedupeBy(input.transactions || [], "id")
+    .map((transaction) => ({
+      ...transaction,
+      fromAccountId: canonicalAccountId(transaction.fromAccountId),
+      toAccountId: canonicalAccountId(transaction.toAccountId),
+      IBAN_Origin: canonicalAccountId(transaction.fromAccountId) === TGLP_ID ? TGLP_OFFICIAL_IBAN : transaction.IBAN_Origin
+    }))
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  return {
+    ...seed,
+    ...input,
+    users: dedupeBy(input.users || [], "dip").sort((left, right) => left.displayName.localeCompare(right.displayName)),
+    accounts: normalizedAccounts,
+    transactions,
+    subsidyRequests: dedupeBy(input.subsidyRequests || [], "id"),
+    investmentHoldings: dedupeBy(input.investmentHoldings || [], "id"),
+    investmentOperations: dedupeBy(input.investmentOperations || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    digitalCards: dedupeByComposite(input.digitalCards || [], (card) => card.id || `${card.accountId}:${card.cardNumber}`),
+    savedContacts: dedupeByComposite(input.savedContacts || [], (contact) => `${contact.ownerPlacetaId}:${contact.accountId}`).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    complianceFlags: dedupeBy(input.complianceFlags || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    supportTickets: dedupeBy(input.supportTickets || [], "id").sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
+    paymentLinks: dedupeBy(input.paymentLinks || [], "id")
+      .map((link) => ({
+        ...link,
+        targetIban: link.kind === "Payment" && link.targetIban && !isOfficialIban(link.targetIban)
+          ? ibanByAccountId.get(link.creatorAccountId) || link.targetIban
+          : link.targetIban
+      }))
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    payrollContracts: dedupeBy(input.payrollContracts || [], "id").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
+    payrollPeriods: dedupeBy(input.payrollPeriods || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    gdlpSharedNews: dedupeBy(input.gdlpSharedNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
+    periodicoNews: dedupeBy(input.periodicoNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
+    donationRewards: dedupeBy(input.donationRewards || [], "id").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
+    androidBetaSignups: dedupeBy(input.androidBetaSignups || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    promoCardSerials: dedupeBy(input.promoCardSerials || [], "serial").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
+    treasuryConfig: normalizeTreasuryConfig(input.treasuryConfig || {}),
+    promoSlides: dedupeBy(input.promoSlides || [], "id"),
+    updatedAt: input.updatedAt || ""
   };
 }
 
@@ -855,6 +847,17 @@ export function applyTransactions(current: LedgerTransaction[], incoming: Ledger
 export function finalizeState(state: BankState): BankState {
   const config = normalizeTreasuryConfig(state.treasuryConfig);
   const normalized = normalizeState({ ...state, treasuryConfig: config });
+  return {
+    ...normalized,
+    treasuryConfig: config,
+    complianceFlags: dedupeBy(buildAuditFlags(normalized.accounts, normalized.transactions, normalized.complianceFlags, config), "id"),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+export function finalizeStateStrict(state: BankState): BankState {
+  const config = normalizeTreasuryConfig(state.treasuryConfig);
+  const normalized = normalizeStateStrict({ ...state, treasuryConfig: config });
   return {
     ...normalized,
     treasuryConfig: config,

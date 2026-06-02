@@ -9462,18 +9462,6 @@ input {
   min-height: 56px;
   border-radius: 18px;
 }
-.demo-login-button {
-  min-height: 46px;
-  border-radius: 16px;
-  color: #3F00D8;
-  background: rgba(63, 0, 216, .08);
-  border: 1px solid rgba(63, 0, 216, .12);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-weight: 950;
-}
 .form-error {
   margin: 0;
   padding: 10px 12px;
@@ -9587,7 +9575,6 @@ input {
   .secondary-button,
   .ghost-button,
   .placetaid-button,
-  .demo-login-button,
   .login-submit,
   .action-grid button,
   .card-tier-grid button,
@@ -9983,8 +9970,7 @@ input {
     min-height: 58px;
   }
 
-  .login-submit,
-  .demo-login-button {
+  .login-submit {
     width: 100%;
     max-width: none;
   }

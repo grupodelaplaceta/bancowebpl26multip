@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
-import { demoSeed, normalizeState } from "../../../lib/bank";
+import { emptyBankState, normalizeState } from "../../../lib/bank";
 import type { BankState } from "../../../lib/bank";
 import { productionSecret, requiredProductionSecret } from "../../../lib/api-security";
 import { BANK_API_URL } from "../../../lib/site";
@@ -56,7 +56,7 @@ function hasRemoteConfig(request?: Request) {
 }
 
 function localState() {
-  globalThis.__placetaBankState = normalizeState(globalThis.__placetaBankState || demoSeed());
+  globalThis.__placetaBankState = normalizeState(globalThis.__placetaBankState || emptyBankState());
   return globalThis.__placetaBankState;
 }
 
@@ -73,15 +73,6 @@ function isFullStatePayload(value: unknown) {
     Array.isArray((value as Partial<BankState>).accounts) &&
     Array.isArray((value as Partial<BankState>).transactions)
   );
-}
-
-function looksLikeDemoState(state: BankState) {
-  const accountIds = new Set(state.accounts.map((account) => account.id));
-  const transactionIds = new Set(state.transactions.map((transaction) => transaction.id));
-  const demoAccountsPresent = ["u-alba", "u-dario", "u-lia", "biz-market-cristal"].every((id) => accountIds.has(id));
-  const demoTransactionsPresent = ["txn-demo-1", "txn-demo-2", "txn-demo-3", "txn-demo-4"].every((id) => transactionIds.has(id));
-  const demoUsersOnly = state.users.length <= 2 && state.users.some((user) => user.dip === "12345678A") && state.users.some((user) => user.dip === "87654321D");
-  return demoAccountsPresent && demoTransactionsPresent && demoUsersOnly;
 }
 
 function headerSafeError(error: unknown) {
@@ -205,10 +196,6 @@ export async function PUT(request: Request) {
     }
     const nextState = normalizeState(payload.state);
     const baseUpdatedAt = payload.baseUpdatedAt || null;
-    if (looksLikeDemoState(nextState) && process.env.NODE_ENV === "production") {
-      return NextResponse.json({ error: "demo_state_write_blocked" }, { status: 409, headers: noStoreHeaders });
-    }
-
     if (!hasRemoteConfig(request)) {
       if (!allowLocalFallback()) {
         return NextResponse.json({ error: "missing_remote_bank_config" }, { status: 503, headers: noStoreHeaders });

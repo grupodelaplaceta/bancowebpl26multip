@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { finalizeState, normalizeState } from "../../../lib/bank";
+import { finalizeStateStrict, normalizeStateStrict } from "../../../lib/bank";
+import type { BankState } from "../../../lib/bank";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -38,6 +39,16 @@ function serverStateHeaders(request: Request, json = false): Record<string, stri
   return headers;
 }
 
+function isFullStatePayload(value: unknown): value is Partial<BankState> {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    Array.isArray((value as Partial<BankState>).users) &&
+    Array.isArray((value as Partial<BankState>).accounts) &&
+    Array.isArray((value as Partial<BankState>).transactions)
+  );
+}
+
 async function readState(request: Request) {
   const response = await fetch(`${bankStateUrl(request)}?adminTs=${Date.now()}`, {
     headers: serverStateHeaders(request),
@@ -45,7 +56,9 @@ async function readState(request: Request) {
   });
   const payload = await response.json().catch(() => null);
   if (!response.ok) throw new Error(payload?.error || "bank_state_unavailable");
-  return normalizeState(payload);
+  if (response.headers.get("x-placeta-sync-mode") === "local") throw new Error("admin_requires_real_backend_state");
+  if (!isFullStatePayload(payload)) throw new Error("admin_requires_full_bank_state");
+  return normalizeStateStrict(payload);
 }
 
 export async function GET(request: Request) {
@@ -68,7 +81,10 @@ export async function PUT(request: Request) {
 
   try {
     const payload = await request.json().catch(() => ({}));
-    const nextState = finalizeState(normalizeState(payload.state));
+    if (!isFullStatePayload(payload.state)) {
+      return NextResponse.json({ error: "full_bank_state_required" }, { status: 400, headers: noStoreHeaders });
+    }
+    const nextState = finalizeStateStrict(normalizeStateStrict(payload.state));
     const baseUpdatedAt = payload.baseUpdatedAt || null;
     const response = await fetch(bankStateUrl(request), {
       method: "PUT",
@@ -78,7 +94,8 @@ export async function PUT(request: Request) {
     });
     const result = await response.json().catch(() => null);
     if (!response.ok) return NextResponse.json(result || { error: "admin_write_failed" }, { status: response.status, headers: noStoreHeaders });
-    return NextResponse.json({ state: normalizeState(result), savedBy: auth.dip }, { headers: noStoreHeaders });
+    if (!isFullStatePayload(result)) return NextResponse.json({ error: "admin_write_result_invalid" }, { status: 502, headers: noStoreHeaders });
+    return NextResponse.json({ state: normalizeStateStrict(result), savedBy: auth.dip }, { headers: noStoreHeaders });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "admin_write_failed" },

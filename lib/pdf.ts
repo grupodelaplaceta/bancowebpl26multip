@@ -1,4 +1,4 @@
-import { Account, formatPz, LedgerTransaction } from "./bank";
+import { Account, formatPz, LedgerTransaction, TGLP_ID } from "./bank";
 
 export type WebDocumentKind =
   | "MonthlyStatement"
@@ -74,13 +74,13 @@ function drawOfficialDocument(ops: string[], account: Account, document: PdfDocu
   text(ops, `Expediente: ${caseCode(document, account)}`, 60, 232, 9.5, muted);
   text(ops, `CSV: ${verificationCode(document, account)}`, 300, 232, 9.5, muted);
 
-  const gross = transactions.reduce((sum, item) => sum + item.amountPz, 0);
-  const taxes = transactions.reduce((sum, item) => sum + item.taxAmount, 0);
-  const net = transactions.reduce((sum, item) => sum + item.netAmount, 0);
+  const gross = transactions.reduce((sum, item) => sum + signedAmountForAccount(item, account), 0);
+  const taxes = transactions.reduce((sum, item) => sum + signedTaxForAccount(item, account), 0);
+  const net = transactions.reduce((sum, item) => sum + signedNetForAccount(item, account), 0);
   text(ops, sectionTitle(document.kind), 42, 254, 14, ink, true);
-  summaryBox(ops, "Bruto", `${formatPz(gross)} Pz`, 42, 268);
-  summaryBox(ops, "Neto", `${formatPz(net)} Pz`, 214, 268);
-  summaryBox(ops, "Impuestos", `${formatPz(taxes)} Pz`, 386, 268);
+  summaryBox(ops, "Bruto", `${formatSignedPz(gross)} Pz`, 42, 268);
+  summaryBox(ops, "Neto", `${formatSignedPz(net)} Pz`, 214, 268);
+  summaryBox(ops, "Impuestos", `${formatSignedPz(taxes)} Pz`, 386, 268);
 
   text(ops, "DETALLE OFICIAL", 42, 378, 14, ink, true);
   roundRect(ops, 42, 394, 511, 26, 8, purple);
@@ -97,8 +97,8 @@ function drawOfficialDocument(ops: string[], account: Account, document: PdfDocu
     if (index % 2 === 0) roundRect(ops, 42, y - 18, 511, 38, 6, soft);
     text(ops, formatDate(txn.createdAt).slice(0, 16), 54, y, 9.5, muted);
     fitText(ops, txn.note, 150, y, 195, 11, muted);
-    fitText(ops, formatPz(txn.amountPz), 362, y, 58, 11, muted);
-    fitText(ops, formatPz(txn.taxAmount), 432, y, 48, 11, muted);
+    fitText(ops, formatSignedPz(signedAmountForAccount(txn, account)), 362, y, 58, 11, muted);
+    fitText(ops, formatSignedPz(signedTaxForAccount(txn, account)), 432, y, 48, 11, muted);
     fitText(ops, txn.status, 492, y, 48, 9.5, muted);
     fitText(ops, `Origen ${txn.IBAN_Origin} · ${txn.concept}`, 150, y + 15, 340, 9.5, muted);
     y += 48;
@@ -117,6 +117,31 @@ function drawSpecialDocument(ops: string[], account: Account, document: PdfDocum
   if (document.kind === "FiscalRequirement") return drawFiscalRequirement(ops, account, document, all);
   if (document.kind === "InvestmentLiquidation") return drawInvestmentLiquidation(ops, account, document, filtered[0]);
   return drawLaborContract(ops, account, document, filtered[0]);
+}
+
+function signedAmountForAccount(txn: LedgerTransaction, account: Account) {
+  if (txn.toAccountId === account.id) return txn.amountPz;
+  if (txn.fromAccountId === account.id) return -txn.amountPz;
+  return txn.amountPz;
+}
+
+function signedNetForAccount(txn: LedgerTransaction, account: Account) {
+  if (txn.toAccountId === account.id) return txn.netAmount;
+  if (txn.fromAccountId === account.id) return -Math.max(txn.amountPz, txn.netAmount);
+  return txn.netAmount;
+}
+
+function signedTaxForAccount(txn: LedgerTransaction, account: Account) {
+  const tax = Math.max(txn.taxAmount, txn.ivaPz || 0);
+  if (!tax) return 0;
+  if (txn.toAccountId === account.id && account.id === TGLP_ID) return tax;
+  if (txn.fromAccountId === account.id) return -tax;
+  return 0;
+}
+
+function formatSignedPz(amount: number) {
+  const sign = amount >= 0 ? "+" : "-";
+  return `${sign}${formatPz(Math.abs(amount))}`;
 }
 
 function drawPaymentReceipt(ops: string[], account: Account, document: PdfDocumentInput, txn?: LedgerTransaction) {
@@ -274,12 +299,12 @@ function legalLines(kind: WebDocumentKind, account: Account, transactions: Ledge
   ];
   if (kind === "WeeklyTaxReport") return [
     "Liquidación semanal emitida por Tributos del Grupo de La Placeta.",
-    `Base liquidada: ${transactions.reduce((s, t) => s + t.amountPz, 0)} Pz. Cuota: ${transactions.reduce((s, t) => s + t.taxAmount, 0)} Pz.`,
+    `Base liquidada: ${formatSignedPz(transactions.reduce((s, t) => s + signedAmountForAccount(t, account), 0))} Pz. Cuota: ${formatSignedPz(transactions.reduce((s, t) => s + signedTaxForAccount(t, account), 0))} Pz.`,
     "Los importes quedan vinculados a los movimientos detallados y a su CSV de verificación."
   ];
   if (kind === "MonthlyTaxReport") return [
     "Liquidación mensual emitida por Tributos del Grupo de La Placeta.",
-    `Periodo cerrado con ${transactions.length} cargos. Cuota: ${transactions.reduce((s, t) => s + t.taxAmount, 0)} Pz.`,
+    `Periodo cerrado con ${transactions.length} cargos. Cuota: ${formatSignedPz(transactions.reduce((s, t) => s + signedTaxForAccount(t, account), 0))} Pz.`,
     "Cada cargo queda vinculado a la cuenta, periodo y CSV de verificación."
   ];
   return [

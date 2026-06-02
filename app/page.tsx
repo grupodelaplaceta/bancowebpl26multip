@@ -2697,7 +2697,7 @@ function TributosScreen({ state, onPersist }: { state: BankState; onPersist: (st
   const [taxModal, setTaxModal] = useState<"actions" | "alerts" | "ranking" | "history" | null>(null);
   const target = state.accounts.find((account) => account.id === targetId) || citizenAccounts[0];
   const iva = state.transactions.reduce((sum, item) => sum + (item.ivaPz || 0), 0);
-  const todayTax = state.transactions.filter((item) => item.toAccountId === TGLP_ID && item.createdAt.slice(0, 10) === new Date().toISOString().slice(0, 10)).reduce((sum, item) => sum + item.amountPz + item.ivaPz, 0);
+  const todayTax = state.transactions.filter((item) => item.toAccountId === TGLP_ID && item.createdAt.slice(0, 10) === new Date().toISOString().slice(0, 10)).reduce((sum, item) => sum + Math.max(item.amountPz, item.taxAmount, item.ivaPz || 0), 0);
   const pendingExternal = state.transactions.filter((item) => item.kind === "ExternalBlocked" && item.status === "Pending").length;
   const fiscalTx = state.transactions.filter((item) => item.toAccountId === TGLP_ID || item.fromAccountId === TGLP_ID).slice(0, 10);
   const taxActions = [
@@ -2974,25 +2974,41 @@ function AdminScreen({ state, onPersist }: { state: BankState; onPersist: (state
 }
 
 function History({ transactions, accounts }: { transactions: LedgerTransaction[]; accounts: Account[] }) {
+  const tglpAccount = accounts.find((account) => account.id === TGLP_ID);
   return (
     <article className="panel history-panel">
       <SectionTitle icon={Banknote} title="Movimientos" />
       {transactions.length ? transactions.map((transaction) => {
         const from = accounts.find((item) => item.id === transaction.fromAccountId);
         const to = accounts.find((item) => item.id === transaction.toAccountId);
+        const contextAccount = tglpAccount && (transaction.fromAccountId === TGLP_ID || transaction.toAccountId === TGLP_ID)
+          ? tglpAccount
+          : to || from;
+        const signedAmount = contextAccount ? signedAmountForAccount(transaction, contextAccount.id) : transaction.amountPz;
         return (
           <div className="transaction-row" key={transaction.id}>
-            <div className={transaction.kind === "Rbu" || transaction.kind === "WelcomeBonus" ? "txn-icon income" : "txn-icon"}><Banknote size={18} /></div>
+            <div className={signedAmount >= 0 ? "txn-icon income" : "txn-icon"}><Banknote size={18} /></div>
             <div>
               <strong>{transaction.note}</strong>
               <span>{from?.displayName || transaction.fromAccountId} → {to?.displayName || transaction.toAccountId}</span>
             </div>
-            <b>{formatPz(transaction.amountPz)} Pz</b>
+            <b>{formatSignedPz(signedAmount)} Pz</b>
           </div>
         );
       }) : <Empty title="Sin movimientos" text="Las operaciones aparecerán aquí." />}
     </article>
   );
+}
+
+function signedAmountForAccount(transaction: LedgerTransaction, accountId: string) {
+  if (transaction.toAccountId === accountId) return transaction.amountPz;
+  if (transaction.fromAccountId === accountId) return -transaction.amountPz;
+  return transaction.amountPz;
+}
+
+function formatSignedPz(amount: number) {
+  const sign = amount >= 0 ? "+" : "-";
+  return `${sign}${formatPz(Math.abs(amount))}`;
 }
 
 function Field({ label, value, onChange, type = "text", placeholder }: { label: string; value: string; onChange: (value: string) => void; type?: string; placeholder?: string }) {

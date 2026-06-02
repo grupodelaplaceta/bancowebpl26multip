@@ -1446,7 +1446,7 @@ function HomeScreen({ account, accounts, transactions, cards, config, onTransfer
         <button onClick={onRbu}><Sparkles size={20} /> RBU</button>
         <button onClick={() => setActivePopup("cards")}><CreditCard size={20} /> Tarjetas</button>
         <button onClick={() => setActivePopup("account")}><Landmark size={20} /> Cuenta</button>
-        <button onClick={() => generateBankPdf(account, { id: `doc-month-${account.id}`, title: "Extracto mensual", kind: "MonthlyStatement" }, transactionsFor(account.id, transactions))}><Download size={20} /> PDF</button>
+        <button onClick={() => generateBankPdf(account, { id: `account-statement-${account.id}`, title: `Extracto · ${account.displayName}`, kind: "MonthlyStatement" }, transactionsFor(account.id, transactions))}><Download size={20} /> PDF</button>
       </div>
 
       <article className="panel action-summary">
@@ -2155,15 +2155,14 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
   const linkAccountRole = linkKind === "Payment" ? "destino de cobro" : "destino receptor";
   const linkIvaPreview = linkKind === "Payment" && linkSelectedAccount?.type === "Business" ? Math.ceil((Math.max(1, Math.round(linkAmount || 0)) * VAT_PERCENT) / 100) : 0;
   const documents: Array<{ title: string; detail: string; icon: LucideIcon; kind: WebDocumentKind; id: string }> = [
-    { title: "Extracto mensual", detail: `${recent.length} movimientos recientes`, icon: Download, kind: "MonthlyStatement", id: "doc-month" },
-    { title: "Certificado DIP", detail: `${user.dip} · identidad activa`, icon: ShieldCheck, kind: "SolvencyCertificate", id: "doc-solvency" },
-    { title: "Justificante de pago", detail: "Última transacción asentada", icon: Banknote, kind: "PaymentReceipt", id: "doc-payment" },
-    { title: "Recibos fiscales", detail: `${recent.filter((item) => item.toAccountId === TGLP_ID).length} apuntes tributarios tuyos`, icon: Gavel, kind: "VatReceipt", id: "doc-vat" },
-    { title: "Impuestos semanales", detail: "Liquidación semanal TGLP", icon: Landmark, kind: "WeeklyTaxReport", id: "doc-weekly" },
-    { title: "Requerimiento fiscal", detail: "Formato ATP de la app", icon: ShieldCheck, kind: "FiscalRequirement", id: "doc-fiscal" },
-    { title: "Contrato laboral", detail: "Relación laboral registrada", icon: Building2, kind: "LaborContract", id: "doc-labor" },
-    { title: "Liquidación inversión", detail: "Ticket de operación 60s", icon: TrendingUp, kind: "InvestmentLiquidation", id: "doc-investment" },
-    { title: "Informe empresa", detail: "Actividad y pagos de empresa", icon: Banknote, kind: "BusinessStatement", id: "doc-business" }
+    { title: "Extracto de cuenta", detail: `${primaryAccount?.displayName || "Cuenta"} · ${recent.length} movimientos`, icon: Download, kind: "MonthlyStatement", id: "account-statement" },
+    { title: "Certificado de cuenta", detail: `${primaryAccount?.iban || user.dip}`, icon: ShieldCheck, kind: "SolvencyCertificate", id: "account-solvency" },
+    { title: "Recibos fiscales de cuenta", detail: `${recent.filter((item) => item.taxAmount > 0 || item.toAccountId === TGLP_ID).length} apuntes tributarios`, icon: Gavel, kind: "VatReceipt", id: "account-vat" },
+    { title: "Liquidación semanal", detail: `${primaryAccount?.displayName || "Cuenta seleccionada"}`, icon: Landmark, kind: "WeeklyTaxReport", id: "account-weekly" },
+    { title: "Requerimiento fiscal", detail: primaryAccount?.complianceStatus || "Estado de cuenta", icon: ShieldCheck, kind: "FiscalRequirement", id: "account-fiscal" },
+    { title: "Contrato laboral", detail: "Alta laboral de esta cuenta", icon: Building2, kind: "LaborContract", id: "account-labor" },
+    { title: "Liquidación inversión", detail: "Última operación de inversión de esta cuenta", icon: TrendingUp, kind: "InvestmentLiquidation", id: "account-investment" },
+    { title: "Informe empresa", detail: business?.displayName || "Cuenta empresa", icon: Banknote, kind: "BusinessStatement", id: "account-business" }
   ];
 
   function toggleAttachment(id: string) {
@@ -2538,16 +2537,37 @@ function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankSta
 
       <Modal title="Documentos" open={hubModal === "documents"} onClose={() => setHubModal(null)}>
         <SectionTitle icon={Download} title="Documentos" />
+        <p className="muted">Cada PDF se emite para una cuenta o movimiento concreto.</p>
+        <h3 className="modal-subtitle">Cuenta</h3>
         <div className="document-grid">
           {documents.map((doc) => {
             const Icon = doc.icon;
             return (
               <button key={doc.title} disabled={!primaryAccount} onClick={() => {
                 if (!primaryAccount) return;
-                generateBankPdf(primaryAccount, { id: `${doc.id}-${primaryAccount.id}`, title: doc.title, kind: doc.kind }, transactionsFor(primaryAccount.id, state.transactions));
+                generateBankPdf(primaryAccount, { id: `${doc.id}-${primaryAccount.id}`, title: `${doc.title} · ${primaryAccount.displayName}`, kind: doc.kind }, transactionsFor(primaryAccount.id, state.transactions));
               }}>
                 <Icon size={22} />
                 <span><strong>{doc.title}</strong><small>{doc.detail}</small></span>
+              </button>
+            );
+          })}
+        </div>
+        <h3 className="modal-subtitle">Movimientos</h3>
+        <div className="document-grid">
+          {recent.slice(0, 8).map((transaction) => {
+            const account = userAccounts.find((item) => item.id === transaction.fromAccountId || item.id === transaction.toAccountId) || primaryAccount;
+            return (
+              <button key={transaction.id} disabled={!account} onClick={() => {
+                if (!account) return;
+                generateBankPdf(account, {
+                  id: `transfer-${transaction.id}`,
+                  title: `Justificante ${transaction.kind} · ${formatPz(transaction.amountPz)} Pz`,
+                  kind: "PaymentReceipt"
+                }, [transaction]);
+              }}>
+                <Banknote size={22} />
+                <span><strong>{transaction.kind} · {formatPz(transaction.amountPz)} Pz</strong><small>{transaction.id.slice(0, 12)} · {transaction.status}</small></span>
               </button>
             );
           })}

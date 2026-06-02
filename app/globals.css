@@ -939,6 +939,12 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   display: grid;
   gap: 10px;
 }
+.modal-subtitle {
+  margin: 16px 0 8px;
+  color: var(--ink);
+  font-size: .92rem;
+  font-weight: 950;
+}
 .document-grid button {
   min-height: 68px;
   padding: 12px;

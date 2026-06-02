@@ -1332,27 +1332,39 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
         </form>
       </section>
       <footer className="lp4-footer bank-footer">
-        <div className="lp4-footer-brand">
-          <span className="lp4-logo small">
-            <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="46px" />
-          </span>
-          <div>
-            <strong>Banco de La Placeta</strong>
-            <p>Entorno GDLP de banca simulada.</p>
+        <div className="bank-footer-main">
+          <div className="lp4-footer-brand">
+            <span className="lp4-logo small">
+              <Image src="/logo.png" alt="Banco de La Placeta" fill sizes="46px" />
+            </span>
+            <div>
+              <strong>Banco de La Placeta</strong>
+              <p>Banca simulada GDLP.</p>
+            </div>
+          </div>
+          <div className="bank-footer-status" aria-label="Estado del servicio">
+            <span><ShieldCheck size={15} /> PlacetaID</span>
+            <span><CheckCircle2 size={15} /> Web operativa</span>
           </div>
         </div>
         <div className="bank-footer-navs">
-          <nav className="bank-footer-actions" aria-label="Banco">
-            <a href="/login">Acceder</a>
-            <a href="#modulos">Servicios</a>
-            <a href="#android-beta">BETA Android</a>
-          </nav>
-          <nav className="bank-footer-legal" aria-label="Legal">
-            <a href="/terminos-y-condiciones">Términos</a>
-            <a href="/politica-de-privacidad">Privacidad</a>
-          </nav>
+          <div>
+            <strong>Banco</strong>
+            <nav className="bank-footer-actions" aria-label="Banco">
+              <a href="/login">Acceder</a>
+              <a href="#modulos">Servicios</a>
+              <a href="#android-beta">BETA Android</a>
+            </nav>
+          </div>
+          <div>
+            <strong>Legal</strong>
+            <nav className="bank-footer-legal" aria-label="Legal">
+              <a href="/terminos-y-condiciones">Términos</a>
+              <a href="/politica-de-privacidad">Privacidad</a>
+            </nav>
+          </div>
         </div>
-        <p className="bank-footer-note">Placetas, IBAN GDLP, nóminas y PDFs son documentos internos del ecosistema y no sustituyen servicios bancarios reales.</p>
+        <p className="bank-footer-note">Placetas, IBAN GDLP y documentos: uso interno, sin valor bancario real.</p>
       </footer>
     </main>
   );

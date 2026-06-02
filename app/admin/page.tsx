@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, BadgeCheck, Banknote, CreditCard, Download, Landmark, Lock, Save, ShieldCheck, SlidersHorizontal, Ticket, WalletCards } from "lucide-react";
+import { AlertTriangle, BadgeCheck, Banknote, CreditCard, Download, Eye, Landmark, Lock, Save, ShieldCheck, SlidersHorizontal, Ticket, WalletCards } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Account,
@@ -24,7 +24,7 @@ type AdminUser = {
   apellidos?: string;
 };
 
-type AdminTab = "normativa" | "cuentas" | "tarjetas" | "promocards" | "informes";
+type AdminTab = "normativa" | "cuentas" | "tarjetas" | "promocards" | "procedencia" | "informes";
 type AdminApiPayload = {
   error?: string;
   state?: Partial<BankState> | null;
@@ -52,6 +52,17 @@ function moneyCsv(state: BankState) {
     lines.push([account.type, account.id, user?.dip || "", account.placetaId || "", account.displayName, account.iban, account.balancePz, account.complianceStatus || "Clear"].join(","));
   });
   return lines.join("\n");
+}
+
+function signedAmountForAccount(transaction: BankState["transactions"][number], accountId: string) {
+  if (transaction.toAccountId === accountId) return transaction.amountPz;
+  if (transaction.fromAccountId === accountId) return -transaction.amountPz;
+  return transaction.amountPz;
+}
+
+function formatSignedPz(amount: number) {
+  const sign = amount >= 0 ? "+" : "-";
+  return `${sign}${formatPz(Math.abs(amount))}`;
 }
 
 function downloadText(name: string, content: string) {
@@ -83,6 +94,8 @@ export default function AdminPanelPage() {
   const [busy, setBusy] = useState(false);
   const [serialInput, setSerialInput] = useState("");
   const [selectedPromoSerial, setSelectedPromoSerial] = useState("");
+  const [provenanceAccountId, setProvenanceAccountId] = useState("");
+  const [provenanceQuery, setProvenanceQuery] = useState("");
   const [nfcStatus, setNfcStatus] = useState("NFC sin iniciar");
   const [nfcBusy, setNfcBusy] = useState(false);
 
@@ -326,6 +339,38 @@ export default function AdminPanelPage() {
     }).sort((a, b) => b.taxes + b.fees - (a.taxes + a.fees));
   }, [state]);
 
+  const provenanceAccount = useMemo(() => {
+    if (!state) return null;
+    return state.accounts.find((account) => account.id === provenanceAccountId) || state.accounts[0] || null;
+  }, [provenanceAccountId, state]);
+
+  const provenanceMovements = useMemo(() => {
+    if (!state || !provenanceAccount) return [];
+    const query = provenanceQuery.trim().toLowerCase();
+    return state.transactions
+      .filter((transaction) => transaction.fromAccountId === provenanceAccount.id || transaction.toAccountId === provenanceAccount.id)
+      .filter((transaction) => {
+        if (!query) return true;
+        const from = state.accounts.find((account) => account.id === transaction.fromAccountId);
+        const to = state.accounts.find((account) => account.id === transaction.toAccountId);
+        return [transaction.id, transaction.kind, transaction.note, transaction.concept, transaction.IBAN_Origin, from?.displayName, to?.displayName]
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(query));
+      })
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt));
+  }, [provenanceAccount, provenanceQuery, state]);
+
+  const provenanceTotals = useMemo(() => {
+    if (!provenanceAccount) return { incoming: 0, outgoing: 0 };
+    return provenanceMovements.reduce((totals, transaction) => {
+      const signed = signedAmountForAccount(transaction, provenanceAccount.id);
+      return {
+        incoming: totals.incoming + Math.max(0, signed),
+        outgoing: totals.outgoing + Math.max(0, -signed)
+      };
+    }, { incoming: 0, outgoing: 0 });
+  }, [provenanceAccount, provenanceMovements]);
+
   if (!adminUser || !token) {
     return (
       <main className="admin-standalone">
@@ -365,6 +410,7 @@ export default function AdminPanelPage() {
               ["cuentas", WalletCards, "Cuentas"],
               ["tarjetas", CreditCard, "Tarjetas"],
               ["promocards", Ticket, "PromoCards"],
+              ["procedencia", Eye, "Procedencia"],
               ["informes", Download, "Informes"]
             ].map(([id, Icon, label]) => (
               <button key={id as string} className={tab === id ? "active" : ""} onClick={() => setTab(id as AdminTab)}>
@@ -443,6 +489,52 @@ export default function AdminPanelPage() {
                     </select>
                   </article>
                 ))}
+              </div>
+            </section>
+          )}
+
+          {tab === "procedencia" && (
+            <section className="admin-two-col">
+              <article className="admin-panel-box">
+                <h2>Procedencia del dinero</h2>
+                <p>Inspecciona entradas, salidas, origen IBAN, contraparte, concepto, estado e ID de cada movimiento.</p>
+                <label>
+                  <span>Cuenta</span>
+                  <select value={provenanceAccount?.id || ""} onChange={(event) => setProvenanceAccountId(event.target.value)}>
+                    {state.accounts.map((account) => (
+                      <option key={account.id} value={account.id}>{account.displayName} · {account.iban} · {formatPz(account.balancePz)} Pz</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Buscar</span>
+                  <input value={provenanceQuery} onChange={(event) => setProvenanceQuery(event.target.value)} placeholder="ID, concepto, origen, cuenta" />
+                </label>
+                <div className="admin-stat-grid compact">
+                  <div><span>Saldo</span><strong>{formatPz(provenanceAccount?.balancePz || 0)} Pz</strong></div>
+                  <div><span>Entradas</span><strong>+{formatPz(provenanceTotals.incoming)} Pz</strong></div>
+                  <div><span>Salidas</span><strong>-{formatPz(provenanceTotals.outgoing)} Pz</strong></div>
+                  <div><span>Movs.</span><strong>{provenanceMovements.length}</strong></div>
+                </div>
+              </article>
+              <div className="admin-table">
+                {provenanceMovements.slice(0, 40).map((transaction) => {
+                  const from = state.accounts.find((account) => account.id === transaction.fromAccountId);
+                  const to = state.accounts.find((account) => account.id === transaction.toAccountId);
+                  const signed = signedAmountForAccount(transaction, provenanceAccount?.id || "");
+                  return (
+                    <article key={transaction.id}>
+                      <div>
+                        <strong>{formatSignedPz(signed)} Pz · {transaction.kind}</strong>
+                        <span>{from?.displayName || transaction.fromAccountId} → {to?.displayName || transaction.toAccountId}</span>
+                        <span>Origen {transaction.IBAN_Origin || transaction.fromAccountId} · {transaction.concept || transaction.note} · {transaction.status}</span>
+                        <code>{transaction.id}</code>
+                      </div>
+                      <b>{transaction.createdAt.slice(0, 16).replace("T", " ")}</b>
+                    </article>
+                  );
+                })}
+                {!provenanceMovements.length && <article><div><strong>Sin movimientos</strong><span>No hay trazas para esta cuenta.</span></div></article>}
               </div>
             </section>
           )}

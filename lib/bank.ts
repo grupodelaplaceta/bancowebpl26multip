@@ -60,6 +60,7 @@ export type Account = {
   fundsJustificationApproved?: boolean;
   listedInvestmentFund?: boolean;
   investmentRiskLevel?: number;
+  closedAt?: string | null;
 };
 
 export type UserProfile = {
@@ -442,7 +443,7 @@ export function normalizeIban(value: string) {
 
 export function findAccountByIban(accounts: Account[], iban: string) {
   const target = normalizeIban(iban);
-  return accounts.find((account) => normalizeIban(account.iban) === target);
+  return accounts.find((account) => !isAccountClosed(account) && normalizeIban(account.iban) === target);
 }
 
 function isTglpAccount(account: Partial<Account>) {
@@ -505,6 +506,16 @@ export function accountTypeLabel(type: AccountType) {
     Business: "Empresa",
     Investment: "Inversión"
   }[type];
+}
+
+export function isAccountClosed(account: Partial<Account> | undefined | null) {
+  return Boolean(account?.closedAt);
+}
+
+export function mutableAccountTypesFor(account: Account): AccountType[] {
+  if (isAccountClosed(account) || account.kind !== "CITIZEN" || account.role !== "Citizen") return [];
+  if (account.type === "Child" || account.type === "Business") return [];
+  return ["Current", "Savings", "Investment"];
 }
 
 export function ibanGenerate(seed: string) {
@@ -598,7 +609,7 @@ export function accountTypeBalanceLimit(config: TreasuryConfig, type: AccountTyp
 function enforceAccountTypeCountLimit(accounts: Account[], ownerPlacetaId: string, type: AccountType, config: TreasuryConfig) {
   const limit = accountTypeAccountLimit(config, type);
   if (limit <= 0) throw new Error(`Alta bloqueada: ${accountTypeLabel(type)} no permite nuevas cuentas`);
-  const count = accounts.filter((account) => account.kind === "CITIZEN" && account.placetaId === ownerPlacetaId && account.type === type).length;
+  const count = accounts.filter((account) => !isAccountClosed(account) && account.kind === "CITIZEN" && account.placetaId === ownerPlacetaId && account.type === type).length;
   if (count >= limit) throw new Error(`Límite de ${limit} cuentas ${accountTypeLabel(type)} por PlacetaID`);
 }
 
@@ -776,6 +787,65 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
     promoSlides: dedupeBy(input.promoSlides || [], "id"),
     updatedAt: input.updatedAt || seed.updatedAt
   };
+}
+
+export function changeAccountType(state: BankState, accountId: string, targetType: AccountType) {
+  const account = state.accounts.find((item) => item.id === accountId);
+  if (!account) throw new Error("Cuenta no encontrada");
+  if (account.type === targetType) return finalizeState(state);
+  if (!mutableAccountTypesFor(account).includes(targetType)) {
+    throw new Error("Este cambio de tipo no está permitido para la cuenta seleccionada");
+  }
+  const config = normalizeTreasuryConfig(state.treasuryConfig);
+  if (account.balancePz > accountTypeBalanceLimit(config, targetType)) {
+    throw new Error(`El saldo supera el límite de ${accountTypeLabel(targetType)}`);
+  }
+  enforceAccountTypeCountLimit(state.accounts.filter((item) => item.id !== account.id), account.placetaId || "", targetType, config);
+  if (account.type === "Investment" && pendingInvestmentOperations(state, account.id).length) {
+    throw new Error("Liquida las inversiones abiertas antes de cambiar el tipo");
+  }
+  return finalizeState({
+    ...state,
+    accounts: state.accounts.map((item) => item.id === account.id ? {
+      ...item,
+      type: targetType,
+      huchaLocked: targetType === "Savings",
+      sendLimitPz: targetType === "Child" ? item.sendLimitPz || 50 : null,
+      citizenshipTier: targetType === "Business" ? "Institucion" : targetType === "Child" ? "JuniorBasica" : "CiudadaniaPlena",
+      listedInvestmentFund: targetType === "Business" ? item.listedInvestmentFund || false : undefined,
+      investmentRiskLevel: targetType === "Investment" ? item.investmentRiskLevel || 1 : undefined
+    } : item)
+  });
+}
+
+export function closeBankAccount(state: BankState, accountId: string, primaryAccountId?: string) {
+  const account = state.accounts.find((item) => item.id === accountId);
+  if (!account) throw new Error("Cuenta no encontrada");
+  if (isAccountClosed(account)) return finalizeState(state);
+  if (account.kind !== "CITIZEN" || account.role !== "Citizen") throw new Error("No se pueden cerrar cuentas institucionales");
+  if (primaryAccountId && account.id === primaryAccountId) throw new Error("No puedes cerrar tu cuenta principal");
+  if (Math.round(account.balancePz) !== 0) throw new Error("Deja el saldo a 0 Pz antes de cerrar la cuenta");
+  if (state.digitalCards.some((card) => card.accountId === account.id && !card.frozen)) throw new Error("Congela las tarjetas activas antes de cerrar");
+  if (pendingInvestmentOperations(state, account.id).length) throw new Error("Liquida las inversiones abiertas antes de cerrar");
+  if (state.payrollContracts.some((contract) =>
+    contract.status !== "Ended" &&
+    (contract.companyAccountId === account.id || contract.employeeAccountId === account.id)
+  )) {
+    throw new Error("Finaliza los contratos de nómina activos antes de cerrar");
+  }
+  const now = new Date().toISOString();
+  return finalizeState({
+    ...state,
+    accounts: state.accounts.map((item) => item.id === account.id ? {
+      ...item,
+      closedAt: now,
+      complianceStatus: "Closed",
+      huchaLocked: true,
+      listedInvestmentFund: false
+    } : item),
+    savedContacts: state.savedContacts.filter((contact) => contact.accountId !== account.id),
+    digitalCards: state.digitalCards.map((card) => card.accountId === account.id ? { ...card, frozen: true } : card)
+  });
 }
 
 export function normalizeStateStrict(input: Partial<BankState> | null | undefined): BankState {
@@ -1449,6 +1519,7 @@ export function settleTimedInvestment(state: BankState, operationId: string, use
 }
 
 export function pendingInvestmentOperations(state: BankState, accountId?: string) {
+  const accountIds = new Set(state.accounts.map((account) => account.id));
   const settledBuyIds = settledInvestmentBuyIds(state);
   const settledOperationIds = new Set([
     ...state.investmentOperations.filter((operation) => operation.settledAt).map((operation) => operation.id),
@@ -1457,22 +1528,29 @@ export function pendingInvestmentOperations(state: BankState, accountId?: string
   const transactionBacked = state.transactions
     .filter((transaction) => transaction.kind === "InvestmentBuy")
     .filter((buy) => !settledBuyIds.has(buy.id) && !settledOperationIds.has(`op-${buy.id}`))
-    .map((buy) => {
+    .flatMap((buy) => {
+      const createdAtMs = Date.parse(buy.createdAt);
+      if (!Number.isFinite(createdAtMs) || !accountIds.has(buy.fromAccountId) || !accountIds.has(buy.toAccountId)) return [];
       const company = state.accounts.find((account) => account.id === buy.toAccountId);
-      const assetName = company?.displayName || buy.note.replace("Inversión 60s iniciada: ", "") || "Inversión GDLP";
-      return {
+      const assetName = company?.displayName || (buy.note || "").replace("Inversión 60s iniciada: ", "") || "Inversión GDLP";
+      return [{
         id: `op-${buy.id}`,
         accountId: buy.fromAccountId,
         companyId: buy.toAccountId,
         assetName,
         amountPz: buy.amountPz,
         createdAt: buy.createdAt,
-        readyAt: new Date(Date.parse(buy.createdAt) + 60_000).toISOString(),
+        readyAt: new Date(createdAtMs + 60_000).toISOString(),
         settledAt: null
-      } satisfies InvestmentOperation;
-    })
-    .filter(Boolean) as InvestmentOperation[];
-  return [...state.investmentOperations.filter((operation) => !operation.settledAt && !settledOperationIds.has(operation.id)), ...transactionBacked]
+      } satisfies InvestmentOperation];
+    });
+  return [...state.investmentOperations.filter((operation) =>
+    !operation.settledAt &&
+    !settledOperationIds.has(operation.id) &&
+    accountIds.has(operation.accountId) &&
+    accountIds.has(operation.companyId) &&
+    Number.isFinite(Date.parse(operation.readyAt))
+  ), ...transactionBacked]
     .filter((operation) => !accountId || operation.accountId === accountId)
     .filter((operation, index, all) => all.findIndex((candidate) => candidate.id === operation.id) === index)
     .sort((a, b) => Date.parse(a.readyAt) - Date.parse(b.readyAt));

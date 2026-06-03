@@ -44,7 +44,9 @@ import {
   chargeWeeklyTax,
   chargeMonthlyTaxes,
   taxPeriodDocumentId,
+  changeAccountType,
   claimRbu,
+  closeBankAccount,
   DigitalCard,
   finalizeState,
   formatMoneyPz,
@@ -58,10 +60,12 @@ import {
   ibanGenerate,
   issueCard,
   issueOfficialFine,
+  isAccountClosed,
   investmentRiskLimits,
   investmentRiskProfile,
   LedgerTransaction,
   MAX_VIRTUAL_CARDS_PER_ACCOUNT,
+  mutableAccountTypesFor,
   investmentResultRows,
   normalizeIban,
   normalizeState,
@@ -166,6 +170,16 @@ const PLACETAID_BASE_URL = "https://id.laplaceta.org";
 const PLACETAID_SERVICE_NAME = "BancodeLaPlacetaDev";
 const BANK_STATE_POLL_MS = 5000;
 const MIN_PLACETAID_AGE = 18;
+const notificationDefaults = {
+  desktop: true,
+  inApp: true,
+  money: true,
+  investments: true,
+  service: true
+};
+
+type NotificationSettings = typeof notificationDefaults;
+type NotificationCategory = keyof Omit<NotificationSettings, "desktop" | "inApp">;
 
 type PlacetaIdUserPayload = {
   dip?: string;
@@ -218,13 +232,40 @@ function placetaIdCallbackParams() {
 function bankStateFingerprint(state: BankState) {
   return JSON.stringify({
     updatedAt: state.updatedAt || "",
-    accounts: state.accounts.map((account) => [account.id, account.balancePz, account.iban, account.displayName, account.complianceStatus || ""]),
+    accounts: state.accounts.map((account) => [account.id, account.balancePz, account.iban, account.displayName, account.type, account.complianceStatus || "", account.closedAt || ""]),
     transactions: state.transactions.map((transaction) => [transaction.id, transaction.status, transaction.amountPz, transaction.createdAt]),
     users: state.users.map((user) => [user.dip, user.displayName, user.primaryAccountId]),
     cards: state.digitalCards.map((card) => [card.id, card.accountId, card.frozen, card.released]),
     contacts: state.savedContacts.map((contact) => [contact.ownerPlacetaId, contact.accountId]),
     tickets: (state.supportTickets || []).map((ticket) => [ticket.id, ticket.status, ticket.updatedAt]),
-    links: (state.paymentLinks || []).map((link) => [link.id, link.status, link.usedAt || "", link.totalPz])
+    links: (state.paymentLinks || []).map((link) => [link.id, link.status, link.usedAt || "", link.totalPz]),
+    investments: (state.investmentOperations || []).map((operation) => [
+      operation.id,
+      operation.accountId,
+      operation.companyId,
+      operation.amountPz,
+      operation.readyAt,
+      operation.settledAt || ""
+    ]),
+    payrollContracts: (state.payrollContracts || []).map((contract) => [
+      contract.id,
+      contract.companyAccountId,
+      contract.employeeAccountId,
+      contract.employeeDip,
+      contract.grossSalaryPz,
+      contract.status,
+      contract.updatedAt || contract.createdAt
+    ]),
+    payrollPeriods: (state.payrollPeriods || []).map((period) => [
+      period.id,
+      period.contractId,
+      period.companyAccountId,
+      period.employeeAccountId,
+      period.grossSalaryPz,
+      period.status,
+      period.transactionId || "",
+      period.createdAt
+    ])
   });
 }
 
@@ -233,7 +274,7 @@ function isAdminUser(user: UserProfile | null) {
 }
 
 function accountBelongsTo(user: UserProfile, account: Account | undefined | null) {
-  return Boolean(account && (account.placetaId === user.placetaId || account.id === user.primaryAccountId));
+  return Boolean(account && !isAccountClosed(account) && (account.placetaId === user.placetaId || account.id === user.primaryAccountId));
 }
 
 function accountsForUser(state: BankState, user: UserProfile) {
@@ -385,6 +426,8 @@ function BancoPlacetaClient() {
   const [placetaIdLoading, setPlacetaIdLoading] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | "unsupported">("default");
   const [notificationNow, setNotificationNow] = useState(0);
+  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings>(notificationDefaults);
+  const [notificationSettingsOpen, setNotificationSettingsOpen] = useState(false);
   const stateRef = useRef<BankState>(state);
   const persistInFlightRef = useRef(false);
   const operationInFlightRef = useRef(false);
@@ -467,6 +510,15 @@ function BancoPlacetaClient() {
       return;
     }
     setNotificationPermission(Notification.permission);
+    const storedSettings = localStorage.getItem("placeta-web-notification-settings");
+    if (storedSettings) {
+      try {
+        const parsed = JSON.parse(storedSettings);
+        if (parsed && typeof parsed === "object") setNotificationSettings({ ...notificationDefaults, ...parsed });
+      } catch {
+        setNotificationSettings(notificationDefaults);
+      }
+    }
     const stored = localStorage.getItem("placeta-web-notification-seen");
     if (stored) {
       try {
@@ -480,6 +532,11 @@ function BancoPlacetaClient() {
     const timer = window.setInterval(() => setNotificationNow(Date.now()), 5000);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    localStorage.setItem("placeta-web-notification-settings", JSON.stringify(notificationSettings));
+  }, [notificationSettings]);
 
   const accountsById = useMemo(() => new Map(state.accounts.map((account) => [account.id, account])), [state.accounts]);
   const userAccounts = useMemo(() => {
@@ -507,8 +564,10 @@ function BancoPlacetaClient() {
     localStorage.setItem("placeta-web-notification-seen", JSON.stringify(compact));
   }, []);
 
-  const notifyDesktop = useCallback((title: string, body: string, tag: string, force = false) => {
-    setToast(body);
+  const notifyDesktop = useCallback((title: string, body: string, tag: string, category: NotificationCategory, force = false) => {
+    if (!notificationSettings[category]) return;
+    if (notificationSettings.inApp) setToast(body);
+    if (!notificationSettings.desktop) return;
     if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") return;
     if (!force && document.visibilityState === "visible") return;
     new Notification(title, {
@@ -517,7 +576,7 @@ function BancoPlacetaClient() {
       badge: "/assets/icon2.png",
       tag
     });
-  }, []);
+  }, [notificationSettings]);
 
   const silentRemoteRefresh = useCallback(async () => {
     if (persistInFlightRef.current || operationInFlightRef.current || remoteRefreshInFlightRef.current) return;
@@ -591,7 +650,7 @@ function BancoPlacetaClient() {
       return;
     }
 
-    const pendingAlerts: Array<{ id: string; title: string; body: string }> = [];
+    const pendingAlerts: Array<{ id: string; title: string; body: string; category: NotificationCategory }> = [];
     for (const transaction of transactions) {
       const id = `txn:${transaction.id}`;
       if (notificationSeenRef.current.has(id)) continue;
@@ -601,7 +660,8 @@ function BancoPlacetaClient() {
       pendingAlerts.push({
         id,
         title: incoming ? "Ingreso recibido" : "Movimiento enviado",
-        body: `${transaction.kind} · ${formatPz(transaction.amountPz)} Pz · ${counterparty}`
+        body: `${transaction.kind} · ${formatPz(transaction.amountPz)} Pz · ${counterparty}`,
+        category: "money"
       });
     }
     for (const operation of readyInvestments) {
@@ -610,7 +670,8 @@ function BancoPlacetaClient() {
       pendingAlerts.push({
         id,
         title: "Inversión lista",
-        body: `${operation.assetName} · ${formatPz(operation.amountPz)} Pz pendiente de liquidar`
+        body: `${operation.assetName} · ${formatPz(operation.amountPz)} Pz pendiente de liquidar`,
+        category: "investments"
       });
     }
     for (const ticket of tickets) {
@@ -619,7 +680,8 @@ function BancoPlacetaClient() {
       pendingAlerts.push({
         id,
         title: "Ticket de soporte",
-        body: `${ticket.status} · ${ticket.subject}`
+        body: `${ticket.status} · ${ticket.subject}`,
+        category: "service"
       });
     }
     for (const link of paymentLinks) {
@@ -629,19 +691,21 @@ function BancoPlacetaClient() {
       pendingAlerts.push({
         id,
         title: link.kind === "Payment" ? "Enlace de pago actualizado" : "Enlace de Placetas actualizado",
-        body: `${link.status} · ${formatPz(link.totalPz)} Pz · ${link.concept}`
+        body: `${link.status} · ${formatPz(link.totalPz)} Pz · ${link.concept}`,
+        category: "service"
       });
     }
 
-    if (!pendingAlerts.length) return;
-    for (const alert of pendingAlerts) notificationSeenRef.current.add(alert.id);
+    const enabledAlerts = pendingAlerts.filter((alert) => notificationSettings[alert.category]);
+    if (!enabledAlerts.length) return;
+    for (const alert of enabledAlerts) notificationSeenRef.current.add(alert.id);
     saveSeenNotifications();
-    const latest = pendingAlerts.slice(-3);
-    if (latest.length > 1 && document.visibilityState === "visible") {
+    const latest = enabledAlerts.slice(-3);
+    if (notificationSettings.inApp && latest.length > 1 && document.visibilityState === "visible") {
       setToast(`${latest.length} actualizaciones nuevas`);
     }
-    if (notificationPermission === "granted") latest.forEach((alert) => notifyDesktop(alert.title, alert.body, alert.id));
-  }, [accountsById, activeUser, hydrated, notificationNow, notificationPermission, notifyDesktop, saveSeenNotifications, state, userAccounts]);
+    if (notificationPermission === "granted") latest.forEach((alert) => notifyDesktop(alert.title, alert.body, alert.id, alert.category));
+  }, [accountsById, activeUser, hydrated, notificationNow, notificationPermission, notificationSettings, notifyDesktop, saveSeenNotifications, state, userAccounts]);
 
   async function requestDesktopNotifications() {
     if (typeof window === "undefined" || !("Notification" in window)) {
@@ -652,10 +716,14 @@ function BancoPlacetaClient() {
     const permission = await Notification.requestPermission();
     setNotificationPermission(permission);
     if (permission === "granted") {
-      notifyDesktop("Banco de La Placeta", "Notificaciones de PC activadas", "placeta-notifications-enabled", true);
+      notifyDesktop("Banco de La Placeta", "Notificaciones de PC activadas", "placeta-notifications-enabled", "service", true);
     } else {
       setToast("Permiso de notificaciones no activado");
     }
+  }
+
+  function toggleNotificationSetting(key: keyof NotificationSettings) {
+    setNotificationSettings((current) => ({ ...current, [key]: !current[key] }));
   }
 
   const fetchFreshState = useCallback(async (applyToUi = true) => {
@@ -894,9 +962,9 @@ function BancoPlacetaClient() {
           <StatusPill sync={sync} />
           <button
             className={`icon-button ${notificationPermission === "granted" ? "notify-on" : ""}`}
-            aria-label={notificationPermission === "granted" ? "Notificaciones de PC activadas" : "Activar notificaciones de PC"}
-            title={notificationPermission === "granted" ? "Notificaciones de PC activadas" : "Activar notificaciones de PC"}
-            onClick={requestDesktopNotifications}
+            aria-label="Ajustes de notificaciones"
+            title="Ajustes de notificaciones"
+            onClick={() => setNotificationSettingsOpen(true)}
           >
             <Bell size={19} />
           </button>
@@ -962,6 +1030,8 @@ function BancoPlacetaClient() {
             requireOwnedCard(fresh, activeUser, cardId);
             return toggleCard(fresh, cardId);
           }, "Estado de tarjeta actualizado")}
+          onChangeAccountType={(type) => runOperation((fresh) => changeAccountType(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id, type), `Cuenta convertida a ${accountTypeLabel(type)}`)}
+          onCloseAccount={() => runOperation((fresh) => closeBankAccount(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id, activeUser.primaryAccountId), "Cuenta cerrada")}
           onCreateAccount={(type, displayName, parentAccountId, cardTier) => void handleCreateAccount(type, displayName, parentAccountId, cardTier)}
         />
       )}
@@ -1039,6 +1109,31 @@ function BancoPlacetaClient() {
           {toast}
         </button>
       )}
+      <Modal title="Notificaciones" open={notificationSettingsOpen} onClose={() => setNotificationSettingsOpen(false)}>
+        <SectionTitle icon={Bell} title="Ajustes de notificaciones" />
+        <div className="payroll-summary">
+          <div><span>Permiso navegador</span><strong>{notificationPermission === "granted" ? "Concedido" : notificationPermission === "unsupported" ? "No soportado" : "Pendiente"}</strong></div>
+          <div><span>Estado visual</span><strong>{notificationSettings.inApp ? "Activo" : "Silenciado"}</strong></div>
+        </div>
+        <div className="product-type-grid" aria-label="Canales de notificación">
+          {[
+            ["inApp", "Avisos en pantalla"],
+            ["desktop", "Notificaciones PC"],
+            ["money", "Movimientos"],
+            ["investments", "Inversiones"],
+            ["service", "Soporte y enlaces"]
+          ].map(([key, label]) => (
+            <button key={key} type="button" className={notificationSettings[key as keyof NotificationSettings] ? "active" : ""} onClick={() => toggleNotificationSetting(key as keyof NotificationSettings)}>
+              <strong>{label}</strong>
+              <span>{notificationSettings[key as keyof NotificationSettings] ? "Activo" : "Pausado"}</span>
+            </button>
+          ))}
+        </div>
+        <div className="confirm-actions">
+          <button className="secondary-button" onClick={() => setNotificationSettings(notificationDefaults)}>Restablecer</button>
+          <button className="primary-button" disabled={notificationPermission === "granted" || notificationPermission === "unsupported"} onClick={requestDesktopNotifications}>Permitir en PC</button>
+        </div>
+      </Modal>
       {busyMessage && (
         <div className="action-progress" role="status" aria-live="polite">
           <span />
@@ -1343,7 +1438,7 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
   );
 }
 
-function HomeScreen({ account, accounts, transactions, cards, config, onTransfer, onRbu, onIssueCard, onToggleCard, onCreateAccount }: {
+function HomeScreen({ account, accounts, transactions, cards, config, onTransfer, onRbu, onIssueCard, onToggleCard, onChangeAccountType, onCloseAccount, onCreateAccount }: {
   account: Account;
   accounts: Account[];
   transactions: LedgerTransaction[];
@@ -1353,6 +1448,8 @@ function HomeScreen({ account, accounts, transactions, cards, config, onTransfer
   onRbu: () => void;
   onIssueCard: () => void;
   onToggleCard: (cardId: string) => void;
+  onChangeAccountType: (type: AccountType) => void;
+  onCloseAccount: () => void;
   onCreateAccount: (type: AccountType, displayName: string, parentAccountId?: string | null, cardTier?: DigitalCard["tier"]) => void;
 }) {
   const [showBalance, setShowBalance] = useState(true);
@@ -1371,6 +1468,8 @@ function HomeScreen({ account, accounts, transactions, cards, config, onTransfer
   const balanceUsage = typeBalanceLimit > 0 ? Math.min(100, Math.round((Math.max(0, account.balancePz) / typeBalanceLimit) * 100)) : 0;
   const incomingCount = history.filter((transaction) => transaction.toAccountId === account.id).length;
   const outgoingCount = history.filter((transaction) => transaction.fromAccountId === account.id).length;
+  const mutableTypes = mutableAccountTypesFor(account).filter((type) => type !== account.type);
+  const canCloseAccount = account.balancePz === 0 && cards.every((card) => card.frozen) && !account.closedAt;
 
   return (
     <section className="screen-grid">
@@ -1493,11 +1592,45 @@ function HomeScreen({ account, accounts, transactions, cards, config, onTransfer
         <button className="primary-button" onClick={() => setActivePopup("cards")}>Entendido</button>
       </Modal>
 
-      <Modal title="Crear cuenta" open={activePopup === "account"} onClose={() => setActivePopup(null)}>
+      <Modal title="Cuenta" open={activePopup === "account"} onClose={() => setActivePopup(null)}>
+        <div className="account-create-panel">
+          <SectionTitle icon={Landmark} title="Gestionar cuenta actual" />
+          <div className="payroll-summary">
+            <div><span>Cuenta</span><strong>{account.displayName}</strong></div>
+            <div><span>Tipo actual</span><strong>{accountTypeLabel(account.type)}</strong></div>
+            <div><span>Saldo</span><strong>{formatPz(account.balancePz)} Pz</strong></div>
+            <div><span>Estado</span><strong>{account.closedAt ? "Cerrada" : account.complianceStatus || "Clear"}</strong></div>
+          </div>
+          {mutableTypes.length ? (
+            <>
+              <div className="modal-subtitle">Cambiar tipo</div>
+              <div className="product-type-grid" aria-label="Cambiar tipo de cuenta">
+                {mutableTypes.map((type) => (
+                  <button key={type} type="button" onClick={() => {
+                    onChangeAccountType(type);
+                    setActivePopup(null);
+                  }}>
+                    <strong>{accountTypeLabel(type)}</strong>
+                    <span>Convertir</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : <p className="muted">Esta cuenta no permite cambio de tipo desde autoservicio.</p>}
+          <div className="modal-subtitle">Cerrar cuenta</div>
+          <p className="muted">Para cerrar una cuenta debe estar a 0 Pz, sin tarjetas activas y sin operaciones laborales o de inversión abiertas.</p>
+          <button className="secondary-button" disabled={!canCloseAccount} onClick={() => {
+            onCloseAccount();
+            setActivePopup(null);
+          }}>Cerrar cuenta</button>
+        </div>
+        <div className="account-create-panel">
+          <SectionTitle icon={Sparkles} title="Dar de alta producto" />
         <AccountCreationForm parentAccount={account} config={config} onCreate={(type, displayName, parentAccountId, cardTier) => {
           onCreateAccount(type, displayName, parentAccountId, cardTier);
           setActivePopup(null);
         }} />
+        </div>
       </Modal>
     </section>
   );
@@ -2046,7 +2179,7 @@ function payrollTenure(startDate: string) {
 }
 
 function HubScreen({ state, user, onPersist, onCreateAccount }: { state: BankState; user: UserProfile; onPersist: (state: BankState, message: string) => void; onCreateAccount: (type: AccountType, displayName: string, parentAccountId?: string | null, cardTier?: DigitalCard["tier"]) => void }) {
-  const userAccounts = state.accounts.filter((account) => account.placetaId === user.placetaId || account.id === user.primaryAccountId);
+  const userAccounts = state.accounts.filter((account) => !isAccountClosed(account) && (account.placetaId === user.placetaId || account.id === user.primaryAccountId));
   const businessAccounts = userAccounts.filter((account) => account.type === "Business");
   const totalBalance = userAccounts.reduce((sum, account) => sum + account.balancePz, 0);
   const cards = state.digitalCards.filter((card) => userAccounts.some((account) => account.id === card.accountId));

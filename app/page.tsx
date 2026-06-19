@@ -440,6 +440,8 @@ function BancoPlacetaClient() {
 
   const bankStateHeaders = useCallback((json = false) => {
     const headers: Record<string, string> = json ? { "content-type": "application/json" } : {};
+    const token = typeof window !== "undefined" ? sessionStorage.getItem("placetaid-token") : null;
+    if (token) headers["authorization"] = `Bearer ${token}`;
     return headers;
   }, []);
 
@@ -469,6 +471,13 @@ function BancoPlacetaClient() {
     fetch(`/api/bank-state?ts=${Date.now()}`, { headers: bankStateHeaders(), cache: "no-store" })
       .then(async (response) => {
         if (!response.ok) throw new Error("Servicio no disponible");
+
+        const newToken = response.headers.get("X-New-Token");
+        if (newToken && typeof window !== "undefined") {
+          sessionStorage.setItem("placetaid-token", newToken);
+          localStorage.setItem("placetaidToken", newToken);
+        }
+
         const remote = normalizeState(await response.json());
         lastRemoteFingerprintRef.current = bankStateFingerprint(remote);
         setState(remote);
@@ -584,6 +593,13 @@ function BancoPlacetaClient() {
     try {
       const response = await fetch(`/api/bank-state?ts=${Date.now()}`, { headers: bankStateHeaders(), cache: "no-store" });
       if (!response.ok) throw new Error("Servicio no disponible");
+
+      const newToken = response.headers.get("X-New-Token");
+      if (newToken && typeof window !== "undefined") {
+        sessionStorage.setItem("placetaid-token", newToken);
+        localStorage.setItem("placetaidToken", newToken);
+      }
+
       const remote = normalizeState(await response.json());
       const current = stateRef.current;
       const remoteTime = Date.parse(remote.updatedAt || "");

@@ -135,7 +135,14 @@ async function callBankApi(method: "GET" | "PUT", body = "", request?: Request) 
         const text = await response.text();
         const payload = parseRemoteJson(text, response.status);
         if (!response.ok) throw new Error(payload?.error ? `remote_${response.status}:${payload.error}` : `remote_${response.status}`);
-        return NextResponse.json(normalizeState(payload), { status: response.status, headers: noStoreHeaders });
+
+        const res = NextResponse.json(normalizeState(payload), { status: response.status, headers: noStoreHeaders });
+        const newToken = response.headers.get("X-New-Token");
+        if (newToken) {
+          res.headers.set("X-New-Token", newToken);
+          res.headers.set("Access-Control-Expose-Headers", "X-New-Token");
+        }
+        return res;
       } catch (error) {
         lastError = error;
       }

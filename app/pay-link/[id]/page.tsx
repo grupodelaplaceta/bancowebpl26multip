@@ -34,27 +34,11 @@ export default function PaymentLinkPage({ params }: { params: { id: string } }) 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
-  const [fallback, setFallback] = useState<PaymentLink | null>(null);
-
   const sourceKind = useMemo(() => detectSource(paymentCredential), [paymentCredential]);
   const requiresLargeVerification = Boolean(link && link.totalPz > 500 && sourceKind !== "card");
   const canPay = Boolean(link?.status === "Pending" && paymentCredential.trim() && (!requiresLargeVerification || verificationAccepted) && (sourceKind !== "card" || cardPin.length >= 4));
 
   useEffect(() => {
-    const search = new URLSearchParams(window.location.search);
-    const fallbackLink: PaymentLink | null = search.get("amount") ? {
-      id: params.id,
-      kind: search.get("kind") === "send" ? "Send" : "Payment",
-      creatorAccountId: search.get("account") || "",
-      targetIban: search.get("iban") || null,
-      amountPz: Number(search.get("amount") || 0),
-      ivaPz: Number(search.get("iva") || 0),
-      totalPz: Number(search.get("total") || search.get("amount") || 0),
-      concept: search.get("concept") || "Enlace generado desde app",
-      status: "Pending",
-      createdAt: new Date().toISOString()
-    } : null;
-    if (fallbackLink) setFallback(fallbackLink);
     fetch(`/api/payment-links/${params.id}`, { cache: "no-store" })
       .then(async (response) => {
         const payload = await response.json();
@@ -63,13 +47,8 @@ export default function PaymentLinkPage({ params }: { params: { id: string } }) 
         setStatus(payload.link.status === "Pending" ? "Listo para pagar" : "Este enlace ya fue usado");
       })
       .catch((caught) => {
-        if (fallbackLink) {
-          setLink(fallbackLink);
-          setStatus("Listo para pagar");
-        } else {
-          setError(caught instanceof Error ? caught.message : "Enlace no disponible");
-          setStatus("No se pudo cargar el enlace");
-        }
+        setError(caught instanceof Error ? caught.message : "Enlace no disponible");
+        setStatus("No se pudo cargar el enlace");
       })
       .finally(() => setLoading(false));
   }, [params.id]);
@@ -82,7 +61,7 @@ export default function PaymentLinkPage({ params }: { params: { id: string } }) 
     const response = await fetch(`/api/payment-links/${params.id}/capture`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ paymentCredential, cardPin, verificationAccepted, fallback })
+      body: JSON.stringify({ paymentCredential, cardPin, verificationAccepted })
     });
     const payload = await response.json();
     setPaying(false);

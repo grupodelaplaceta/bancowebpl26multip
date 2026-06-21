@@ -11,7 +11,7 @@ export const OFFICIAL_IBAN_PREFIX = "GDLP";
 export const MAX_VIRTUAL_CARDS_PER_ACCOUNT = 3;
 
 export type AccountKind = "TGLP" | "AGLDP" | "CITIZEN";
-export type AccountType = "Current" | "Savings" | "Child" | "Business" | "Investment";
+export type AccountType = "Current" | "Savings" | "Child" | "Business" | "Investment" | "State";
 export type Role = "Citizen" | "Tributos" | "Administracion";
 export type TransactionStatus = "Settled" | "Reversed" | "Pending" | "Denied";
 export type TransactionKind =
@@ -67,12 +67,11 @@ export type UserProfile = {
   dip: string;
   displayName: string;
   placetaId: string;
-  pinHash: string;
-  primaryAccountId: string;
+  pinHash?: string | null;
+  primaryAccountId?: string | null;
   birthDate?: string | null;
   verifiedAge?: number | null;
-  consentimiento_rgpd?: boolean;
-  consentimiento_rgpd_at?: string | null;
+  banned: boolean;
   createdAt: string;
 };
 
@@ -352,6 +351,63 @@ export type TreasuryConfig = {
   dailyInvestmentLimit: number;
   minSupportedVersionCode: number;
   lastSavingsInterestDate?: string | null;
+  configRevision: number;
+  maintenanceMode: boolean;
+  maintenanceMessage: string;
+  availableModules: string[];
+};
+
+export type UserModulePreferences = {
+  placetaId: string;
+  hiddenModules: string[];
+};
+
+export type ProductContractTemplate = {
+  id: string;
+  productType: string;
+  version: number;
+  clausesHash: string;
+  effectiveFrom: string;
+};
+
+export type SignedProductContract = {
+  id: string;
+  accountId: string;
+  placetaId: string;
+  templateId: string;
+  templateVersion: number;
+  signedAt: string;
+  documentId: string;
+  supersededBy?: string | null;
+};
+
+export type AccountHolder = {
+  id: string;
+  accountId: string;
+  placetaId: string;
+  role: string; // Primary, CoOwner, TemporaryGuardian
+  validUntil?: string | null;
+  linkedAt: string;
+};
+
+export type GuardianRenewalDecision = {
+  id: string;
+  childAccountId: string;
+  expiresAt: string;
+  status: string; // Pending, Approved, Rejected/Cancelled
+};
+
+export type ExecutionCode = {
+  id: string;
+  code: string;
+  issuedByAccountId: string;
+  targetAccountId: string;
+  amountPz: number;
+  paymentMode: string; // Immediate, OnTaxCollection
+  expiresAt: string;
+  usedAt?: string | null;
+  transactionId?: string | null;
+  issuedByAdminRef?: string | null;
 };
 
 export type BankState = {
@@ -375,6 +431,12 @@ export type BankState = {
   periodicoNews: GdlpSharedNewsItem[];
   donationRewards: DonationReward[];
   androidBetaSignups: AndroidBetaSignup[];
+  userModulePreferences: UserModulePreferences[];
+  productContractTemplates: ProductContractTemplate[];
+  signedProductContracts: SignedProductContract[];
+  accountHolders: AccountHolder[];
+  guardianRenewalDecisions: GuardianRenewalDecision[];
+  executionCodes: ExecutionCode[];
   schemaSeedVersion?: number;
   updatedAt?: string | null;
 };
@@ -425,7 +487,11 @@ export const treasuryDefaults: TreasuryConfig = {
   maxInvestmentAmountPz: 1200,
   dailyInvestmentLimit: 15,
   minSupportedVersionCode: 4,
-  lastSavingsInterestDate: null
+  lastSavingsInterestDate: null,
+  configRevision: 1,
+  maintenanceMode: false,
+  maintenanceMessage: "El sistema está en mantenimiento temporal.",
+  availableModules: []
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -719,6 +785,12 @@ export function emptyBankState(): BankState {
     periodicoNews: [],
     donationRewards: [],
     androidBetaSignups: [],
+    userModulePreferences: [],
+    productContractTemplates: [],
+    signedProductContracts: [],
+    accountHolders: [],
+    guardianRenewalDecisions: [],
+    executionCodes: [],
     promoSlides: [],
     promoCardSerials: [],
     treasuryConfig: treasuryDefaults,
@@ -782,6 +854,12 @@ export function normalizeState(input: Partial<BankState> | null | undefined): Ba
     periodicoNews: dedupeBy(input.periodicoNews || [], "slug").sort((a, b) => Date.parse(b.updatedAt || b.date) - Date.parse(a.updatedAt || a.date)),
     donationRewards: dedupeBy(input.donationRewards || [], "id").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
     androidBetaSignups: dedupeBy(input.androidBetaSignups || [], "id").sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)),
+    userModulePreferences: dedupeBy(input.userModulePreferences || [], "placetaId"),
+    productContractTemplates: dedupeBy(input.productContractTemplates || [], "id").sort((a, b) => b.version - a.version),
+    signedProductContracts: dedupeBy(input.signedProductContracts || [], "id").sort((a, b) => Date.parse(b.signedAt) - Date.parse(a.signedAt)),
+    accountHolders: dedupeBy(input.accountHolders || [], "id").sort((a, b) => Date.parse(b.linkedAt) - Date.parse(a.linkedAt)),
+    guardianRenewalDecisions: dedupeBy(input.guardianRenewalDecisions || [], "id").sort((a, b) => Date.parse(b.expiresAt) - Date.parse(a.expiresAt)),
+    executionCodes: dedupeBy(input.executionCodes || [], "id").sort((a, b) => Date.parse(b.expiresAt) - Date.parse(a.expiresAt)),
     promoCardSerials: dedupeBy(input.promoCardSerials || [], "serial").sort((a, b) => Date.parse(b.updatedAt || b.createdAt) - Date.parse(a.updatedAt || a.createdAt)),
     treasuryConfig: normalizeTreasuryConfig(input.treasuryConfig || {}),
     promoSlides: dedupeBy(input.promoSlides || [], "id"),

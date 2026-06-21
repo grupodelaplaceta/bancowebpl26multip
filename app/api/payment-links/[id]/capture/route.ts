@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { capturePaymentLink, isOfficialIban, normalizeIban, normalizeState, PaymentLink } from "../../../../../lib/bank";
-import { corsHeaders, readRemoteState, writeRemoteState } from "../../../developer-payments/crypto";
+import crypto from "node:crypto";
+import { capturePaymentLink, isOfficialIban, normalizeIban, normalizeState } from "../../../../../lib/bank";
+import { corsHeaders, readRemoteState, writeRemoteState, appSecret } from "../../../developer-payments/crypto";
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: corsHeaders });
@@ -14,14 +15,32 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const verificationAccepted = Boolean(payload.verificationAccepted);
     if (!paymentCredential) return NextResponse.json({ error: "Introduce un IBAN, PlacetaID, cuenta o tarjeta GDLP" }, { status: 400, headers: corsHeaders });
 
-    const remote = await readRemoteState();
-    const fallback = payload.fallback as PaymentLink | undefined;
-    const base = fallback && !(remote.paymentLinks || []).some((link) => link.id === params.id)
-      ? normalizeState({ ...remote, paymentLinks: [fallback, ...(remote.paymentLinks || [])] })
-      : remote;
-
+    const base = await readRemoteState();
     const link = (base.paymentLinks || []).find((item) => item.id === params.id);
     if (!link) return NextResponse.json({ error: "Enlace no encontrado o caducado" }, { status: 404, headers: corsHeaders });
+
+    // Validate Signature
+    const secret = appSecret();
+    const sigPayload = [link.id, link.kind, link.creatorAccountId, link.amountPz, link.ivaPz, link.totalPz].join(":");
+    const expectedSig = crypto.createHmac("sha256", secret).update(sigPayload, "utf8").digest("hex");
+    if (link.signature && link.signature !== expectedSig) {
+      return NextResponse.json({ error: "Firma de enlace inválida o manipulada" }, { status: 400, headers: corsHeaders });
+    }
+
+    // Verify Expiration Date (24 hours)
+    const expiresAt = Date.parse(link.createdAt) + 24 * 60 * 60 * 1000;
+    if (Date.now() > expiresAt) {
+      return NextResponse.json({ error: "Este enlace de pago ha caducado" }, { status: 400, headers: corsHeaders });
+    }
+
+    // Recalculate and verify Business IVA
+    const creatorAccount = base.accounts.find((a) => a.id === link.creatorAccountId);
+    const expectedIva = (link.kind === "Payment" && creatorAccount?.type === "Business")
+      ? Math.ceil(link.amountPz * 0.12)
+      : 0;
+    if (link.ivaPz !== expectedIva) {
+      return NextResponse.json({ error: "El IVA calculado no coincide con el tipo de cuenta del negocio" }, { status: 400, headers: corsHeaders });
+    }
 
     const cleanCredential = paymentCredential.replace(/\s+/g, "");
     const normalizedCredential = cleanCredential.toUpperCase();

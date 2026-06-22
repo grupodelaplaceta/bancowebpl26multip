@@ -71,7 +71,9 @@ export type UserProfile = {
   primaryAccountId?: string | null;
   birthDate?: string | null;
   verifiedAge?: number | null;
-  banned: boolean;
+  banned?: boolean;
+  consentimiento_rgpd?: boolean;
+  consentimiento_rgpd_at?: string;
   createdAt: string;
 };
 
@@ -212,6 +214,7 @@ export type PaymentLink = {
   totalPz: number;
   concept: string;
   status: "Pending" | "Paid" | "Cancelled";
+  signature?: string | null;
   createdAt: string;
   usedAt?: string | null;
   usedByAccountId?: string | null;
@@ -570,7 +573,8 @@ export function accountTypeLabel(type: AccountType) {
     Savings: "Hucha",
     Child: "Infantil",
     Business: "Empresa",
-    Investment: "Inversión"
+    Investment: "Inversión",
+    State: "Estatal"
   }[type];
 }
 
@@ -658,7 +662,8 @@ export function accountTypeAccountLimit(config: TreasuryConfig, type: AccountTyp
     Savings: config.maxSavingsAccounts,
     Child: config.maxChildAccounts,
     Business: config.maxBusinessAccounts,
-    Investment: config.maxInvestmentAccounts
+    Investment: config.maxInvestmentAccounts,
+    State: 999
   }[type];
 }
 
@@ -668,7 +673,8 @@ export function accountTypeBalanceLimit(config: TreasuryConfig, type: AccountTyp
     Savings: config.maxSavingsBalancePz,
     Child: config.maxChildBalancePz,
     Business: config.maxBusinessBalancePz,
-    Investment: config.maxInvestmentBalancePz
+    Investment: config.maxInvestmentBalancePz,
+    State: 999999999999
   }[type];
 }
 
@@ -875,7 +881,8 @@ export function changeAccountType(state: BankState, accountId: string, targetTyp
     throw new Error("Este cambio de tipo no está permitido para la cuenta seleccionada");
   }
   const config = normalizeTreasuryConfig(state.treasuryConfig);
-  if (account.balancePz > accountTypeBalanceLimit(config, targetType)) {
+  const balanceLimit = accountTypeBalanceLimit(config, targetType);
+  if (balanceLimit !== undefined && account.balancePz > balanceLimit) {
     throw new Error(`El saldo supera el límite de ${accountTypeLabel(targetType)}`);
   }
   enforceAccountTypeCountLimit(state.accounts.filter((item) => item.id !== account.id), account.placetaId || "", targetType, config);

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, CheckCircle2, CreditCard, Landmark, Loader2, LockKeyhole, ShieldCheck, Smartphone } from "lucide-react";
+import { AlertTriangle, CheckCircle2, CreditCard, Landmark, Loader2, LockKeyhole, ShieldCheck } from "lucide-react";
 import { formatPz, isOfficialIban, PaymentLink } from "../../../lib/bank";
 
 type SourceKind = "iban" | "card" | "unknown";
@@ -29,14 +29,12 @@ export default function PaymentLinkPage({ params }: { params: { id: string } }) 
   const [link, setLink] = useState<PaymentLink | null>(null);
   const [paymentCredential, setPaymentCredential] = useState("");
   const [cardPin, setCardPin] = useState("");
-  const [verificationAccepted, setVerificationAccepted] = useState(false);
   const [status, setStatus] = useState("Cargando enlace...");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);
   const sourceKind = useMemo(() => detectSource(paymentCredential), [paymentCredential]);
-  const requiresLargeVerification = Boolean(link && link.totalPz > 500 && sourceKind !== "card");
-  const canPay = Boolean(link?.status === "Pending" && paymentCredential.trim() && (!requiresLargeVerification || verificationAccepted) && (sourceKind !== "card" || cardPin.length >= 4));
+  const canPay = Boolean(link?.status === "Pending" && paymentCredential.trim() && (sourceKind !== "card" || cardPin.length >= 4));
 
   useEffect(() => {
     fetch(`/api/payment-links/${params.id}`, { cache: "no-store" })
@@ -61,13 +59,12 @@ export default function PaymentLinkPage({ params }: { params: { id: string } }) 
     const response = await fetch(`/api/payment-links/${params.id}/capture`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ paymentCredential, cardPin, verificationAccepted })
+      body: JSON.stringify({ paymentCredential, cardPin })
     });
     const payload = await response.json();
     setPaying(false);
     if (!response.ok) {
       setError(payload.error || "No se pudo pagar");
-      if (payload.requiresVerification) setVerificationAccepted(false);
       setStatus("Revisa los datos del pago");
       return;
     }
@@ -114,7 +111,6 @@ export default function PaymentLinkPage({ params }: { params: { id: string } }) 
                   onChange={(event) => {
                     setPaymentCredential(event.target.value);
                     setCardPin("");
-                    setVerificationAccepted(false);
                     setError("");
                   }}
                   placeholder="GDLP app/web o tarjeta"
@@ -130,13 +126,6 @@ export default function PaymentLinkPage({ params }: { params: { id: string } }) 
                   <LockKeyhole size={19} />
                   <input value={cardPin} onChange={(event) => setCardPin(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="PIN" type="password" inputMode="numeric" />
                 </div>
-              </label>
-            )}
-
-            {requiresLargeVerification && (
-              <label className="pay-link-verification pay-link-slide-in">
-                <input type="checkbox" checked={verificationAccepted} onChange={(event) => setVerificationAccepted(event.target.checked)} />
-                <span><Smartphone size={18} /> He verificado este pago en web o app antes de confirmarlo.</span>
               </label>
             )}
 

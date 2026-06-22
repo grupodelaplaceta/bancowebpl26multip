@@ -48,7 +48,8 @@ function accountTypeLabel(type: Account["type"]) {
     Savings: "Hucha",
     Child: "Infantil",
     Business: "Empresa",
-    Investment: "Inversion"
+    Investment: "Inversion",
+    State: "Estatal"
   }[type];
 }
 

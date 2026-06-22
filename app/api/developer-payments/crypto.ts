@@ -3,7 +3,7 @@ import { BankState, captureDeveloperPayment, createDeveloperPayment, DeveloperPa
 import { requiredProductionSecret } from "../../../lib/api-security";
 import { BANK_API_URL } from "../../../lib/site";
 
-const baseUrl = () => (process.env.PLACETA_API_BASE_URL || BANK_API_URL).replace(/\/$/, "");
+export const baseUrl = () => (process.env.PLACETA_API_BASE_URL || BANK_API_URL).replace(/\/$/, "");
 const appId = () => process.env.PLACETA_API_APP_ID || process.env.PLACETA_APP_ID || "org.laplaceta.banco";
 const splitSecrets = (...values: Array<string | undefined>) =>
   values
@@ -27,7 +27,7 @@ const appSecrets = () => {
   if (!secrets.length) requiredProductionSecret("PLACETA_API_SECRET", process.env.PLACETA_API_SECRET, process.env.PLACETA_APP_SECRET, process.env.BANK_API_SECRET);
   return Array.from(new Set(secrets));
 };
-const appSecret = () => appSecrets()[0];
+export const appSecret = () => appSecrets()[0];
 const developerSecret = () => process.env.PLACETA_DEVELOPER_SECRET || appSecret();
 const developerApiKey = () => process.env.PLACETA_DEVELOPER_API_KEY || "";
 
@@ -42,7 +42,7 @@ function sha256Hex(value: string) {
   return crypto.createHash("sha256").update(value || "", "utf8").digest("hex");
 }
 
-function signedHeaders(method: string, path: string, body: string, secret = appSecret()) {
+export function signedHeaders(method: string, path: string, body: string, secret = appSecret()) {
   const timestamp = String(Date.now());
   const nonce = crypto.randomUUID();
   const payload = [method, path, timestamp, nonce, sha256Hex(body)].join("\n");

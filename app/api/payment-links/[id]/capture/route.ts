@@ -12,7 +12,6 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const payload = await request.json();
     const paymentCredential = String(payload.paymentCredential || payload.payerAccountId || "").trim();
     const cardPin = String(payload.cardPin || "").trim();
-    const verificationAccepted = Boolean(payload.verificationAccepted);
     if (!paymentCredential) return NextResponse.json({ error: "Introduce un IBAN, PlacetaID, cuenta o tarjeta GDLP" }, { status: 400, headers: corsHeaders });
 
     const base = await readRemoteState();
@@ -21,9 +20,12 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     // Validate Signature
     const secret = appSecret();
-    const sigPayload = [link.id, link.kind, link.creatorAccountId, link.amountPz, link.ivaPz, link.totalPz].join(":");
-    const expectedSig = crypto.createHmac("sha256", secret).update(sigPayload, "utf8").digest("hex");
-    if (link.signature && link.signature !== expectedSig) {
+    const signaturePayloads = [
+      [link.id, link.kind, link.creatorAccountId, link.amountPz, link.ivaPz, link.totalPz].join(":"),
+      [link.id, link.kind, link.creatorAccountId, link.targetIban || "", link.amountPz, link.ivaPz, link.totalPz].join(":")
+    ];
+    const validSignatures = signaturePayloads.map((sigPayload) => crypto.createHmac("sha256", secret).update(sigPayload, "utf8").digest("hex"));
+    if (link.signature && !validSignatures.includes(link.signature)) {
       return NextResponse.json({ error: "Firma de enlace inválida o manipulada" }, { status: 400, headers: corsHeaders });
     }
 
@@ -77,12 +79,6 @@ export async function POST(request: Request, { params }: { params: { id: string 
           ? "El IBAN no tiene formato oficial GDLP. Revisa guiones y dígitos de control."
           : "No encontramos esa cuenta. Puedes usar IBAN GDLP, PlacetaID o una tarjeta activa.";
         return NextResponse.json({ error: message }, { status: 404, headers: corsHeaders });
-      }
-      if (link.totalPz > 500 && !verificationAccepted) {
-        return NextResponse.json({
-          error: "Este pago supera 500 Pz. Verifícalo desde la web o desde la app antes de confirmarlo.",
-          requiresVerification: true
-        }, { status: 428, headers: corsHeaders });
       }
       payerAccountId = account.id;
     }

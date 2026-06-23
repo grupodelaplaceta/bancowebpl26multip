@@ -1489,55 +1489,84 @@ function HomeScreen({ account, accounts, transactions, cards, config, onTransfer
 
   return (
     <section className="screen-grid">
-      <article className="hero-card">
-        <div className="hero-topline">
-          <span>{account.displayName}</span>
+      {/* Hero card — redesigned premium */}
+      <article className="home-hero-card">
+        <div className="home-hero-top">
+          <div className="home-hero-info">
+            <span className="home-hero-label">{account.displayName}</span>
+            <h2 className="home-hero-balance">
+              {showBalance ? formatMoneyPz(account.balancePz) : "••••••"}
+              <small>Pz</small>
+            </h2>
+          </div>
           <button className="icon-button light" onClick={() => setShowBalance(!showBalance)} aria-label="Mostrar u ocultar saldo">
             {showBalance ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         </div>
-        <strong>{showBalance ? `${formatMoneyPz(account.balancePz)} Pz` : "••••••"}</strong>
-        <p>{account.iban}</p>
-      </article>
-
-      <article className="panel account-insight-panel">
-        <SectionTitle icon={ShieldCheck} title="Estado de cuenta" />
-        <div className="account-health-grid">
-          <div>
-            <span>Tipo</span>
-            <strong>{accountTypeLabel(account.type)}</strong>
-            <small>{account.complianceStatus || "Clear"}</small>
-          </div>
-          <div>
-            <span>Límite saldo</span>
-            <strong>{formatPz(typeBalanceLimit)} Pz</strong>
-            <small>{balanceUsage}% utilizado</small>
-          </div>
-          <div>
-            <span>Movimientos</span>
-            <strong>{history.length}</strong>
-            <small>{incomingCount} entradas · {outgoingCount} salidas</small>
-          </div>
-          <div>
-            <span>Tarjetas</span>
-            <strong>{virtualCardCount}/{MAX_VIRTUAL_CARDS_PER_ACCOUNT}</strong>
-            <small>{cards.filter((card) => !card.frozen).length} activas</small>
-          </div>
-        </div>
-        <div className="account-limit-bar" aria-label={`Uso de saldo ${balanceUsage}%`}>
-          <span style={{ width: `${balanceUsage}%` }} />
+        <div className="home-hero-meta">
+          <span><Banknote size={14} /> {account.iban}</span>
+          <span className="home-hero-type">{accountTypeLabel(account.type)}</span>
         </div>
       </article>
 
-      <div className="quick-grid">
-        <button onClick={() => setActivePopup("transfer")}><CircleDollarSign size={20} /> Enviar</button>
-        <button onClick={onRbu}><Sparkles size={20} /> RBU</button>
-        <button onClick={() => setActivePopup("cards")}><CreditCard size={20} /> Tarjetas</button>
-        <button onClick={() => setActivePopup("account")}><Landmark size={20} /> Cuenta</button>
-        <button onClick={() => generateBankPdf(account, { id: `account-statement-${account.id}`, title: `Extracto · ${account.displayName}`, kind: "MonthlyStatement" }, transactionsFor(account.id, transactions))}><Download size={20} /> PDF</button>
+      {/* Quick actions — premium tiles */}
+      <div className="home-quick-actions">
+        <button onClick={() => setActivePopup("transfer")}>
+          <span className="home-qaction-icon"><CircleDollarSign size={22} /></span>
+          <span className="home-qaction-label">Enviar</span>
+          <span className="home-qaction-desc">Transferencia GDLP</span>
+        </button>
+        <button onClick={onRbu}>
+          <span className="home-qaction-icon"><Sparkles size={22} /></span>
+          <span className="home-qaction-label">RBU</span>
+          <span className="home-qaction-desc">Renta Básica</span>
+        </button>
+        <button onClick={() => setActivePopup("cards")}>
+          <span className="home-qaction-icon"><CreditCard size={22} /></span>
+          <span className="home-qaction-label">Tarjetas</span>
+          <span className="home-qaction-desc">{virtualCardCount ? `${virtualCardCount} virtuales` : "Emitir nueva"}</span>
+        </button>
+        <button onClick={() => setActivePopup("account")}>
+          <span className="home-qaction-icon"><Landmark size={22} /></span>
+          <span className="home-qaction-label">Cuenta</span>
+          <span className="home-qaction-desc">Configuración</span>
+        </button>
+        <button onClick={() => generateBankPdf(account, { id: `account-statement-${account.id}`, title: `Extracto · ${account.displayName}`, kind: "MonthlyStatement" }, transactionsFor(account.id, transactions))}>
+          <span className="home-qaction-icon"><Download size={22} /></span>
+          <span className="home-qaction-label">Extracto</span>
+          <span className="home-qaction-desc">PDF mensual</span>
+        </button>
       </div>
 
-      <article className="panel action-summary">
+      {/* Stats strip — compact financial overview */}
+      <div className="home-stats-strip">
+        <div className="home-stat-card">
+          <span>Tipo</span>
+          <strong>{accountTypeLabel(account.type)}</strong>
+          <small>{account.complianceStatus || "Clear"}</small>
+        </div>
+        <div className="home-stat-card">
+          <span>Límite saldo</span>
+          <strong>{formatPz(typeBalanceLimit)} Pz</strong>
+          <small>{balanceUsage}% utilizado</small>
+        </div>
+        <div className="home-stat-card">
+          <span>Movimientos</span>
+          <strong>{history.length}</strong>
+          <small>{incomingCount} entradas · {outgoingCount} salidas</small>
+        </div>
+        <div className="home-stat-card">
+          <span>Tarjetas</span>
+          <strong>{virtualCardCount}/{MAX_VIRTUAL_CARDS_PER_ACCOUNT}</strong>
+          <small>{cards.filter((card) => !card.frozen).length} activas</small>
+        </div>
+      </div>
+      <div className="account-limit-bar" style={{ gridColumn: "1 / -1", marginTop: "-6px" }} aria-label={`Uso de saldo ${balanceUsage}%`}>
+        <span style={{ width: `${balanceUsage}%` }} />
+      </div>
+
+      {/* Access panel — refined */}
+      <article className="panel home-action-summary">
         <SectionTitle icon={WalletCards} title="Accesos de cuenta" />
         <div className="service-grid">
           <button onClick={() => setActivePopup("transfer")}><CircleDollarSign size={22} /><strong>Transferir</strong><span>Enviar Pz por IBAN</span></button>

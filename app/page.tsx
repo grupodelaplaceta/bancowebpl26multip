@@ -1364,11 +1364,28 @@ function LoginScreen({ sync, showLogin, authError }: { sync: string; showLogin: 
         </div>
       </section>
 
+      <section className="nfc-promo-card" id="nfc-promo">
+        <div className="nfc-promo-content">
+          <div className="nfc-promo-icons">
+            <Smartphone size={28} />
+            <WalletCards size={24} />
+            <CreditCard size={24} />
+          </div>
+          <div className="nfc-promo-text">
+            <strong>PlaceZum NFC, Promo Card y más</strong>
+            <p>Paga sin contacto, usa tu móvil como datafono, gestiona tarjetas virtuales y físicas, y recibe notificaciones push. Todo desde la app nativa.</p>
+          </div>
+          <a href="#android-beta" className="primary-button" style={{ textDecoration: "none", padding: "10px 20px", fontSize: ".85rem", display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <Smartphone size={18} /> Descargar APK
+          </a>
+        </div>
+      </section>
+
       <section className="android-beta-section" id="android-beta">
         <div className="android-beta-copy">
           <span>Lista BETA Android</span>
           <h2>Recibe el APK cuando esté disponible.</h2>
-          <p>Apúntate y te avisaremos próximamente por el canal que elijas.</p>
+          <p>Apúntate y te avisaremos por el canal que elijas cuando la app esté lista.</p>
           <p className="android-beta-legal">Servicio interno de pruebas del entorno Banco de La Placeta. Tus datos se usarán solo para gestionar la invitación beta y podrás solicitar baja o supresión.</p>
           <div className="android-beta-points">
             <span><Smartphone size={16} /> Sin descarga inmediata</span>
@@ -1646,6 +1663,9 @@ function HomeScreen({ account, accounts, transactions, cards, config, onTransfer
             <div><span>Saldo</span><strong>{formatPz(account.balancePz)} Pz</strong></div>
             <div><span>Estado</span><strong>{account.closedAt ? "Cerrada" : account.complianceStatus || "Clear"}</strong></div>
           </div>
+          {account.type !== "Business" && account.type !== "State" && (
+            <div className="modal-subtitle">Cotitulares</div>
+          )}
           {mutableTypes.length ? (
             <>
               <div className="modal-subtitle">Cambiar tipo</div>
@@ -1662,6 +1682,13 @@ function HomeScreen({ account, accounts, transactions, cards, config, onTransfer
               </div>
             </>
           ) : <p className="muted">Esta cuenta no permite cambio de tipo desde autoservicio.</p>}
+          <div className="modal-subtitle">Pago de IRM</div>
+          <p className="muted" style={{ fontSize: ".82rem" }}>
+            IRM {account.irmOptIn ? "automático (se carga el primer lunes de cada mes)" : `manual (fecha límite: ${new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1 + (new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).getDay() === 1 ? 0 : 8 - new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1).getDay())).toLocaleDateString("es-ES")})`}
+          </p>
+          {account.type === "Business" && account.payrollDay && (
+            <p className="muted" style={{ fontSize: ".82rem" }}>Nóminas: día {account.payrollDay} del mes siguiente.</p>
+          )}
           <div className="modal-subtitle">Cerrar cuenta</div>
           <p className="muted">Para cerrar una cuenta debe estar a 0 Pz, sin tarjetas activas y sin operaciones laborales o de inversión abiertas.</p>
           <button className="secondary-button" disabled={!canCloseAccount} onClick={() => {

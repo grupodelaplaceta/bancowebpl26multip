@@ -12639,3 +12639,67 @@ video {
     height: 56px !important;
   }
 }
+
+/* NFC Promo Card */
+.nfc-promo-card {
+  background: linear-gradient(135deg, #3F00D8 0%, #5B21B6 100%);
+  border-radius: 20px;
+  padding: 24px 28px;
+  margin: 24px auto;
+  max-width: 960px;
+  color: #fff;
+}
+.nfc-promo-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.nfc-promo-icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,.1);
+  padding: 12px 16px;
+  border-radius: 16px;
+}
+.nfc-promo-icons svg { color: #fff; }
+.nfc-promo-text {
+  flex: 1;
+  min-width: 220px;
+}
+.nfc-promo-text strong {
+  display: block;
+  font-size: 1.05rem;
+  margin-bottom: 4px;
+}
+.nfc-promo-text p {
+  margin: 0;
+  color: rgba(255,255,255,.8);
+  font-size: .88rem;
+  line-height: 1.4;
+}
+.nfc-promo-content .primary-button {
+  background: #fff;
+  color: #3F00D8;
+  white-space: nowrap;
+}
+.nfc-promo-content .primary-button:hover {
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 4px 16px rgba(255,255,255,.2);
+}
+
+/* Switch row for IRM toggle */
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+}
+.switch-row input[type="checkbox"] {
+  width: 44px;
+  height: 24px;
+  accent-color: #3F00D8;
+  cursor: pointer;
+}

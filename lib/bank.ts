@@ -60,6 +60,9 @@ export type Account = {
   fundsJustificationApproved?: boolean;
   listedInvestmentFund?: boolean;
   investmentRiskLevel?: number;
+  irmOptIn?: boolean;
+  irmDueDate?: string | null;
+  payrollDay?: number;
   closedAt?: string | null;
 };
 

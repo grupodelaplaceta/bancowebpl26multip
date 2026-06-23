@@ -458,7 +458,7 @@ function BancoPlacetaClient() {
     setActiveUser(storedUser);
     setSelectedAccountId((current) => {
       const selectedStillValid = nextState.accounts.some((account) => account.id === current && account.placetaId === storedUser.placetaId);
-      return selectedStillValid ? current : storedUser.primaryAccountId;
+      return selectedStillValid ? current : (storedUser.primaryAccountId ?? current);
     });
   }, []);
 
@@ -827,7 +827,7 @@ function BancoPlacetaClient() {
     setBusyMessage("Creando cuenta");
     try {
       const fresh = await fetchFreshState(false);
-      const parent = requireOwnedAccount(fresh, activeUser, parentAccountId || selectedAccount?.id || activeUser.primaryAccountId);
+      const parent = requireOwnedAccount(fresh, activeUser, parentAccountId || selectedAccount?.id || activeUser.primaryAccountId || "");
       const created = createBankAccount(fresh, activeUser.placetaId, displayName, type, parent.id, cardTier);
       const saved = await persist(created.state, `Cuenta ${accountTypeLabel(type)} creada`, fresh.updatedAt || null);
       if (saved) setSelectedAccountId(created.account.id);
@@ -871,14 +871,14 @@ function BancoPlacetaClient() {
           const refreshedUser = ageChecked.users.find((item) => item.dip === normalizedDip) || existing;
           if (ageChecked !== fresh) await persist(ageChecked, "Edad verificada con PlacetaID", fresh.updatedAt || null);
           setActiveUser(refreshedUser);
-          setSelectedAccountId(refreshedUser.primaryAccountId);
+          setSelectedAccountId(refreshedUser.primaryAccountId ?? selectedAccount?.id ?? "");
           localStorage.setItem("placeta-web-dip", refreshedUser.dip);
           setToast(`Sesión iniciada con PlacetaID · edad ${verifiedAge}`);
         } else {
           const registered = await registerPlacetaIdUser(fresh, placetaUser);
           await persist(registered.state, "Cuenta creada con PlacetaID", fresh.updatedAt || null);
           setActiveUser(registered.user);
-          setSelectedAccountId(registered.user.primaryAccountId);
+          setSelectedAccountId(registered.user.primaryAccountId ?? selectedAccount?.id ?? "");
           localStorage.setItem("placeta-web-dip", registered.user.dip);
         }
 
@@ -1047,7 +1047,7 @@ function BancoPlacetaClient() {
             return toggleCard(fresh, cardId);
           }, "Estado de tarjeta actualizado")}
           onChangeAccountType={(type) => runOperation((fresh) => changeAccountType(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id, type), `Cuenta convertida a ${accountTypeLabel(type)}`)}
-          onCloseAccount={() => runOperation((fresh) => closeBankAccount(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id, activeUser.primaryAccountId), "Cuenta cerrada")}
+          onCloseAccount={() => runOperation((fresh) => closeBankAccount(fresh, requireOwnedAccount(fresh, activeUser, selectedAccount.id).id, activeUser.primaryAccountId ?? ""), "Cuenta cerrada")}
           onCreateAccount={(type, displayName, parentAccountId, cardTier) => void handleCreateAccount(type, displayName, parentAccountId, cardTier)}
         />
       )}
@@ -1659,7 +1659,8 @@ const accountProductCopy: Record<AccountType, string> = {
   Savings: "Hucha bloqueada para ahorro y rentabilidad anual.",
   Child: "Cuenta infantil con límite de envío y cuenta tutora.",
   Business: "Producto empresa con umbral institucional y nóminas.",
-  Investment: "Cartera separada para activos del mercado GDLP."
+  Investment: "Cartera separada para activos del mercado GDLP.",
+  State: "Cuenta institucional para gestión de fondos públicos."
 };
 
 function AccountCreationForm({ parentAccount, config, onCreate }: { parentAccount: Account; config: BankState["treasuryConfig"]; onCreate: (type: AccountType, displayName: string, parentAccountId?: string | null, cardTier?: DigitalCard["tier"]) => void }) {

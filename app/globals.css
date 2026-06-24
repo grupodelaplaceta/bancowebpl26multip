@@ -1,11 +1,11 @@
 :root {
-  --bg: #f5f6fa;
-  --bg-2: #ffffff;
-  --surface: #ffffff;
-  --surface-2: #f4f3f8;
-  --ink: #171322;
-  --ink-soft: #322b45;
-  --muted: #686579;
+  --bg: #FFFFFF;
+  --bg-2: #FFFFFF;
+  --surface: #FFFFFF;
+  --surface-2: #F8F6FF;
+  --ink: #000000;
+  --ink-soft: #4C3C5E;
+  --muted: #6C5878;
   --line: rgba(63, 0, 216, 0.12);
   --line-strong: rgba(63, 0, 216, 0.24);
   --brand: #3F00D8;
@@ -13,13 +13,15 @@
   --brand-3: #3F00D8;
   --brand-purple: #3F00D8;
   --brand-purple-2: #3F00D8;
-  --brand-purple-dark: #260083;
-  --gold: #b77912;
-  --red: #3F00D8;
+  --brand-purple-dark: #2A006E;
+  --gold: #FFB300;
+  --red: #E00022;
+  --green: #00A651;
+  --mint: #00A884;
   --accent: #3F00D8;
   --blue: #3F00D8;
-  --shadow-sm: 0 6px 16px rgba(23, 19, 34, 0.05);
-  --shadow: 0 14px 34px rgba(23, 19, 34, 0.08);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+  --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   --radius: 14px;
   --radius-lg: 18px;
   --nav-h: 76px;
@@ -224,7 +226,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   width: min(1180px, 100%);
   min-height: 100vh;
   margin: 0 auto;
-  padding: 16px 18px calc(var(--nav-h) + 28px);
+  padding: 16px 18px calc(var(--nav-h) + 18px);
+  background: #FFFFFF;
 }
 .app-shell.is-busy .app-nav,
 .app-shell.is-busy .bottom-nav,
@@ -322,32 +325,32 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border: 1px solid rgba(63, 0, 216, .12);
   border-radius: 16px;
   background: #fff;
-  box-shadow: 0 8px 22px rgba(23,19,34,.045);
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 7px;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 4px;
 }
 .app-nav button {
   min-width: 0;
   min-height: 40px;
-  padding: 0 10px;
-  border-radius: 10px;
+  padding: 0 8px;
+  border-radius: 12px;
   color: var(--muted);
   background: transparent;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-size: .8rem;
-  font-weight: 900;
+  gap: 6px;
+  font-size: .78rem;
+  font-weight: 800;
+  transition: background .18s, color .18s;
 }
 .app-nav button:hover {
   background: rgba(63, 0, 216, .07);
-  color: var(--brand);
 }
 .app-nav button.active {
-  color: white;
-  background: #3F00D8;
+  color: #3F00D8;
+  background: rgba(63, 0, 216, .10);
   box-shadow: none;
 }
 
@@ -2024,45 +2027,45 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 .bottom-nav {
   position: fixed;
-  left: 50%;
-  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 20;
-  transform: translateX(-50%);
-  width: min(720px, calc(100% - 24px));
+  width: 100%;
   min-height: var(--nav-h);
-  padding: 8px;
-  border: 1px solid rgba(63, 0, 216, .16);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, .92);
-  box-shadow: 0 18px 44px rgba(36, 9, 88, .18);
-  backdrop-filter: blur(18px);
+  padding: 8px 12px max(8px, env(safe-area-inset-bottom));
+  background: #FFFFFF;
+  border-top: 1px solid rgba(63, 0, 216, 0.10);
   display: none;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 4px;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 2px;
 }
 .bottom-nav button {
   min-width: 0;
-  min-height: 58px;
-  border-radius: 16px;
+  min-height: 54px;
+  border-radius: 14px;
   background: transparent;
   color: var(--muted);
   display: grid;
   place-items: center;
-  gap: 3px;
-  font-size: .7rem;
-  font-weight: 850;
+  gap: 2px;
+  font-size: .68rem;
+  font-weight: 800;
+  padding: 4px 2px;
+  transition: background .18s, color .18s;
 }
-.bottom-nav button:hover { background: rgba(63, 0, 216, .08); }
+.bottom-nav button:hover { background: rgba(63, 0, 216, .06); }
 .bottom-nav button.active {
-  color: white;
-  background: #3F00D8;
-  box-shadow: 0 10px 22px rgba(63, 0, 216, .26);
+  color: #3F00D8;
+  background: rgba(63, 0, 216, .10);
+  box-shadow: none;
 }
 
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--nav-h) + 28px);
+  bottom: calc(var(--nav-h) + 18px);
   z-index: 30;
   transform: translateX(-50%);
   width: min(540px, calc(100% - 30px));

@@ -93,12 +93,14 @@ import { generateBankPdf } from "../lib/pdf";
 import { BANK_SITE_URL } from "../lib/site";
 import type { WebDocumentKind } from "../lib/pdf";
 
-type Tab = "home" | "placezum" | "market" | "hub" | "tributos";
+type Tab = "home" | "placezum" | "inversiones" | "sociedades" | "estatal" | "hub" | "tributos";
 
-const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
+const allTabs: Array<{ id: Tab; label: string; icon: LucideIcon; requiresAccount?: AccountType | AccountType[] }> = [
   { id: "home", label: "Inicio", icon: Home },
   { id: "placezum", label: "Placezum", icon: QrCode },
-  { id: "market", label: "Mercado", icon: TrendingUp },
+  { id: "inversiones", label: "Inversiones", icon: TrendingUp, requiresAccount: ["Investment", "Business"] },
+  { id: "sociedades", label: "Sociedades", icon: Building2, requiresAccount: "Business" },
+  { id: "estatal", label: "Estado", icon: ShieldCheck, requiresAccount: "State" },
   { id: "hub", label: "Hub", icon: MoreHorizontal },
   { id: "tributos", label: "TGLP", icon: Gavel }
 ];
@@ -553,7 +555,18 @@ function BancoPlacetaClient() {
     return accountsForUser(state, activeUser);
   }, [activeUser, state]);
   const selectedAccount = userAccounts.find((account) => account.id === selectedAccountId) || userAccounts.find((account) => account.id === activeUser?.primaryAccountId) || userAccounts[0];
-  const visibleTabs = isAdminUser(activeUser) ? tabs : tabs.filter((item) => item.id !== "tributos");
+  const visibleTabs = useMemo(() => {
+    let tabs = allTabs;
+    // Ocultar TGLP para no-admins
+    if (!isAdminUser(activeUser)) tabs = tabs.filter((item) => item.id !== "tributos");
+    // Filtrar por tipo de cuenta requerido
+    tabs = tabs.filter((item) => {
+      if (!item.requiresAccount) return true;
+      const required = Array.isArray(item.requiresAccount) ? item.requiresAccount : [item.requiresAccount];
+      return userAccounts.some((a) => required.includes(a.type));
+    });
+    return tabs;
+  }, [activeUser, userAccounts]);
 
   useEffect(() => {
     if (!activeUser || !userAccounts.length) return;
@@ -1069,7 +1082,7 @@ function BancoPlacetaClient() {
         />
       )}
 
-      {tab === "market" && (
+      {tab === "inversiones" && (
         <MarketScreen
           state={state}
           account={selectedAccount}
@@ -1104,6 +1117,8 @@ function BancoPlacetaClient() {
           }}
         />
       )}
+      {tab === "sociedades" && <HubScreen state={state} user={activeUser} onPersist={(next, message) => void persist(next, message)} onCreateAccount={(type, displayName, parentAccountId, cardTier) => void handleCreateAccount(type, displayName, parentAccountId, cardTier)} />}
+      {tab === "estatal" && <HubScreen state={state} user={activeUser} onPersist={(next, message) => void persist(next, message)} onCreateAccount={(type, displayName, parentAccountId, cardTier) => void handleCreateAccount(type, displayName, parentAccountId, cardTier)} />}
       {tab === "hub" && <HubScreen state={state} user={activeUser} onPersist={(next, message) => void persist(next, message)} onCreateAccount={(type, displayName, parentAccountId, cardTier) => void handleCreateAccount(type, displayName, parentAccountId, cardTier)} />}
       {tab === "tributos" && <TributosScreen state={state} onPersist={(next, message) => void persist(next, message)} />}
 

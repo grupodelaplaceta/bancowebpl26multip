@@ -438,7 +438,34 @@ img{max-width:100%;height:auto}
 /* Screen grid (main content area) */
 .screen-grid{display:grid;gap:14px}
 
-/* LP4 footer */
+/* LP4 service grid cards */
+.lp4-service-grid a,.lp4-service-grid>div,.lp4-info-grid a,.lp4-info-grid>div{display:block;padding:20px;border:1px solid var(--line);border-radius:var(--radius-lg);background:var(--surface);text-decoration:none;color:var(--ink);transition:box-shadow .2s,border-color .2s,transform .2s}
+.lp4-service-grid a:hover,.lp4-info-grid a:hover{border-color:var(--brand);box-shadow:0 6px 20px rgba(63,0,216,.1);transform:translateY(-2px)}
+.lp4-service-grid img,.lp4-info-grid img{border-radius:var(--radius);margin-bottom:12px;width:100%;height:160px;object-fit:cover}
+.lp4-service-grid strong,.lp4-info-grid strong{display:block;font-size:.95rem;font-weight:900;margin-bottom:4px}
+.lp4-service-grid em,.lp4-info-grid em{display:block;font-size:.8rem;color:var(--muted);font-style:normal}
+.lp4-info-image{height:160px;border-radius:var(--radius);overflow:hidden;margin-bottom:12px;background:var(--surface-2)}
+.lp4-info-image img{width:100%;height:100%;object-fit:cover}
+
+/* Login page card */
+.login-only-card{box-shadow:0 8px 30px rgba(0,0,0,.08)}
+.login-only-side:first-child{background:linear-gradient(135deg,var(--brand),var(--brand-dark));color:#fff}
+.login-only-side:first-child .login-only-brand{color:#fff}
+.login-only-side:first-child h1{color:#fff}
+.login-only-side:first-child .login-side-grid{color:rgba(255,255,255,.75)}
+.login-only-side:last-child{background:var(--surface)}
+
+/* Carousel images */
+.web-carousel-frame{background:var(--surface-2)}
+.web-carousel-frame img{width:100%;height:100%;object-fit:cover}
+
+/* LP4 hero heading */
+.lp4-hero .bank-public-intro h2{font-size:2rem}
+.lp4-hero .bank-public-intro p{font-size:1rem}
+.bank-public-actions .primary-button{font-size:.95rem;padding:0 28px;min-height:52px}
+
+/* Footer */
+.bank-footer-main{padding:50px 20px}
 .lp4-footer .bank-footer-main{padding:30px 0}
 .lp4-footer .bank-footer-navs{margin:16px 0}
 .lp4-footer .bank-footer-navs nav{display:flex;flex-direction:column;gap:4px}

@@ -52,16 +52,17 @@ img{max-width:100%;height:auto}
 .app-shell.is-busy .screen-grid{pointer-events:none;opacity:.45}
 
 /* ----- Top Bar ----- */
-.topbar{position:sticky;top:0;z-index:8;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:72px;margin:-16px -18px 14px;padding:10px 18px;background:var(--brand);color:#fff}
+.topbar{position:sticky;top:0;z-index:8;display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:72px;margin:-16px -18px 14px;padding:10px 18px;background:var(--brand);color:#fff;box-shadow:0 4px 20px rgba(42,0,110,.3)}
 .top-brand{display:flex;align-items:center;gap:13px;min-width:0}
 .brand-logo{position:relative;flex:0 0 auto;width:68px;height:68px;display:block;background:transparent;overflow:visible}
 .brand-logo img{object-fit:contain}
 .topbar h1{margin:0;color:#fff;font-size:clamp(1.18rem,2.4vw,1.52rem);font-weight:900;line-height:1.06;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .top-user{display:block;color:rgba(255,255,255,.82);font-size:.72rem;font-weight:800}
 .eyebrow{font-size:.62rem;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:var(--gold)}
-.icon-button{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(255,255,255,.14);color:#fff}
+.icon-button{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(255,255,255,.14);color:#fff;transition:background .18s}
 .icon-button:hover{background:rgba(255,255,255,.24)}
 .icon-button.light{background:rgba(63,0,216,.08);color:var(--brand)}
+.icon-button.light:hover{background:rgba(63,0,216,.16)}
 
 /* ----- Nav (Desktop) ----- */
 .app-nav{margin:0 0 12px;padding:6px;border:1px solid var(--line);border-radius:16px;background:var(--surface);display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px}
@@ -79,8 +80,12 @@ img{max-width:100%;height:auto}
 .toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 18px);z-index:30;transform:translateX(-50%);width:min(540px,calc(100% - 30px));min-height:50px;padding:12px 16px;border-radius:14px;background:var(--ink);color:#fff;font-size:.9rem;font-weight:700;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.18)}
 
 /* ----- Cards ----- */
-.card,.hero-card,.home-hero-card,.home-stat-card,.fund-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px}
-.hero-card{color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-dark))}
+.card,.hero-card,.home-hero-card,.home-stat-card,.fund-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.card h3,.fund-card h3{font-size:1rem;font-weight:900;margin:0 0 4px}
+.card p,.fund-card p{font-size:.85rem;color:var(--muted);margin:0}
+.hero-card{color:#fff;background:linear-gradient(135deg,var(--brand),var(--brand-dark));box-shadow:0 8px 30px rgba(42,0,110,.25)}
+.hero-card h2{font-size:1.3rem;font-weight:900;margin:0 0 4px}
+.hero-card p{color:rgba(255,255,255,.8);font-size:.9rem;margin:0}
 .home-hero-card{background:var(--brand);color:#fff;padding:18px}
 .home-hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .home-hero-label,.home-hero-type{font-size:.7rem;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.7)}
@@ -100,15 +105,33 @@ img{max-width:100%;height:auto}
 .hero-topline{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 
 /* ----- Account Strip ----- */
-.account-strip{display:flex;gap:10px;overflow-x:auto;padding:4px 0;scrollbar-width:none;margin-bottom:14px}
+.account-strip{display:flex;gap:10px;overflow-x:auto;padding:6px 0;scrollbar-width:none;margin-bottom:14px}
 .account-strip::-webkit-scrollbar{display:none}
-.account-row{padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);display:flex;align-items:center;gap:8px;white-space:nowrap;cursor:pointer;font-weight:800;font-size:.82rem;transition:border-color .16s,background .16s}
-.account-row:hover{border-color:var(--brand)}
-.account-row.active{background:var(--brand);color:#fff;border-color:var(--brand)}
+.account-chip{padding:10px 16px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);display:inline-flex;align-items:center;gap:8px;white-space:nowrap;cursor:pointer;font-weight:800;font-size:.82rem;transition:all .18s;box-shadow:0 1px 3px rgba(0,0,0,.03)}
+.account-chip:hover{border-color:var(--brand);box-shadow:0 2px 8px rgba(63,0,216,.1)}
+.account-chip.active{background:var(--brand);color:#fff;border-color:var(--brand);box-shadow:0 4px 14px rgba(63,0,216,.3)}
 
 /* ----- Transaction List ----- */
-.transaction-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.transaction-row{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);transition:background .15s}
+.transaction-row:hover{background:rgba(63,0,216,.02)}
 .transaction-row:last-child{border-bottom:0}
+
+/* ----- Landing polish ----- */
+.bank-public-intro h2{font-size:2rem;font-weight:900;margin-bottom:8px}
+.bank-public-intro p{font-size:1.05rem;line-height:1.5}
+.lp4-hero h1{font-size:2.2rem;font-weight:900;margin:0 0 10px}
+.lp4-hero p{font-size:1.1rem;color:var(--muted);max-width:600px;margin:0 auto}
+.lp4-product h3{font-size:1.1rem;font-weight:900;margin:0 0 4px}
+.lp4-product p{font-size:.9rem;color:var(--muted);line-height:1.45}
+.nfc-promo-card h2{font-size:1.4rem;font-weight:900;margin:0 0 8px}
+.nfc-promo-card p{font-size:1rem;opacity:.9}
+.legal-hero h1{font-size:1.8rem;font-weight:900}
+
+/* ----- Form polish ----- */
+.field input,.field select,.field textarea{transition:border-color .18s,box-shadow .18s}
+.field input:focus,.field select:focus,.field textarea:focus{box-shadow:0 0 0 3px rgba(63,0,216,.1)}
+.primary-button,.btn-primary{box-shadow:0 2px 8px rgba(63,0,216,.25);transition:transform .16s,box-shadow .16s,background .16s}
+.primary-button:hover,.btn-primary:hover{box-shadow:0 4px 14px rgba(63,0,216,.35);transform:translateY(-1px)}
 
 /* ----- Forms & Fields ----- */
 .field{display:grid;gap:4px;margin-bottom:12px}
